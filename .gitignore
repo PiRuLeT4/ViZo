@@ -1,0 +1,28 @@
+# Entorno Virtual
+venv/
+ENV/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Django
+media/
+staticfiles/
+.env
+
+# Editores y Sistema
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# TFG / Archivos Temporales de Análisis
+temp_repos/
+*.log
+
+# Roadmap
+Roadmap.md
