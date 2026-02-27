@@ -42,7 +42,7 @@ def analyze_repository(url):
         # region LIZARD
         # 3. Analizar con Lizard
         print(Fore.YELLOW + "Analizando métricas con Lizard...")
-        analysis = lizard.analyze([target_dir])
+        analysis = list(lizard.analyze([target_dir]))
         metrics_list = []
 
         for file in analysis:
@@ -94,7 +94,28 @@ def analyze_repository(url):
         print(Fore.CYAN + f"Días con actividad: {len(evolution_data['timeline'])}")
         # endregion
 
-        return {"metrics": metrics_list, "evolution_data": evolution_data}
+        # 5. Preparar data_to_display para la visualización
+        data_to_display = []
+        for file in analysis:
+            # Obtener el path relativo para buscar en file_churn (normalizado a '/')
+            rel_path = os.path.relpath(file.filename, target_dir).replace("\\", "/")
+            commits_count = evolution_data["file_churn"].get(rel_path, 0)
+
+            data_to_display.append(
+                {
+                    "filename": os.path.basename(file.filename),
+                    "nloc": file.nloc,
+                    "ccn": file.average_cyclomatic_complexity,
+                    "commits": commits_count,
+                }
+            )
+        print(data_to_display)
+
+        return {
+            "metrics": metrics_list,
+            "evolution_data": evolution_data,
+            "data_to_display": data_to_display,
+        }
 
     except GitCommandError as e:
         print(Fore.RED + f"Error de Git: {e}")

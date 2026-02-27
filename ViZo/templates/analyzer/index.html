@@ -1,6 +1,6 @@
 {% load static %}
 <!doctype html>
-<html lang="en">
+<html lang="es">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -8,18 +8,18 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="{% static 'analyzer.css' %}" />
-    <script src="{% static 'analyzer.js' %}" defer></script>
+    <link rel="stylesheet" href="{% static 'analyzer.css' %}?v=3" />
+    <link rel="icon" type="image/x-icon" href="{% static 'favicon1.png' %}" />
+    <script src="{% static 'analyzer.js' %}?v=3" defer></script>
   </head>
   <body>
-    <div class="particle"></div>
-    <div class="particle"></div>
-    <div class="particle"></div>
-    <div class="particle"></div>
-    <div class="particle"></div>
+    <!-- Background Design Elements -->
+    <div class="glow-sphere glow-cyan"></div>
+    <div class="glow-sphere glow-magenta"></div>
+    <div class="grid-overlay"></div>
 
     <div class="container">
       <div class="card">
@@ -27,13 +27,16 @@
           <div class="logo">
             <span class="logo-text">VZ</span>
           </div>
-          <h1>ViZo</h1>
-          <p class="subtitle">Visualiza y analiza repositorios de código</p>
+          <h1 class="vizo-title">VIZO_ANALYZE</h1>
+          <p class="subtitle">
+            Ingeniería Inversa de Código & Visualización XR
+          </p>
         </div>
 
-        <form id="analyzerForm">
+        <form id="analyzerForm" action="{% url 'index' %}" method="post">
+          {% csrf_token %}
           <div class="form-group">
-            <label for="repoUrl">URL del Repositorio</label>
+            <label for="repoUrl">Target Repository URL</label>
             <div class="input-wrapper">
               <input
                 type="url"
@@ -60,39 +63,26 @@
               </svg>
             </div>
             <p class="helper-text" id="helperText">
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="16" x2="12" y2="12"></line>
-                <line x1="12" y1="8" x2="12.01" y2="8"></line>
-              </svg>
-              Ingresa la URL completa del repositorio (GitHub, GitLab, etc.)
+              <span id="statusIcon">⚡</span>
+              <span id="statusInfo">Esperando flujo de datos externo...</span>
             </p>
           </div>
 
-          <button type="submit">Analizar Repositorio</button>
+          <button type="submit" id="submitBtn">Iniciar Análisis</button>
         </form>
 
         <div class="features">
           <div class="feature">
             <div class="feature-icon">📊</div>
-            <div class="feature-title">Visualización</div>
+            <div class="feature-title">XR VISUAL</div>
           </div>
           <div class="feature">
             <div class="feature-icon">🔍</div>
-            <div class="feature-title">Análisis Profundo</div>
+            <div class="feature-title">DEEP METRICS</div>
           </div>
           <div class="feature">
             <div class="feature-icon">⚡</div>
-            <div class="feature-title">Resultados Rápidos</div>
+            <div class="feature-title">FAST FLOW</div>
           </div>
         </div>
       </div>

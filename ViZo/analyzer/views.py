@@ -1,3 +1,5 @@
+import json
+
 from django.shortcuts import redirect, render
 
 from .services import analyze_repository
@@ -6,15 +8,15 @@ from .services import analyze_repository
 def index(request):
     if request.method == "POST":
         url = request.POST.get("repoUrl")
-        # Ahora llamamos a una única función que hace todo
         result = analyze_repository(url)
 
         if result:
-            evo = result.get("evolution_data", {})
-            print(
-                f"Análisis completado: {evo.get('total_commits', 0)} commits encontrados."
+            data_to_display = result.get("data_to_display", [])
+            return render(
+                request,
+                "visualization/index.html",
+                {"data_to_display": json.dumps(data_to_display)},
             )
-            print(f"Autores: {len(evo.get('authors', []))}")
 
         return redirect("index")
     return render(request, "analyzer/index.html")

@@ -48,9 +48,3 @@ input.addEventListener("input", function () {
           `;
   }
 });
-
-form.addEventListener("submit", function (e) {
-  e.preventDefault();
-  // Aquí iría la lógica de envío del formulario
-  console.log("Form submitted with URL:", input.value);
-});

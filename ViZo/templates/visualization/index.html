@@ -1,0 +1,213 @@
+{% load static %}
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ViZo - Data Visualization Suite</title>
+
+    <!-- A-Frame & Components -->
+    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+    <script src="https://unpkg.com/aframe-babia-components/dist/aframe-babia-components.min.js"></script>
+    <script src="https://unpkg.com/aframe-environment-component@1.3.7/dist/aframe-environment-component.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-particle-system-component@master/dist/aframe-particle-system-component.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v7.2.0/dist/aframe-extras.min.js"></script>
+
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+        background-color: #050505;
+      }
+      #ui-overlay {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        color: #00fbff;
+        font-family: "Outfit", sans-serif;
+        text-shadow: 0 0 10px rgba(0, 251, 255, 0.5);
+        pointer-events: none;
+        z-index: 10;
+      }
+      .vizo-logo {
+        font-size: 24px;
+        font-weight: bold;
+        letter-spacing: 2px;
+        margin-bottom: 5px;
+      }
+      .vizo-status {
+        font-size: 12px;
+        text-transform: uppercase;
+        opacity: 0.8;
+      }
+    </style>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="ui-overlay">
+      <div class="vizo-logo">VIZO_01</div>
+      <div class="vizo-status">LIVE_DATA_ANALYSIS // BABIA_CITY</div>
+    </div>
+
+    <a-scene
+      renderer="antialias: true; colorManagement: true; exposure: 1.0;"
+      cursor="rayOrigin: mouse; fuse: false"
+      raycaster="objects: .interactable"
+      fog="type: exponential; color: #000000; density: 0.04"
+    >
+      <a-assets>
+        <img
+          id="grid"
+          src="https://img.gs/bb99645842/512x512,stretch/https://i.imgur.com/8X99X7H.png"
+        />
+      </a-assets>
+
+      <!-- Background Sky -->
+      <a-sky color="#050505"></a-sky>
+
+      <!-- Room Structure -->
+      <a-entity id="room">
+        <!-- Floor -->
+        <a-plane
+          rotation="-90 0 0"
+          width="100"
+          height="100"
+          material="src: #grid; repeat: 80 80; color: #333; metalness: 0.5; roughness: 0.3;"
+        ></a-plane>
+
+        <!-- LED Strips -->
+        <a-box
+          position="0 0.05 -15"
+          width="30"
+          height="0.1"
+          depth="0.1"
+          material="color: #00fbff; emissive: #00fbff; emissiveIntensity: 2;"
+        ></a-box>
+        <a-box
+          position="0 0.05 15"
+          width="30"
+          height="0.1"
+          depth="0.1"
+          material="color: #ff00ff; emissive: #ff00ff; emissiveIntensity: 2;"
+        ></a-box>
+        <a-box
+          position="-15 0.05 0"
+          width="0.1"
+          height="0.1"
+          depth="30"
+          material="color: #00fbff; emissive: #00fbff; emissiveIntensity: 2;"
+        ></a-box>
+        <a-box
+          position="15 0.05 0"
+          width="0.1"
+          height="0.1"
+          depth="30"
+          material="color: #ff00ff; emissive: #ff00ff; emissiveIntensity: 2;"
+        ></a-box>
+
+        <!-- Back Wall -->
+        <a-box
+          position="0 5 -20"
+          width="40"
+          height="10"
+          depth="0.1"
+          material="color: #1a1a1a; metalness: 0.2; roughness: 0.8;"
+        ></a-box>
+      </a-entity>
+
+      <!-- Data Particles -->
+      <a-entity
+        position="0 5 0"
+        particle-system="preset: dust; particleCount: 1500; color: #00fbff, #ff00ff; size: 0.5; opacity: 0.6"
+      ></a-entity>
+
+      <!-- BABIA CITY -->
+      <div id="vizo-data-json" style="display: none">
+        {{ data_to_display | safe }}
+      </div>
+      <a-entity id="cargador"></a-entity>
+
+      <script>
+        (function () {
+          const rawData = document.getElementById("vizo-data-json").textContent;
+          if (rawData) {
+            try {
+              const repoData = JSON.parse(rawData);
+              const blob = new Blob([JSON.stringify(repoData)], {
+                type: "application/json",
+              });
+              const url = URL.createObjectURL(blob);
+
+              const cargador = document.querySelector("#cargador");
+              cargador.setAttribute("babia-queryjson", { url: url });
+              console.log("ViZo // Data Stream Injected:", url);
+            } catch (e) {
+              console.error("ViZo // Error parsing data stream:", e);
+            }
+          }
+        })();
+      </script>
+
+      <a-entity
+        id="arbol"
+        babia-treebuilder="from: cargador; field: filename"
+      ></a-entity>
+
+      <a-entity
+        id="babia-city-container"
+        babia-city="from: arbol; 
+            width: 20;
+            depth: 20;
+            fheight: nloc;
+            fmaxarea: ccn;
+            streets: true;
+            base_thick: 0.2;
+            extra: 1.5;
+            split: pivot;
+            base_color: #0f2;
+        position="0 0 0"
+      ></a-entity>
+
+      <!-- Lighting -->
+      <!-- Hemisphere light for better upward/downward balance -->
+      <a-entity
+        light="type: hemisphere; color: #333; groundColor: #111; intensity: 1.2"
+      ></a-entity>
+      <a-entity light="type: ambient; color: #444; intensity: 0.5;"></a-entity>
+
+      <!-- Corner Lights (Strong & Atmospheric) -->
+      <a-entity
+        light="type: point; color: #00fbff; intensity: 3.0; distance: 40;"
+        position="-20 15 -20"
+      ></a-entity>
+      <a-entity
+        light="type: point; color: #ff00ff; intensity: 3.0; distance: 40;"
+        position="20 15 -20"
+      ></a-entity>
+      <a-entity
+        light="type: point; color: #00fbff; intensity: 3.0; distance: 40;"
+        position="-20 15 20"
+      ></a-entity>
+      <a-entity
+        light="type: point; color: #ff00ff; intensity: 3.0; distance: 40;"
+        position="20 15 20"
+      ></a-entity>
+
+      <!-- Stronger top-down light -->
+      <a-entity
+        light="type: spot; color: #ffffff; intensity: 3.0; angle: 60; penumbra: 0.5; distance: 50"
+        position="0 40 0"
+        rotation="-90 0 0"
+      ></a-entity>
+
+      <!-- Camera Setup (Limpio para evitar títulos pegados) -->
+      <a-entity id="rig" position="0 2 15">
+        <a-camera camera look-controls wasd-controls="fly: true"></a-camera>
+        <a-entity cursor="rayOrigin:mouse"></a-entity>
+      </a-entity>
+    </a-scene>
+  </body>
+</html>
