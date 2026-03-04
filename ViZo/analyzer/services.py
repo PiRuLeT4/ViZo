@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 import stat
@@ -5,6 +6,8 @@ import stat
 import lizard
 from colorama import Fore, init
 from git import GitCommandError, Repo
+
+from .ai_engine import get_city_config
 
 init(autoreset=True)
 
@@ -96,25 +99,63 @@ def analyze_repository(url):
 
         # 5. Preparar data_to_display para la visualización
         data_to_display = []
+        total_nloc = 0
+        total_ccn = 0
+        filenames = []
+
         for file in analysis:
             # Obtener el path relativo para buscar en file_churn (normalizado a '/')
             rel_path = os.path.relpath(file.filename, target_dir).replace("\\", "/")
             commits_count = evolution_data["file_churn"].get(rel_path, 0)
 
+            total_nloc += file.nloc
+            total_ccn += file.average_cyclomatic_complexity
+            filenames.append(os.path.basename(file.filename))
+
             data_to_display.append(
                 {
-                    "filename": os.path.basename(file.filename),
+                    "id": os.path.basename(file.filename),
                     "nloc": file.nloc,
                     "ccn": file.average_cyclomatic_complexity,
                     "commits": commits_count,
                 }
             )
-        print(data_to_display)
+        # region LM STUDIO
+        # 6. Generar resumen para la IA
+        repo_summary = {
+            "num_files": len(analysis),
+            "avg_nloc": total_nloc / len(analysis) if analysis else 0,
+            "avg_ccn": total_ccn / len(analysis) if analysis else 0,
+            "total_commits": evolution_data["total_commits"],
+            "filenames_sample": filenames[:10],  # Solo una muestra
+        }
+
+        print(Fore.MAGENTA + "Enviando resumen a la IA (LM Studio)...")
+        ai_config_raw = get_city_config(json.dumps(repo_summary))
+
+        try:
+            # Intentar parsear el JSON de la IA
+            ai_config = json.loads(ai_config_raw)
+            print(Fore.GREEN + f"Configuración de IA recibida: {ai_config}")
+        except Exception:
+            # Si falla, usar una por defecto
+            print(
+                Fore.RED
+                + "Error parseando JSON de IA, usando configuración por defecto."
+            )
+            ai_config = {
+                "fheight": "nloc",
+                "farea": "ccn",
+                "building_color": "#00fbff",
+                "base_color": "#1a1a1a",
+                "extra": 1.5,
+            }
 
         return {
             "metrics": metrics_list,
             "evolution_data": evolution_data,
             "data_to_display": data_to_display,
+            "ai_config": ai_config,
         }
 
     except GitCommandError as e:
@@ -125,7 +166,7 @@ def analyze_repository(url):
         return None
 
     finally:
-        # 5. Cierre y Limpieza
+        # 7. Cierre y Limpieza
         if repo:
             # IMPORTANTE en Windows: cerrar el repo antes de borrar la carpeta
             repo.close()

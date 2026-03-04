@@ -53,10 +53,11 @@
     </div>
 
     <a-scene
-      renderer="antialias: true; colorManagement: true; exposure: 1.0;"
+      renderer="antialias: true; colorManagement: true; exposure: 1.2;"
       cursor="rayOrigin: mouse; fuse: false"
       raycaster="objects: .interactable"
-      fog="type: exponential; color: #000000; density: 0.04"
+      fog="type: exponential; color: #000000; density: 0.012"
+      xr-mode-ui
     >
       <a-assets>
         <img
@@ -65,57 +66,54 @@
         />
       </a-assets>
 
-      <!-- Background Sky -->
-      <a-sky color="#050505"></a-sky>
+      <!-- Environment -->
+      <a-entity
+        environment="preset: starry; ground: none; lighting: none; skyType: atmosphere; skyColor: #000000; horizonColor: #050505; fog: 0;"
+      ></a-entity>
 
-      <!-- Room Structure -->
+      <!-- Room Structure (Square Data Frame) -->
       <a-entity id="room">
-        <!-- Floor -->
+        <!-- Floor: Square Grid Platform -->
         <a-plane
           rotation="-90 0 0"
-          width="100"
-          height="100"
-          material="src: #grid; repeat: 80 80; color: #333; metalness: 0.5; roughness: 0.3;"
+          width="32"
+          height="32"
+          material="src: #grid; repeat: 10 10; color: #00fbff; opacity: 0.4; transparent: true; metalness: 0.8; roughness: 0.2;"
         ></a-plane>
 
-        <!-- LED Strips -->
-        <a-box
-          position="0 0.05 -15"
-          width="30"
-          height="0.1"
-          depth="0.1"
-          material="color: #00fbff; emissive: #00fbff; emissiveIntensity: 2;"
-        ></a-box>
-        <a-box
-          position="0 0.05 15"
-          width="30"
-          height="0.1"
-          depth="0.1"
-          material="color: #ff00ff; emissive: #ff00ff; emissiveIntensity: 2;"
-        ></a-box>
-        <a-box
-          position="-15 0.05 0"
-          width="0.1"
-          height="0.1"
-          depth="30"
-          material="color: #00fbff; emissive: #00fbff; emissiveIntensity: 2;"
-        ></a-box>
-        <a-box
-          position="15 0.05 0"
-          width="0.1"
-          height="0.1"
-          depth="30"
-          material="color: #ff00ff; emissive: #ff00ff; emissiveIntensity: 2;"
-        ></a-box>
-
-        <!-- Back Wall -->
-        <a-box
-          position="0 5 -20"
-          width="40"
-          height="10"
-          depth="0.1"
-          material="color: #1a1a1a; metalness: 0.2; roughness: 0.8;"
-        ></a-box>
+        <!-- LED Strips (Full Square Frame) -->
+        <a-entity position="0 0.05 0">
+          <!-- Front & Back -->
+          <a-box
+            position="0 0 -16"
+            width="32"
+            height="0.1"
+            depth="0.1"
+            material="color: #00fbff; emissive: #00fbff; emissiveIntensity: 2;"
+          ></a-box>
+          <a-box
+            position="0 0 16"
+            width="32"
+            height="0.1"
+            depth="0.1"
+            material="color: #ff00ff; emissive: #ff00ff; emissiveIntensity: 2;"
+          ></a-box>
+          <!-- Left & Right -->
+          <a-box
+            position="-16 0 0"
+            width="0.1"
+            height="0.1"
+            depth="32"
+            material="color: #00fbff; emissive: #00fbff; emissiveIntensity: 2;"
+          ></a-box>
+          <a-box
+            position="16 0 0"
+            width="0.1"
+            height="0.1"
+            depth="32"
+            material="color: #ff00ff; emissive: #ff00ff; emissiveIntensity: 2;"
+          ></a-box>
+        </a-entity>
       </a-entity>
 
       <!-- Data Particles -->
@@ -128,32 +126,17 @@
       <div id="vizo-data-json" style="display: none">
         {{ data_to_display | safe }}
       </div>
+      <div id="vizo-ai-config" style="display: none">
+        {{ ai_config | safe }}
+      </div>
+
       <a-entity id="cargador"></a-entity>
 
-      <script>
-        (function () {
-          const rawData = document.getElementById("vizo-data-json").textContent;
-          if (rawData) {
-            try {
-              const repoData = JSON.parse(rawData);
-              const blob = new Blob([JSON.stringify(repoData)], {
-                type: "application/json",
-              });
-              const url = URL.createObjectURL(blob);
-
-              const cargador = document.querySelector("#cargador");
-              cargador.setAttribute("babia-queryjson", { url: url });
-              console.log("ViZo // Data Stream Injected:", url);
-            } catch (e) {
-              console.error("ViZo // Error parsing data stream:", e);
-            }
-          }
-        })();
-      </script>
+      <script src="{% static 'js/visualization.js' %}"></script>
 
       <a-entity
         id="arbol"
-        babia-treebuilder="from: cargador; field: filename"
+        babia-treebuilder="from: cargador; field: id"
       ></a-entity>
 
       <a-entity
@@ -162,13 +145,18 @@
             width: 20;
             depth: 20;
             fheight: nloc;
+            farea: ccn;
             fmaxarea: ccn;
             streets: true;
             base_thick: 0.2;
             extra: 1.5;
             split: pivot;
-            base_color: #0f2;
-        position="0 0 0"
+            base_color: #eee;
+            building_color: #22CFD4;
+            titles: true;
+            "
+        position="0 0.1 0"
+        scale="0.3 0.3 0.3"
       ></a-entity>
 
       <!-- Lighting -->

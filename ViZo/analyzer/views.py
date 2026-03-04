@@ -12,10 +12,14 @@ def index(request):
 
         if result:
             data_to_display = result.get("data_to_display", [])
+            ai_config = result.get("ai_config", {})
             return render(
                 request,
                 "visualization/index.html",
-                {"data_to_display": json.dumps(data_to_display)},
+                {
+                    "data_to_display": json.dumps(data_to_display),
+                    "ai_config": json.dumps(ai_config),
+                },
             )
 
         return redirect("index")
