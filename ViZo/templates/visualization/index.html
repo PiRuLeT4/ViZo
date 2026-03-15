@@ -49,13 +49,11 @@
   <body>
     <div id="ui-overlay">
       <div class="vizo-logo">VIZO_01</div>
-      <div class="vizo-status">LIVE_DATA_ANALYSIS // BABIA_CITY</div>
+      <div class="vizo-status">LIVE_DATA_ANALYSIS // LOADING...</div>
     </div>
 
     <a-scene
       renderer="antialias: true; colorManagement: true; exposure: 1.2;"
-      cursor="rayOrigin: mouse; fuse: false"
-      raycaster="objects: .interactable"
       fog="type: exponential; color: #000000; density: 0.012"
       xr-mode-ui
     >
@@ -73,7 +71,16 @@
 
       <!-- Room Structure (Square Data Frame) -->
       <a-entity id="room">
-        <!-- Floor: Square Grid Platform -->
+        <!-- Floor: Solid base (opaque, blocks environment bleed-through) -->
+        <a-plane
+          rotation="-90 0 0"
+          width="32"
+          height="32"
+          position="0 -0.01 0"
+          material="color: #050a0a; emissive: #001a1a; emissiveIntensity: 0.3; metalness: 0.9; roughness: 0.15; opacity: 1; transparent: false;"
+        ></a-plane>
+
+        <!-- Floor: Square Grid Platform (overlay semitransparente) -->
         <a-plane
           rotation="-90 0 0"
           width="32"
@@ -122,42 +129,27 @@
         particle-system="preset: dust; particleCount: 1500; color: #00fbff, #ff00ff; size: 0.5; opacity: 0.6"
       ></a-entity>
 
-      <!-- BABIA CITY -->
+      <!-- Data containers: JSON pasado desde Django -->
       <div id="vizo-data-json" style="display: none">
         {{ data_to_display | safe }}
+      </div>
+      <div id="vizo-language-json" style="display: none">
+        {{ data_by_language | safe }}
       </div>
       <div id="vizo-ai-config" style="display: none">
         {{ ai_config | safe }}
       </div>
 
+      <!-- Cargador de datos BabiaXR (babia-queryjson se asigna en JS) -->
       <a-entity id="cargador"></a-entity>
 
+      <!--
+        El componente de visualización (babia-city / babia-doughnut / babia-cyls)
+        es creado DINÁMICAMENTE por visualization.js según la config de la IA.
+        NO hardcodear ningún componente BabiaXR aquí.
+      -->
+
       <script src="{% static 'js/visualization.js' %}"></script>
-
-      <a-entity
-        id="arbol"
-        babia-treebuilder="from: cargador; field: id"
-      ></a-entity>
-
-      <a-entity
-        id="babia-city-container"
-        babia-city="from: arbol; 
-            width: 20;
-            depth: 20;
-            fheight: nloc;
-            farea: ccn;
-            fmaxarea: ccn;
-            streets: true;
-            base_thick: 0.2;
-            extra: 1.5;
-            split: pivot;
-            base_color: #eee;
-            building_color: #22CFD4;
-            titles: true;
-            "
-        position="0 0.1 0"
-        scale="0.3 0.3 0.3"
-      ></a-entity>
 
       <!-- Lighting -->
       <!-- Hemisphere light for better upward/downward balance -->
@@ -191,10 +183,25 @@
         rotation="-90 0 0"
       ></a-entity>
 
-      <!-- Camera Setup (Limpio para evitar títulos pegados) -->
-      <a-entity id="rig" position="0 2 15">
-        <a-camera camera look-controls wasd-controls="fly: true"></a-camera>
-        <a-entity cursor="rayOrigin:mouse"></a-entity>
+      <!-- Camera Setup -->
+      <a-entity
+        id="rig"
+        position="0 2 15"
+        movement-control="fly: true"
+        rotatios
+        gamepad-controls
+        trackpad-controls
+        keyboard-controls
+        touch-controls
+      >
+        <a-entity
+          camera
+          position="0 1.6 0"
+          look-controls
+          rotation
+          wasd-controls="fly: true"
+        ></a-entity>
+        <a-entity cursor="rayOrigin:mouse" raycaster></a-entity>
       </a-entity>
     </a-scene>
   </body>
