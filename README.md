@@ -4,4 +4,4 @@ ViZo: Intelligent Code Analysis &amp; Immersive Visualization Platform. Un ecosi
 
 ## Flujo actual
 
-![Flujo actual](vizo/static/images/flujo_actual.jpeg)
+![Flujo actual](./images/flujo_actual.jpeg)
