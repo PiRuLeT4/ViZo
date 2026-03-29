@@ -1,12 +1,28 @@
+/* ═══════════════════════════════════════════════════════
+   analyzer.css  —  ViZo Lab · Tech Office Palette
+   Coherente con la sala 3D: azul neon + cian + oscuro
+   ═══════════════════════════════════════════════════════ */
+
 :root {
-  --bg-dark: #050505;
-  --bg-card: rgba(10, 10, 10, 0.8);
-  --cyan: #00fbff;
-  --magenta: #ff00ff;
-  --text-primary: #ffffff;
-  --text-dim: rgba(255, 255, 255, 0.6);
-  --border-cyan: rgba(0, 251, 255, 0.2);
-  --glass-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
+  /* Sala: fondos */
+  --bg-dark: #050a12;
+  --bg-deep: #080c14;
+  --bg-card: rgba(8, 17, 31, 0.88);
+
+  /* Sala: neon palette */
+  --cyan: #00d4ff; /* acentos horizontales */
+  --blue-neon: #1a4fff; /* ceiling strips */
+  --blue-pillar: #0050ff; /* pilares verticales */
+  --green-rack: #4af7a0; /* LEDs rack */
+
+  /* Texto */
+  --text-primary: #e8f4ff;
+  --text-dim: rgba(200, 220, 255, 0.55);
+
+  /* Bordes / sombras */
+  --border-cyan: rgba(0, 212, 255, 0.18);
+  --border-blue: rgba(26, 79, 255, 0.25);
+  --glass-shadow: 0 0 40px rgba(0, 0, 0, 0.9), 0 0 80px rgba(0, 80, 255, 0.07);
 }
 
 * {
@@ -28,7 +44,7 @@ body {
   position: relative;
 }
 
-/* Background grid effect matching A-Frame */
+/* ── Grid overlay: imita el tile del suelo de la sala ── */
 .grid-overlay {
   position: fixed;
   top: 0;
@@ -36,36 +52,37 @@ body {
   width: 100%;
   height: 100%;
   background-image:
-    linear-gradient(var(--border-cyan) 1px, transparent 1px),
-    linear-gradient(90deg, var(--border-cyan) 1px, transparent 1px);
-  background-size: 50px 50px;
-  opacity: 0.1;
+    linear-gradient(rgba(0, 212, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 212, 255, 0.06) 1px, transparent 1px);
+  background-size: 48px 48px;
   pointer-events: none;
   z-index: -1;
 }
 
-/* Glowing background spheres */
+/* ── Glow spheres: azul y cian (sin magenta) ── */
 .glow-sphere {
   position: fixed;
-  width: 40vw;
-  height: 40vw;
-  filter: blur(100px);
+  width: 45vw;
+  height: 45vw;
+  filter: blur(110px);
   border-radius: 50%;
-  opacity: 0.15;
+  opacity: 0.12;
   z-index: -2;
-  animation: floatOrb 15s ease-in-out infinite alternate;
+  animation: floatOrb 18s ease-in-out infinite alternate;
 }
 
 .glow-cyan {
   background: var(--cyan);
-  top: -10%;
+  top: -15%;
   left: -10%;
 }
 
 .glow-magenta {
-  background: var(--magenta);
-  bottom: -10%;
+  /* Reemplazado por azul neon de la sala */
+  background: var(--blue-neon);
+  bottom: -15%;
   right: -10%;
+  animation-delay: -9s;
 }
 
 @keyframes floatOrb {
@@ -73,21 +90,22 @@ body {
     transform: translate(0, 0) scale(1);
   }
   to {
-    transform: translate(10%, 10%) scale(1.1);
+    transform: translate(8%, 8%) scale(1.08);
   }
 }
 
+/* ── Container ── */
 .container {
   width: 100%;
-  max-width: 550px;
+  max-width: 560px;
   z-index: 10;
-  animation: entrance 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: entrance 0.9s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes entrance {
   from {
     opacity: 0;
-    transform: translateY(30px);
+    transform: translateY(28px);
   }
   to {
     opacity: 1;
@@ -95,76 +113,111 @@ body {
   }
 }
 
+/* ── Card: glassmorphism con bordes neon de la sala ── */
 .card {
   background: var(--bg-card);
-  backdrop-filter: blur(25px);
-  -webkit-backdrop-filter: blur(25px);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
   border: 1px solid var(--border-cyan);
-  border-radius: 24px;
+  border-radius: 20px;
   padding: 3rem;
   box-shadow: var(--glass-shadow);
+  /* Línea superior: imita el strip de techo azul */
+  border-top: 2px solid var(--blue-neon);
   transition: all 0.4s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Brillo sutil en esquina superior — como el strip LED */
+.card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 10%;
+  right: 10%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--blue-neon),
+    var(--cyan),
+    var(--blue-neon),
+    transparent
+  );
+  opacity: 0.6;
 }
 
 .card:hover {
-  border-color: rgba(0, 251, 255, 0.5);
-  box-shadow: 0 0 50px rgba(0, 251, 255, 0.1);
+  border-color: rgba(0, 212, 255, 0.4);
+  box-shadow:
+    0 0 50px rgba(0, 212, 255, 0.08),
+    0 0 80px rgba(26, 79, 255, 0.06);
 }
 
+/* ── Header ── */
 .header {
   text-align: center;
-  margin-bottom: 3rem;
+  margin-bottom: 2.8rem;
 }
 
+/* Logo: imita el marco de los monitores de la sala */
 .logo {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 70px;
-  height: 70px;
-  background: rgba(0, 251, 255, 0.1);
-  border: 2px solid var(--cyan);
-  border-radius: 18px;
+  width: 72px;
+  height: 72px;
+  background: rgba(26, 79, 255, 0.1);
+  border: 1.5px solid var(--blue-neon);
+  border-radius: 16px;
   margin-bottom: 1.5rem;
-  box-shadow: 0 0 20px rgba(0, 251, 255, 0.3);
+  box-shadow:
+    0 0 18px rgba(26, 79, 255, 0.35),
+    inset 0 0 10px rgba(26, 79, 255, 0.08);
 }
 
 .logo-text {
-  font-size: 2rem;
+  font-size: 1.9rem;
   font-weight: 700;
   color: var(--cyan);
-  letter-spacing: 2px;
+  letter-spacing: 3px;
+  text-shadow: 0 0 12px rgba(0, 212, 255, 0.8);
 }
 
+/* Título: color blanco con halo suave, como el texto en los monitores */
 .vizo-title {
-  font-size: 2.2rem;
+  font-size: 2.1rem;
   font-weight: 700;
-  letter-spacing: 3px;
-  margin-bottom: 0.5rem;
+  letter-spacing: 4px;
+  margin-bottom: 0.6rem;
   color: var(--text-primary);
-  text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+  text-shadow:
+    0 0 8px rgba(0, 212, 255, 0.25),
+    0 0 30px rgba(26, 79, 255, 0.15);
 }
 
 .subtitle {
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   color: var(--text-dim);
   text-transform: uppercase;
-  letter-spacing: 2px;
+  letter-spacing: 2.5px;
 }
 
+/* ── Form ── */
 .form-group {
   margin-bottom: 2rem;
 }
 
 label {
   display: block;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 700;
   color: var(--cyan);
-  margin-bottom: 1rem;
+  margin-bottom: 0.9rem;
   text-transform: uppercase;
-  letter-spacing: 2px;
-  opacity: 0.8;
+  letter-spacing: 2.5px;
+  opacity: 0.85;
 }
 
 .input-wrapper {
@@ -173,7 +226,7 @@ label {
 
 .input-icon {
   position: absolute;
-  left: 1.25rem;
+  left: 1.2rem;
   top: 50%;
   transform: translateY(-50%);
   color: var(--text-dim);
@@ -183,120 +236,174 @@ label {
 
 input[type="url"] {
   width: 100%;
-  padding: 1.25rem 1.25rem 1.25rem 3.5rem;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
+  padding: 1.2rem 1.2rem 1.2rem 3.4rem;
+  background: rgba(5, 10, 18, 0.7);
+  border: 1px solid var(--border-blue);
+  border-radius: 14px;
   color: var(--text-primary);
-  font-size: 1rem;
+  font-size: 0.98rem;
   font-family: inherit;
   transition: all 0.3s ease;
   outline: none;
 }
 
-input[type="url"]:focus {
-  border-color: var(--cyan);
-  background: rgba(0, 251, 255, 0.05);
-  box-shadow: 0 0 20px rgba(0, 251, 255, 0.1);
+input[type="url"]::placeholder {
+  color: rgba(200, 220, 255, 0.3);
 }
 
-input[type="url"]:focus + .input-icon {
+input[type="url"]:focus {
+  border-color: var(--cyan);
+  background: rgba(0, 212, 255, 0.04);
+  box-shadow:
+    0 0 0 1px rgba(0, 212, 255, 0.15),
+    0 0 20px rgba(0, 212, 255, 0.08);
+}
+
+input[type="url"]:focus ~ .input-icon {
   color: var(--cyan);
 }
 
 input[type="url"].valid {
-  border-color: #00ff88;
-  box-shadow: 0 0 15px rgba(0, 255, 136, 0.1);
+  border-color: var(--green-rack);
+  box-shadow: 0 0 14px rgba(74, 247, 160, 0.12);
 }
 
 input[type="url"].invalid {
-  border-color: #ff3366;
-  box-shadow: 0 0 15px rgba(255, 51, 102, 0.1);
+  border-color: #ff6b6b;
+  box-shadow: 0 0 14px rgba(255, 107, 107, 0.12);
 }
 
-.helper-text.success {
-  color: #00ff88;
-}
-.helper-text.error {
-  color: #ff3366;
-}
-
+/* ── Helper text ── */
 .helper-text {
-  margin-top: 1rem;
-  font-size: 0.8rem;
+  margin-top: 0.9rem;
+  font-size: 0.78rem;
   color: var(--text-dim);
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 
+.helper-text.success {
+  color: var(--green-rack);
+}
+.helper-text.error {
+  color: #ff6b6b;
+}
+
 #statusIcon {
   color: var(--cyan);
 }
 
+/* ── Botón: gradiente azul como los strips del techo ── */
 button {
   width: 100%;
-  padding: 1.25rem;
-  background: linear-gradient(135deg, var(--cyan), #00a2ff);
+  padding: 1.2rem;
+  background: linear-gradient(
+    135deg,
+    var(--blue-neon) 0%,
+    var(--blue-pillar) 50%,
+    var(--cyan) 100%
+  );
+  background-size: 200% 200%;
+  background-position: 0% 50%;
   border: none;
-  border-radius: 16px;
-  color: #000;
-  font-size: 1.1rem;
+  border-radius: 14px;
+  color: #fff;
+  font-size: 1.05rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 2px;
+  letter-spacing: 3px;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 10px 30px rgba(0, 251, 255, 0.3);
+  font-family: inherit;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow:
+    0 6px 24px rgba(26, 79, 255, 0.4),
+    0 0 0 1px rgba(0, 212, 255, 0.1);
 }
 
 button:hover {
+  background-position: 100% 50%;
   transform: translateY(-3px);
-  box-shadow: 0 15px 40px rgba(0, 251, 255, 0.5);
+  box-shadow:
+    0 12px 36px rgba(26, 79, 255, 0.5),
+    0 0 40px rgba(0, 212, 255, 0.15);
+  color: #fff;
   filter: brightness(1.1);
 }
 
 button:active {
   transform: translateY(0);
+  filter: brightness(0.95);
 }
 
+/* ── Features: estilo rack LED ── */
 .features {
-  margin-top: 3rem;
+  margin-top: 2.8rem;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 1.5rem;
+  gap: 1.2rem;
 }
 
 .feature {
   text-align: center;
-  padding: 1rem;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 16px;
+  padding: 1rem 0.75rem;
+  background: rgba(8, 17, 31, 0.6);
+  border: 1px solid rgba(0, 80, 255, 0.18);
+  border-radius: 14px;
+  border-top: 1.5px solid rgba(0, 212, 255, 0.25);
   transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.feature::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 15%;
+  right: 15%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--blue-pillar),
+    transparent
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 .feature:hover {
-  background: rgba(0, 251, 255, 0.05);
-  border-color: var(--border-cyan);
+  background: rgba(26, 79, 255, 0.07);
+  border-color: rgba(0, 212, 255, 0.3);
   transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 80, 255, 0.2);
+}
+
+.feature:hover::after {
+  opacity: 1;
 }
 
 .feature-icon {
-  font-size: 1.5rem;
+  font-size: 1.4rem;
   margin-bottom: 0.5rem;
 }
 
 .feature-title {
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 700;
   color: var(--text-dim);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 1.5px;
 }
 
+/* ── Responsive ── */
 @media (max-width: 640px) {
   .card {
-    padding: 2rem;
+    padding: 2rem 1.5rem;
+    border-radius: 16px;
+  }
+  .vizo-title {
+    font-size: 1.7rem;
   }
 }
