@@ -18,7 +18,7 @@ import subprocess
 
 from colorama import Fore, init
 
-from .ai_engine import get_ai_config
+from .ai_engine import get_ai_config, normalize_data
 from .analyzer_core import run_analysis
 from .db_helpers import build_result_from_session, save_session
 from .models import Repository
@@ -72,7 +72,10 @@ def _check_cache(url: str, latest_commit_id: str) -> dict | None:
                 + f"[Cache MISS] Repo '{repo_obj.name}' tiene nuevos commits. Re-analizando..."
             )
     except Repository.DoesNotExist:
-        print(Fore.YELLOW + f"[Cache MISS] Repo nuevo: {url}. Analizando por primera vez...")
+        print(
+            Fore.YELLOW
+            + f"[Cache MISS] Repo nuevo: {url}. Analizando por primera vez..."
+        )
     return None
 
 
@@ -99,7 +102,7 @@ def _persist_results(
     save_session(
         repo_obj,
         last_commit_id,
-        analysis_result["data_to_display"],
+        analysis_result["file_metrics"],
         analysis_result["data_by_language"],
         ai_config,
         analysis_result["repo_summary"],
@@ -121,7 +124,7 @@ def analyze_repository(url: str) -> dict | None:
       3. Si no → análisis completo (clonado, Lizard, GitPython, IA) + guardado en BD.
 
     Devuelve un dict con:
-        - data_to_display   : métricas por archivo (para BabiaXR)
+        - file_metrics      : métricas por archivo (para BabiaXR)
         - data_by_language  : métricas por lenguaje (para BabiaXR)
         - ai_config         : configuración visual elegida por la IA
         - metrics           : lista raw de Lizard
@@ -148,18 +151,24 @@ def analyze_repository(url: str) -> dict | None:
     if analysis_result is None:
         return None
 
-    # ── Paso 3: Obtener configuración de la IA ────────────────────────────────
+    # ── Paso 3: Normalizar alturas/áreas y obtener configuración de la IA ─────
+    # Normaliza nloc → height y ccn → area (escala logarítmica, [0.5, 9])
+    data_normalized = normalize_data(analysis_result["file_metrics"])
+
     print(Fore.MAGENTA + "Enviando resumen a la IA (LM Studio)...")
     ai_config = get_ai_config(json.dumps(analysis_result["repo_summary"]))
 
     # ── Paso 4: Persistir en BD ───────────────────────────────────────────────
-    _persist_results(url, analysis_result, ai_config)
+    # Persistimos con los datos normalizados (incluyendo height/area)
+    _persist_results(
+        url, {**analysis_result, "file_metrics": data_normalized}, ai_config
+    )
 
     # ── Paso 5: Componer y devolver resultado ─────────────────────────────────
     return {
         "metrics": analysis_result["metrics"],
         "evolution_data": analysis_result["evolution_data"],
-        "data_to_display": analysis_result["data_to_display"],
+        "file_metrics": data_normalized,
         "data_by_language": analysis_result["data_by_language"],
         "ai_config": ai_config,
         "from_cache": False,

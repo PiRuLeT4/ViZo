@@ -54,12 +54,18 @@ class FileMetric(models.Model):
         return f"{self.file_name} (nloc={self.nloc}, ccn={self.ccn})"
 
     def to_dict(self):
+        rel_path = self.file_name  # stored as rel_path since last refactor
+        parts = rel_path.split("/")
+        basename = parts[-1]
+        folder = parts[0] if len(parts) > 1 else "root"
         return {
-            "id": self.file_name,
+            "id": rel_path,
+            "name": basename,
             "nloc": self.nloc,
             "ccn": self.ccn,
             "commits": self.commits,
             "language": self.language,
+            "folder": folder,
         }
 
 

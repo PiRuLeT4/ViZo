@@ -11,14 +11,14 @@ def index(request):
         result = analyze_repository(url)
 
         if result:
-            data_to_display = result.get("data_to_display", [])
+            file_metrics = result.get("file_metrics", [])
             data_by_language = result.get("data_by_language", [])
             ai_config = result.get("ai_config", {})
             return render(
                 request,
                 "visualization/index.html",
                 {
-                    "data_to_display": json.dumps(data_to_display),
+                    "data_to_display": json.dumps(file_metrics),
                     "data_by_language": json.dumps(data_by_language),
                     "ai_config": json.dumps(ai_config),
                 },
