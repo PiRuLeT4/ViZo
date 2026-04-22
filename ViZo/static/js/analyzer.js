@@ -48,3 +48,42 @@ input.addEventListener("input", function () {
           `;
   }
 });
+
+// ── Loading Sequence Logic ──
+const loadingOverlay = document.getElementById("loadingOverlay");
+const loadingMessage = document.getElementById("loadingMessage");
+
+const messages = [
+  "Clonando repositorio remoto...",
+  "Analizando estructura de archivos...",
+  "Este proceso puede tardar unos minutos...",
+  "Calculando métricas de nloc y complejidad...",
+  "Generando resumen estadístico...",
+  "Solicitando arquitectura a la IA de ViZo...",
+  "Ya casi está todo listo...",
+  "Preparando motor de visualización XR...",
+];
+
+form.addEventListener("submit", function (e) {
+  // Evitar envíos múltiples
+  if (loadingOverlay.classList.contains("active")) {
+    e.preventDefault();
+    return;
+  }
+
+  // Activar overlay
+  loadingOverlay.classList.add("active");
+
+  // Ciclo de mensajes cada 4.5 segundos
+  let msgIdx = 0;
+  setInterval(() => {
+    msgIdx = (msgIdx + 1) % messages.length;
+
+    // Efecto de fade
+    loadingMessage.style.opacity = 0;
+    setTimeout(() => {
+      loadingMessage.textContent = messages[msgIdx];
+      loadingMessage.style.opacity = 1;
+    }, 700);
+  }, 7500);
+});

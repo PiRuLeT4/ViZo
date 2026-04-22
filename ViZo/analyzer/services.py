@@ -18,7 +18,7 @@ import subprocess
 
 from colorama import Fore, init
 
-from .ai_engine import get_ai_config, normalize_data
+from .ai_engine import get_ai_config
 from .analyzer_core import run_analysis
 from .db_helpers import build_result_from_session, save_session
 from .models import Repository
@@ -151,24 +151,18 @@ def analyze_repository(url: str) -> dict | None:
     if analysis_result is None:
         return None
 
-    # ── Paso 3: Normalizar alturas/áreas y obtener configuración de la IA ─────
-    # Normaliza nloc → height y ccn → area (escala logarítmica, [0.5, 9])
-    data_normalized = normalize_data(analysis_result["file_metrics"])
-
+    # ── Paso 3: Obtener configuración de la IA ─────────────────────────────────
     print(Fore.MAGENTA + "Enviando resumen a la IA (LM Studio)...")
     ai_config = get_ai_config(json.dumps(analysis_result["repo_summary"]))
 
     # ── Paso 4: Persistir en BD ───────────────────────────────────────────────
-    # Persistimos con los datos normalizados (incluyendo height/area)
-    _persist_results(
-        url, {**analysis_result, "file_metrics": data_normalized}, ai_config
-    )
+    _persist_results(url, analysis_result, ai_config)
 
     # ── Paso 5: Componer y devolver resultado ─────────────────────────────────
     return {
         "metrics": analysis_result["metrics"],
         "evolution_data": analysis_result["evolution_data"],
-        "file_metrics": data_normalized,
+        "file_metrics": analysis_result["file_metrics"],
         "data_by_language": analysis_result["data_by_language"],
         "ai_config": ai_config,
         "from_cache": False,

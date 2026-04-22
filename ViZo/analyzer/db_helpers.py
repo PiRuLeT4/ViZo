@@ -7,14 +7,12 @@ Están separadas aquí para mantener services.py limpio y orientado a orquestaci
 
 from colorama import Fore
 
-from .ai_engine import normalize_data
 from .models import AnalysisSession, FileMetric, LanguageMetric, Repository
 
 
 def build_result_from_session(session: AnalysisSession) -> dict:
     """Reconstruye el dict de resultado a partir de una AnalysisSession ya guardada en BD."""
-    file_metrics_raw = [fm.to_dict() for fm in session.file_metrics.all()]
-    file_metrics = normalize_data(file_metrics_raw)  # añade height/area
+    file_metrics = [fm.to_dict() for fm in session.file_metrics.all()]
     data_by_language = [lm.to_dict() for lm in session.language_metrics.all()]
     print(
         Fore.CYAN

@@ -6,7 +6,7 @@
   // cada componente BabiaXR con su propio cargador y posición en la sala.
   //
   // Componentes soportados:
-  //   - babia-city      (necesita babia-treebuilder)  → dataset: file_metrics
+  //   - babia-boats    (necesita babia-treebuilder)  → dataset: file_metrics
   //   - babia-cyls                                    → dataset: data_by_language
   //   - babia-doughnut                                → dataset: data_by_language
   //   - babia-barsmap                                 → dataset: data_by_language
@@ -51,7 +51,7 @@
     console.error("ViZo // Error parsing AI config:", e);
   }
 
-  // Fallback: sólo babia-city si la IA falla
+  // Fallback: sólo babia-boats si la IA falla
   if (
     !aiConfig ||
     !Array.isArray(aiConfig.dashboards) ||
@@ -61,11 +61,11 @@
     aiConfig = {
       dashboards: [
         {
-          id: "city-complexity",
-          component: "babia-city",
+          id: "boats-complexity",
+          component: "babia-boats",
           dataset: "file_metrics",
-          title: "Code Complexity City",
-          mappings: { key: "id", fheight: "height", farea: "area" },
+          title: "Code Complexity Boats",
+          mappings: { key: "id", height: "nloc", area: "ccn" },
         },
       ],
     };
@@ -102,10 +102,10 @@
   //    Posicionamos los dashboards en el centro de la sala mirando al jugador
   // ---------------------------------------------------------------------------
   const POSITIONS = [
-    { x: 0, y: 0.1, z: 0 }, // 1 dashboard: centro
-    { x: -10, y: 0.1, z: 5 }, // 2 dashboards: izquierda
-    { x: 10, y: 0.1, z: 5 }, //               derecha
-    { x: 0, y: 0.1, z: 12 }, // 3 dashboards: fondo (bien separado)
+    { x: 0, y: 0.1, z: 8 }, // 1 dashboard: centro, cerca del jugador
+    { x: -8, y: 0.1, z: 0 }, // 2 dashboards: izquierda, más adentro
+    { x: 8, y: 0.1, z: 0 }, //               derecha, más adentro
+    { x: -3, y: 0.1, z: 12 }, // 3 dashboards: fondo centro
   ];
 
   // ---------------------------------------------------------------------------
@@ -137,40 +137,11 @@
   }
 
   // ---------------------------------------------------------------------------
-  // 5b. Función que crea el Pedestal (podio tech)
-  // ---------------------------------------------------------------------------
-  function buildPedestal(scene, pos, id) {
-    const pedestal = document.createElement("a-box");
-    pedestal.setAttribute("id", "pedestal-" + id);
-    // Altura 0.6 -> centro en 0.3 relativo a la base
-    const centerY = pos.y + 0.3;
-    pedestal.setAttribute("position", pos.x + " " + centerY + " " + pos.z);
-    pedestal.setAttribute("width", "6");
-    pedestal.setAttribute("height", "0.3");
-    pedestal.setAttribute("depth", "6");
-    pedestal.setAttribute("color", "#111827");
-    pedestal.setAttribute("roughness", "0.2");
-    pedestal.setAttribute("metalness", "0.7");
-
-    // // Añadir colisión física para el jugador
-    // pedestal.setAttribute("solid-box", {
-    //   cx: pos.x,
-    //   cy: centerY,
-    //   cz: pos.z,
-    //   halfW: 3,
-    //   halfH: 0.3,
-    //   halfD: 3,
-    // });
-
-    scene.appendChild(pedestal);
-  }
-
-  // ---------------------------------------------------------------------------
   // 6. Builders por tipo de componente
   // ---------------------------------------------------------------------------
 
   /**
-   * babia-city: necesita un babia-treebuilder intermedio.
+   * babia-boats: necesita un babia-treebuilder intermedio.
    * Usa el campo "id" como jerarquía (path del archivo).
    */
   function buildCity(scene, dash, loaderId, pos) {
@@ -186,31 +157,29 @@
     const m = dash.mappings;
     const vizEl = document.createElement("a-entity");
     vizEl.setAttribute("id", "vizo-viz-" + dash.id);
-    // Situar justo encima del pedestal (pos.y 0.1 + altura 0.6 = 0.70) + 0.01 de margen
-    vizEl.setAttribute("position", pos.x + " 0.71 " + pos.z);
+    vizEl.setAttribute("position", pos.x + " 0.1 " + pos.z);
     vizEl.setAttribute("scale", "0.2 0.2 0.2");
     vizEl.setAttribute(
-      "babia-city",
+      "babia-boats",
       [
         "from: " + treebuilderId,
-        "width: 20",
-        "depth: 20",
-        "fheight: " + (m.fheight || "height"),
-        "farea: " + (m.farea || "area"),
-        "fmaxarea: " + (m.farea || "area"),
+        "height: " + (m.height || "nloc"),
+        "area: " + (m.area || "ccn"),
         "streets: true",
-        "base_thick: 0.2",
         "extra: 1.5",
         "split: pivot",
-        "base_color: #0a1a3a",
+        "base_color: #0d1220",
         "building_color: #0a1a3a",
-        "unicolor: false",
-        "titles: true",
+        "minBuildingHeight: 2",
+        "maxBuildingHeight: 10",
+        "separation: 0.11",
+        "legend_text: {name}\n{height}(NLOC)x{area}(CCN)",
+        "color: " + m.area,
       ].join("; "),
     );
 
     scene.appendChild(vizEl);
-    console.log("ViZo // babia-city creado sobre pedestal");
+    console.log("ViZo // babia-boats creado sobre pedestal");
   }
 
   /**
@@ -220,7 +189,7 @@
     const m = dash.mappings;
     const vizEl = document.createElement("a-entity");
     vizEl.setAttribute("id", "vizo-viz-" + dash.id);
-    vizEl.setAttribute("position", pos.x + " 0.71 " + pos.z);
+    vizEl.setAttribute("position", pos.x + " 0.1 " + pos.z);
     vizEl.setAttribute("scale", "0.4 0.4 0.4");
     vizEl.setAttribute(
       "babia-cyls",
@@ -245,8 +214,7 @@
     const m = dash.mappings;
     const vizEl = document.createElement("a-entity");
     vizEl.setAttribute("id", "vizo-viz-" + dash.id);
-    // Mantener altura de flotación (0.71 + 1.09 = 1.8)
-    vizEl.setAttribute("position", pos.x + " 1.8 " + pos.z);
+    vizEl.setAttribute("position", pos.x + " 1.2 " + (pos.z - 4));
     vizEl.setAttribute("rotation", "90 0 0");
     vizEl.setAttribute("scale", "0.6 0.6 0.6");
     vizEl.setAttribute(
@@ -273,7 +241,7 @@
     const m = dash.mappings;
     const vizEl = document.createElement("a-entity");
     vizEl.setAttribute("id", "vizo-viz-" + dash.id);
-    vizEl.setAttribute("position", pos.x + " 0.71 " + pos.z);
+    vizEl.setAttribute("position", pos.x + " 0.71 " + (pos.z - 8));
     vizEl.setAttribute("scale", "0.2 0.2 0.2");
     vizEl.setAttribute(
       "babia-barsmap",
@@ -304,16 +272,24 @@
   }
 
   const dashboards = aiConfig.dashboards;
-  console.log("ViZo // Dashboards a renderizar:", dashboards);
+
+  // Ordenar para asegurar que babia-boats sea siempre el primero (Hero)
+  dashboards.sort((a, b) => {
+    if (a.component === "babia-boats") return -1;
+    if (b.component === "babia-boats") return 1;
+    return 0;
+  });
+
+  console.log("ViZo // Dashboards ordenados (Hero primero):", dashboards);
   const total = dashboards.length;
 
-  // Calcular posiciones: 1 → centro, 2 → izq+der, 3 → izq+der+fondo
-  const positionSlots =
-    total === 1
-      ? [POSITIONS[0]]
-      : total === 2
-        ? [POSITIONS[1], POSITIONS[2]]
-        : [POSITIONS[1], POSITIONS[2], POSITIONS[3]];
+  // Las posiciones se asignan en orden: 0=Centro, 1=Izquierda, 2=Derecha, 3=Fondo
+  const positionSlots = [
+    POSITIONS[0],
+    POSITIONS[1],
+    POSITIONS[2],
+    POSITIONS[3],
+  ];
 
   dashboards.forEach(function (dash, idx) {
     const loaderId = ensureLoader(scene, dash.dataset);
@@ -321,12 +297,9 @@
 
     const pos = positionSlots[idx] || POSITIONS[0];
 
-    // 1. Crear el pedestal físico
-    buildPedestal(scene, pos, dash.id);
-
-    // 2. Crear el componente visual
+    // Crear el componente visual
     switch (dash.component) {
-      case "babia-city":
+      case "babia-boats":
         buildCity(scene, dash, loaderId, pos);
         break;
       case "babia-cyls":
