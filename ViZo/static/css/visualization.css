@@ -1,0 +1,30 @@
+/* visualization.css */
+body {
+  margin: 0;
+  overflow: hidden;
+  background-color: #050505;
+}
+
+#ui-overlay {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  color: #00fbff;
+  font-family: "Outfit", sans-serif;
+  text-shadow: 0 0 10px rgba(0, 251, 255, 0.5);
+  pointer-events: none;
+  z-index: 10;
+}
+
+.vizo-logo {
+  font-size: 24px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  margin-bottom: 5px;
+}
+
+.vizo-status {
+  font-size: 12px;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
