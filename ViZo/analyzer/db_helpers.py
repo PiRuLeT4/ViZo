@@ -20,7 +20,7 @@ def build_result_from_session(session: AnalysisSession) -> dict:
     )
     return {
         "metrics": file_metrics,
-        "evolution_data": {},
+        "evolution_data": session.evolution_data,
         "file_metrics": file_metrics,
         "data_by_language": data_by_language,
         "ai_config": session.ai_config,
@@ -33,6 +33,7 @@ def save_session(
     last_commit_id: str,
     file_metrics: list,
     data_by_language: list,
+    evolution_data: list,
     ai_config: dict,
     repo_summary: dict,
 ) -> AnalysisSession:
@@ -42,6 +43,7 @@ def save_session(
         last_commit_id=last_commit_id,
         ai_config=ai_config,
         repo_summary=repo_summary,
+        evolution_data=evolution_data,
     )
 
     # Métricas por archivo

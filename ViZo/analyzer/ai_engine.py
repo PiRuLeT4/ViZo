@@ -6,7 +6,13 @@ from colorama import Fore
 from openai import OpenAI
 
 # Conexión local con LM Studio (RTX 4060)
-client = OpenAI(base_url="http://localhost:1234/v1", api_key="lm-studio")
+# Se añade un timeout corto y 0 reintentos para que falle rápido si no está abierto
+client = OpenAI(
+    base_url="http://localhost:1234/v1", 
+    api_key="lm-studio",
+    timeout=5.0,        # 5 segundos de tiempo límite total
+    max_retries=0       # No reintentar si falla la conexión inicial
+)
 
 # Configuración por defecto si la IA falla o devuelve JSON inválido
 DEFAULT_AI_CONFIG = {
@@ -45,6 +51,15 @@ Tienes acceso a dos datasets ya preparados:
    - "commits": total de commits en ese lenguaje
    - "count": número de archivos de ese lenguaje
 
+3. "evolution_data": lista de commits ordenados por fecha. Cada entrada tiene:
+   - "hash": identificador único del commit
+   - "author": nombre del autor del commit
+   - "date": fecha (AAAA-MM-DD)
+   - "message": mensaje del commit
+   - "insertions": líneas añadidas
+   - "deletions": líneas eliminadas
+
+
 # COMPONENTES DISPONIBLES
 
 Puedes combinar estos componentes para crear múltiples dashboards:
@@ -52,12 +67,12 @@ Puedes combinar estos componentes para crear múltiples dashboards:
 ## babia-boats
 Representa archivos como edificios en una visualización 3D tipo "boats". Ideal para visualizar la complejidad y tamaño
 de archivos individuales. Usa minBuildingHeight/maxBuildingHeight para auto-escalar. Requiere dataset "file_metrics".
-Mappings posibles: { "key": "id", "height": "nloc", "area": "ccn" }
+Mappings posibles: { "key": "id", "height": "nloc/commits", "area": "ccn" }
 
 ## babia-cyls
-Representa datos como cilindros. Ideal para comparar métricas por lenguaje.
-Requiere dataset "data_by_language".
-Mappings posibles: { "x_axis": "language", "height": "nloc", "radius": "count" }
+Representa datos como cilindros. Ideal para comparar métricas por lenguaje o actividad de autor.
+Requiere dataset "data_by_language" o "evolution_data".
+Mappings posibles: { "x_axis": "language/author", "height": "nloc/commits/insertions", "radius": "count" }
 
 ## babia-doughnut
 Representa distribuciones como un donut chart. Ideal para mostrar distribución de código por lenguaje.
@@ -65,9 +80,12 @@ Requiere dataset "data_by_language".
 Mappings posibles: { "key": "language", "size": "count" }
 
 ## babia-barsmap
-Representa datos como un mapa de barras en 2 ejes. Ideal para comparar métricas por lenguaje en 2D.
-Requiere dataset "data_by_language".
-Mappings posibles: { "x_axis": "language", "z_axis": "language", "height": "commits" }
+Representa datos como un mapa de barras en 2 ejes. Ideal para comparar métricas por lenguaje en 2D o comparar los commits
+hechos por distintos autores a lo largo del tiempo.
+Requiere dataset "data_by_language" o "evolution_data".
+Mappings posibles: 
+ - Por lenguaje: { "x_axis": "language", "z_axis": "language", "height": "commits" }
+ - Por autor: { "x_axis": "author", "z_axis": "date", "height": "insertions" }
 
 # REGLAS DE DECISIÓN
 
@@ -75,7 +93,8 @@ Mappings posibles: { "x_axis": "language", "z_axis": "language", "height": "comm
 - Si num_languages >= 2: añade babia-doughnut para mostrar distribución de lenguajes
 - Si num_languages >= 3: añade babia-cyls para comparar NLOC por lenguaje
 - Si avg_ccn > 3.0 (complejidad alta): añade babia-barsmap mostrando commits por lenguaje
-- No incluyas más de 3 dashboards en total
+- Si num_authors > 1: añade un dashboard (cyls o barsmap) usando el dataset "evolution_data" para mostrar actividad por autor
+- No incluyas más de 4 dashboards en total
 
 # FORMATO DE RESPUESTA
 
@@ -93,10 +112,8 @@ Devuelve ÚNICAMENTE un JSON válido con esta estructura EXACTA (sin texto adici
 }
 
 Los valores de "component" deben ser exactamente uno de: babia-boats, babia-cyls, babia-doughnut, babia-barsmap
-Los valores de "dataset" deben ser exactamente uno de: file_metrics, data_by_language
+Los valores de "dataset" deben ser exactamente uno de: file_metrics, data_by_language, evolution_data
 """
-
-
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -123,7 +140,7 @@ def _sanitize_raw_content(content: str) -> str:
 
 # Componentes y datasets válidos para validación
 _VALID_COMPONENTS = {"babia-boats", "babia-cyls", "babia-doughnut", "babia-barsmap"}
-_VALID_DATASETS = {"file_metrics", "data_by_language"}
+_VALID_DATASETS = {"file_metrics", "data_by_language", "evolution_data"}
 
 # Mappings por defecto para cada componente (fallback si la IA no los especifica correctamente)
 _DEFAULT_MAPPINGS = {
@@ -200,7 +217,7 @@ def _validate_and_fix_config(config: dict) -> dict:
             },
         )
 
-    config["dashboards"] = validated[:3]  # máximo 3 dashboards
+    config["dashboards"] = validated[:4]  # máximo 4 dashboards
     return config
 
 

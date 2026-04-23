@@ -13,6 +13,7 @@ def index(request):
         if result:
             file_metrics = result.get("file_metrics", [])
             data_by_language = result.get("data_by_language", [])
+            evolution_data = result.get("evolution_data", [])
             ai_config = result.get("ai_config", {})
             return render(
                 request,
@@ -20,6 +21,7 @@ def index(request):
                 {
                     "data_to_display": json.dumps(file_metrics),
                     "data_by_language": json.dumps(data_by_language),
+                    "evolution_data": json.dumps(evolution_data),
                     "ai_config": json.dumps(ai_config),
                 },
             )

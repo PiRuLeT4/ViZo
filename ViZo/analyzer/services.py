@@ -104,6 +104,7 @@ def _persist_results(
         last_commit_id,
         analysis_result["file_metrics"],
         analysis_result["data_by_language"],
+        analysis_result["evolution_data"],
         ai_config,
         analysis_result["repo_summary"],
     )

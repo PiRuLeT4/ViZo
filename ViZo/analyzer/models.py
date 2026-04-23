@@ -31,6 +31,9 @@ class AnalysisSession(models.Model):
     # Resumen estadístico del repo (num_files, avg_nloc, etc.)
     repo_summary = models.JSONField(default=dict)
 
+    # Datos de evolución (lista de commits)
+    evolution_data = models.JSONField(default=list)
+
     class Meta:
         ordering = ["-analysis_date"]
 

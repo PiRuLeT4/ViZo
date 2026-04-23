@@ -112,7 +112,8 @@ def _run_git_history(target_dir: str) -> dict:
     Funciona con repos locales ya clonados desde cualquier proveedor
     (GitHub, GitLab, Gitea, Codeberg, Bitbucket, etc.).
     """
-    print(Fore.YELLOW + "Analizando historial de evolución con PyDriller...")
+    print(Fore.YELLOW + "Analizando historial de evolución con PyDriller (máx. 150 commits)...")
+    
     evolution_data = {
         "total_commits": 0,
         "authors": set(),
@@ -120,13 +121,31 @@ def _run_git_history(target_dir: str) -> dict:
         "file_churn": {},
         "file_lines_added": {},
         "file_lines_deleted": {},
+        "commits": [],  # Lista plana para BabiaXR
     }
 
-    for commit in DrillRepo(target_dir).traverse_commits():
+    # Obtenemos todos los commits y nos quedamos con los 150 más recientes
+    # Nota: traverse_commits devuelve de antiguo a nuevo por defecto
+    all_commits = list(DrillRepo(target_dir).traverse_commits())
+    total_found = len(all_commits)
+    relevant_commits = all_commits[-150:] if total_found > 150 else all_commits
+
+    for commit in relevant_commits:
         evolution_data["total_commits"] += 1
         evolution_data["authors"].add(commit.author.name)
         date = commit.author_date.strftime("%Y-%m-%d")
         evolution_data["timeline"][date] = evolution_data["timeline"].get(date, 0) + 1
+
+        # Añadir al dataset de evolución
+        evolution_data["commits"].append({
+            "hash": commit.hash,
+            "author": commit.author.name,
+            "date": date,
+            "message": commit.msg,
+            "insertions": commit.insertions,
+            "deletions": commit.deletions,
+            "files": commit.files,
+        })
 
         for modified_file in commit.modified_files:
             # new_path es None en borrados; old_path es None en archivos nuevos
@@ -349,7 +368,7 @@ def run_analysis(url: str) -> dict | None:
 
         return {
             "metrics": metrics_list,
-            "evolution_data": evolution_data,
+            "evolution_data": evolution_data["commits"],
             "file_metrics": file_metrics,
             "data_by_language": data_by_language,
             "repo_summary": repo_summary,
