@@ -2,48 +2,62 @@
 <a-entity
   id="nav-analyzer-btn"
   nav-button="href: /"
-  position="19.85 3.5 5"
-  rotation="0 -90 0"
+  position="12.5 2.5 38.8"
+  rotation="0 180 0"
 >
-  <!-- Panel de fondo oscuro -->
-  <a-box
-    class="clickable"
-    data-nav-panel
-    width="5"
-    height="2"
-    depth="0.08"
-    color="#08111f"
-    emissive="#001a3a"
-    emissive-intensity="1"
-    roughness="0.1"
-    metalness="0.85"
-    opacity="0.96"
-    transparent="true"
-  ></a-box>
-  <!-- Bordes de neón -->
-  <a-box data-nav-panel position="0  0.96 0.05" width="5.1" height="0.06" depth="0.04" color="#00d4ff" emissive="#00d4ff" emissive-intensity="2"></a-box>
-  <a-box data-nav-panel position="0 -0.96 0.05" width="5.1" height="0.06" depth="0.04" color="#1a4fff" emissive="#1a4fff" emissive-intensity="2"></a-box>
-  <a-box data-nav-panel position="-2.48 0 0.05" width="0.06" height="2" depth="0.04" color="#0050ff" emissive="#0050ff" emissive-intensity="2"></a-box>
-  <a-box data-nav-panel position=" 2.48 0 0.05" width="0.06" height="2" depth="0.04" color="#0050ff" emissive="#0050ff" emissive-intensity="2"></a-box>
-
-  <!-- Decoración visual (Icono de código) -->
-  <a-box position="-1.4  0.35 0.09" width="1.8" height="0.09" depth="0.02" color="#4af7a0" emissive="#4af7a0" emissive-intensity="1.2"></a-box>
-  <a-box position="-1.1  0.12 0.09" width="1.2" height="0.07" depth="0.02" color="#00d4ff" emissive="#00d4ff" emissive-intensity="1.2"></a-box>
-  <a-box position="-1.3 -0.11 0.09" width="1.6" height="0.07" depth="0.02" color="#4af7a0" emissive="#4af7a0" emissive-intensity="1.2"></a-box>
-
-  <!-- Texto interactivo -->
+  <!-- Texto interactivo (ahora flotando encima del botón) -->
   <a-text
-    data-nav-panel
     value="ANALIZAR MAS CODIGO"
-    position="0.6 0.12 0.1"
+    position="0 1.2 0"
     align="center"
     color="#00d4ff"
     emissive="#00d4ff"
     emissive-intensity="2"
-    width="4"
+    width="6"
     font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"
   ></a-text>
 
-  <!-- Luz puntual local -->
-  <a-entity light="type: point; color: #00d4ff; intensity: 1.2; distance: 6; decay: 2" position="0 0 1"></a-entity>
+  <!-- Base del botón pegada a la pared (anillo oscuro) -->
+  <a-cylinder
+    position="0 0 0.05"
+    rotation="90 0 0"
+    radius="0.7"
+    height="0.1"
+    color="#08111f"
+    metalness="0.9"
+    roughness="0.1"
+  ></a-cylinder>
+
+  <!-- El botón circular interactivo que sobresale -->
+  <a-cylinder
+    class="clickable"
+    data-nav-panel
+    position="0 0 0.2"
+    rotation="90 0 0"
+    radius="0.55"
+    height="0.3"
+    color="#001a3a"
+    emissive="#001a3a"
+    emissive-intensity="1"
+    metalness="0.5"
+    roughness="0.2"
+  ></a-cylinder>
+
+  <!-- Icono central (decoración holográfica verde tipo "Play") -->
+  <a-triangle
+    position="0 0 0.36"
+    rotation="0 0 -90"
+    vertex-a="0 0.2 0"
+    vertex-b="-0.2 -0.15 0"
+    vertex-c="0.2 -0.15 0"
+    color="#4af7a0"
+    emissive="#4af7a0"
+    emissive-intensity="1.5"
+  ></a-triangle>
+
+  <!-- Luz puntual local para que el botón ilumine un poco la pared -->
+  <a-entity
+    light="type: point; color: #00d4ff; intensity: 1.2; distance: 4; decay: 2"
+    position="0 0 1"
+  ></a-entity>
 </a-entity>

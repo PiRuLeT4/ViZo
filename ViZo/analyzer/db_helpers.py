@@ -19,6 +19,7 @@ def build_result_from_session(session: AnalysisSession) -> dict:
         + f"[Cache] Datos cargados desde BD (session id={session.pk}, commit={session.last_commit_id[:8]})"
     )
     return {
+        "repo_name": session.repo.name,
         "metrics": file_metrics,
         "evolution_data": session.evolution_data,
         "file_metrics": file_metrics,

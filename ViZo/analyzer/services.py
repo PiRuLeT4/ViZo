@@ -161,6 +161,7 @@ def analyze_repository(url: str) -> dict | None:
 
     # ── Paso 5: Componer y devolver resultado ─────────────────────────────────
     return {
+        "repo_name": analysis_result["repo_name"],
         "metrics": analysis_result["metrics"],
         "evolution_data": analysis_result["evolution_data"],
         "file_metrics": analysis_result["file_metrics"],

@@ -110,12 +110,15 @@ AFRAME.registerComponent("nav-button", {
   init: function () {
     var el = this.el;
     var data = this.data;
-    var defaultEmissive = "#00d4ff";
-    var hoverEmissive = "#ffffff";
 
     el.addEventListener("mouseenter", function () {
       el.querySelectorAll("[data-nav-panel]").forEach(function (child) {
-        child.setAttribute("emissive", hoverEmissive);
+        // Save original on first hover just in case elements are dynamic
+        if (!child.dataset.origEmissive) {
+          child.dataset.origEmissive = child.getAttribute("emissive") || "#000000";
+          child.dataset.origEmissiveInt = child.getAttribute("emissive-intensity") || "0";
+        }
+        child.setAttribute("emissive", "#ffffff");
         child.setAttribute("emissive-intensity", "3");
       });
       el.setAttribute("scale", "1.04 1.04 1.04");
@@ -123,8 +126,10 @@ AFRAME.registerComponent("nav-button", {
 
     el.addEventListener("mouseleave", function () {
       el.querySelectorAll("[data-nav-panel]").forEach(function (child) {
-        child.setAttribute("emissive", defaultEmissive);
-        child.setAttribute("emissive-intensity", "2");
+        if (child.dataset.origEmissive) {
+          child.setAttribute("emissive", child.dataset.origEmissive);
+          child.setAttribute("emissive-intensity", child.dataset.origEmissiveInt);
+        }
       });
       el.setAttribute("scale", "1 1 1");
     });

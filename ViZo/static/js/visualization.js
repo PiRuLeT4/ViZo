@@ -32,6 +32,32 @@
 
   const fileMetrics = parseJson("vizo-data-json");
   const dataByLanguage = parseJson("vizo-language-json");
+  const evolutionData = parseJson("vizo-evolution-json");
+  const authorActivity = parseJson("vizo-activity-json");
+
+  // DEBUG: estado de cada dataset parseado
+  console.log(
+    "ViZo // [DEBUG] fileMetrics:",
+    fileMetrics ? fileMetrics.length + " items" : "NULL",
+  );
+  console.log(
+    "ViZo // [DEBUG] dataByLanguage:",
+    dataByLanguage ? dataByLanguage.length + " items" : "NULL",
+  );
+  console.log(
+    "ViZo // [DEBUG] evolutionData:",
+    evolutionData ? evolutionData.length + " items" : "NULL",
+  );
+  console.log(
+    "ViZo // [DEBUG] authorActivity:",
+    authorActivity ? authorActivity.length + " items" : "NULL",
+  );
+  if (authorActivity && authorActivity.length > 0) {
+    console.log(
+      "ViZo // [DEBUG] authorActivity[0]:",
+      JSON.stringify(authorActivity[0]),
+    );
+  }
 
   if (!fileMetrics) {
     console.error("ViZo // No se encontró file_metrics en #vizo-data-json");
@@ -82,6 +108,8 @@
   const dataMap = {
     file_metrics: fileMetrics,
     data_by_language: dataByLanguage,
+    evolution_data: evolutionData,
+    author_activity: authorActivity,
   };
 
   // Pregenerar Blob URLs
@@ -93,20 +121,20 @@
       });
       blobUrls[key] = URL.createObjectURL(blob);
       console.log("ViZo // Blob creado para '" + key + "':", blobUrls[key]);
+    } else {
+      console.warn(
+        "ViZo // [DEBUG] Dataset '" +
+          key +
+          "' es null/undefined, NO se creó blob.",
+      );
     }
   }
+  console.log("ViZo // [DEBUG] Blob URLs disponibles:", Object.keys(blobUrls));
 
   // ---------------------------------------------------------------------------
-  // 4. Posiciones fijas por número de dashboards
-  //    La sala tiene profundidad -19..+19 y ancho -19..+19
-  //    Posicionamos los dashboards en el centro de la sala mirando al jugador
+  // 4. Importar constructores y posiciones desde builders.js
   // ---------------------------------------------------------------------------
-  const POSITIONS = [
-    { x: 0, y: 0.1, z: 8 }, // 1 dashboard: centro, cerca del jugador
-    { x: -8, y: 0.1, z: 0 }, // 2 dashboards: izquierda, más adentro
-    { x: 8, y: 0.1, z: 0 }, //               derecha, más adentro
-    { x: -3, y: 0.1, z: 12 }, // 3 dashboards: fondo centro
-  ];
+  const { POSITIONS, buildCity, buildCyls, buildDoughnut, buildBarsmap } = window.ViZoBuilders;
 
   // ---------------------------------------------------------------------------
   // 5. Función que crea un cargador (babia-queryjson) compartido por dataset
@@ -134,132 +162,6 @@
     loaders[datasetKey] = loaderId;
     console.log("ViZo // Cargador creado:", loaderId);
     return loaderId;
-  }
-
-  // ---------------------------------------------------------------------------
-  // 6. Builders por tipo de componente
-  // ---------------------------------------------------------------------------
-
-  /**
-   * babia-boats: necesita un babia-treebuilder intermedio.
-   * Usa el campo "id" como jerarquía (path del archivo).
-   */
-  function buildCity(scene, dash, loaderId, pos) {
-    const treebuilderId = "vizo-tree-" + dash.id;
-    const treeEl = document.createElement("a-entity");
-    treeEl.setAttribute("id", treebuilderId);
-    treeEl.setAttribute(
-      "babia-treebuilder",
-      "from: " + loaderId + "; field: id",
-    );
-    scene.appendChild(treeEl);
-
-    const m = dash.mappings;
-    const vizEl = document.createElement("a-entity");
-    vizEl.setAttribute("id", "vizo-viz-" + dash.id);
-    vizEl.setAttribute("position", pos.x + " 0.1 " + pos.z);
-    vizEl.setAttribute("scale", "0.2 0.2 0.2");
-    vizEl.setAttribute(
-      "babia-boats",
-      [
-        "from: " + treebuilderId,
-        "height: " + (m.height || "nloc"),
-        "area: " + (m.area || "ccn"),
-        "streets: true",
-        "extra: 1.5",
-        "split: pivot",
-        "base_color: #0d1220",
-        "building_color: #0a1a3a",
-        "minBuildingHeight: 2",
-        "maxBuildingHeight: 10",
-        "separation: 0.11",
-        "legend_text: {name}\n{height}(NLOC)x{area}(CCN)",
-        "color: " + m.area,
-      ].join("; "),
-    );
-
-    scene.appendChild(vizEl);
-    console.log("ViZo // babia-boats creado sobre pedestal");
-  }
-
-  /**
-   * babia-cyls: cilindros, altura = nloc, radio = count (archivos por lenguaje).
-   */
-  function buildCyls(scene, dash, loaderId, pos) {
-    const m = dash.mappings;
-    const vizEl = document.createElement("a-entity");
-    vizEl.setAttribute("id", "vizo-viz-" + dash.id);
-    vizEl.setAttribute("position", pos.x + " 0.1 " + pos.z);
-    vizEl.setAttribute("scale", "0.4 0.4 0.4");
-    vizEl.setAttribute(
-      "babia-cyls",
-      [
-        "from: " + loaderId,
-        "x_axis: " + (m.x_axis || "language"),
-        "height: " + (m.height || "nloc"),
-        "radius: " + (m.radius || "count"),
-        "legend: true",
-        "animation: true",
-      ].join("; "),
-    );
-
-    scene.appendChild(vizEl);
-    console.log("ViZo // babia-cyls creado sobre pedestal");
-  }
-
-  /**
-   * babia-doughnut: distribución de archivos por lenguaje.
-   */
-  function buildDoughnut(scene, dash, loaderId, pos) {
-    const m = dash.mappings;
-    const vizEl = document.createElement("a-entity");
-    vizEl.setAttribute("id", "vizo-viz-" + dash.id);
-    vizEl.setAttribute("position", pos.x + " 1.2 " + (pos.z - 4));
-    vizEl.setAttribute("rotation", "90 0 0");
-    vizEl.setAttribute("scale", "0.6 0.6 0.6");
-    vizEl.setAttribute(
-      "babia-doughnut",
-      [
-        "from: " + loaderId,
-        "key: " + (m.key || "language"),
-        "size: " + (m.size || "count"),
-        "legend: true",
-        "animation: true",
-        "title: " + dash.title,
-        "titlePosition: 2 0 -3",
-      ].join("; "),
-    );
-
-    scene.appendChild(vizEl);
-    console.log("ViZo // babia-doughnut creado sobre pedestal");
-  }
-
-  /**
-   * babia-barsmap: mapa de barras 2D por lenguaje/commits.
-   */
-  function buildBarsmap(scene, dash, loaderId, pos) {
-    const m = dash.mappings;
-    const vizEl = document.createElement("a-entity");
-    vizEl.setAttribute("id", "vizo-viz-" + dash.id);
-    vizEl.setAttribute("position", pos.x + " 0.71 " + (pos.z - 8));
-    vizEl.setAttribute("scale", "0.2 0.2 0.2");
-    vizEl.setAttribute(
-      "babia-barsmap",
-      [
-        "from: " + loaderId,
-        "x_axis: " + (m.x_axis || "language"),
-        "z_axis: " + (m.z_axis || "language"),
-        "height: " + (m.height || "commits"),
-        "legend: true",
-        "palette: pearl",
-        "title: " + dash.title,
-        "titlePosition: 0 10 0",
-        "axis_name: true",
-      ].join("; "),
-    );
-
-    scene.appendChild(vizEl);
-    console.log("ViZo // babia-barsmap creado sobre pedestal");
   }
 
   // ---------------------------------------------------------------------------
@@ -292,8 +194,29 @@
   ];
 
   dashboards.forEach(function (dash, idx) {
+    console.log(
+      "ViZo // [DEBUG] Procesando dashboard[" + idx + "]:",
+      dash.component,
+      "dataset:",
+      dash.dataset,
+      "mappings:",
+      JSON.stringify(dash.mappings),
+    );
     const loaderId = ensureLoader(scene, dash.dataset);
-    if (!loaderId) return;
+    if (!loaderId) {
+      console.error(
+        "ViZo // [DEBUG] ❌ ensureLoader devolvió null para dataset '" +
+          dash.dataset +
+          "' → dashboard '" +
+          dash.component +
+          "' SALTADO",
+      );
+      return;
+    }
+    console.log(
+      "ViZo // [DEBUG] ✅ Loader OK para '" + dash.dataset + "':",
+      loaderId,
+    );
 
     const pos = positionSlots[idx] || POSITIONS[0];
 
@@ -309,6 +232,10 @@
         buildDoughnut(scene, dash, loaderId, pos);
         break;
       case "babia-barsmap":
+        console.log(
+          "ViZo // [DEBUG] → Entrando en buildBarsmap con loaderId:",
+          loaderId,
+        );
         buildBarsmap(scene, dash, loaderId, pos);
         break;
       default:
@@ -321,9 +248,55 @@
   // ---------------------------------------------------------------------------
   const statusEl = document.querySelector(".vizo-status");
   if (statusEl) {
-    const names = dashboards.map((d) =>
-      d.component.replace("babia-", "").toUpperCase(),
-    );
-    statusEl.textContent = "LIVE_DATA // " + names.join(" + ");
+    const repoName = statusEl.getAttribute("data-repo");
+    if (repoName && repoName !== "LIVE_DATA") {
+      statusEl.textContent = repoName.toUpperCase();
+    } else {
+      const names = dashboards.map((d) =>
+        d.component.replace("babia-", "").toUpperCase(),
+      );
+      statusEl.textContent = "LIVE_DATA // " + names.join(" + ");
+    }
+  }
+  // ---------------------------------------------------------------------------
+  // 9. Lógica del Chat 2D -> 3D
+  // ---------------------------------------------------------------------------
+  const chatInput = document.getElementById("ai-chat-input");
+  const chatSubmit = document.getElementById("ai-chat-submit");
+  const chat3dText = document.getElementById("vizo-chat-3d-text");
+  
+  if (chatInput && chatSubmit && chat3dText) {
+    let chatHistory = "ViZo AI Terminal v1.0\n========================================\nSistema iniciado. Esperando ordenes...\n";
+    
+    function sendChatMessage() {
+      const msg = chatInput.value.trim();
+      if (!msg) return;
+      
+      // Añadir mensaje del usuario al log
+      chatHistory += "\n> USER: " + msg + "\n";
+      chatHistory += "> AI: Procesando solicitud...\n";
+      
+      // Mantener solo las últimas líneas para no desbordar el panel 3D
+      const lines = chatHistory.split("\n");
+      if (lines.length > 25) {
+        chatHistory = lines.slice(lines.length - 25).join("\n");
+      }
+      
+      // Actualizar el texto en 3D
+      chat3dText.setAttribute("value", chatHistory);
+      chatInput.value = "";
+      
+      // TODO: Aquí irá el fetch() real a Django (/api/ask_ai/)
+      // Simulamos respuesta para que veas el efecto de la pared 3D
+      setTimeout(() => {
+        chatHistory = chatHistory.replace("> AI: Procesando solicitud...\n", "> AI: Mensaje recibido. \n> AI: Todavía no estoy conectado al backend de Django.\n");
+        chat3dText.setAttribute("value", chatHistory);
+      }, 1500);
+    }
+    
+    chatSubmit.addEventListener("click", sendChatMessage);
+    chatInput.addEventListener("keypress", function(e) {
+      if (e.key === "Enter") sendChatMessage();
+    });
   }
 })();

@@ -14,8 +14,11 @@
     <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-particle-system-component@master/dist/aframe-particle-system-component.min.js"></script>
 
     <!-- ViZo Styles -->
-    <link rel="stylesheet" href="{% static 'css/visualization.css' %}">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{% static 'css/visualization.css' %}" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;700&display=swap"
+      rel="stylesheet"
+    />
 
     <!-- A-Frame Components (ViZo Lab Physics & Logic) -->
     <script src="{% static 'js/vizo-components.js' %}"></script>
@@ -24,11 +27,67 @@
     <!-- HUD Overlay -->
     <div id="ui-overlay">
       <div class="vizo-logo">VIZO_01</div>
-      <div class="vizo-status">LIVE_DATA_ANALYSIS // LOADING...</div>
+      <div class="vizo-status" data-repo="{{ repo_name|default:'LIVE_DATA' }}">
+        {{ repo_name|default:'LIVE_DATA_ANALYSIS'|upper }} // LOADING...
+      </div>
+    </div>
+
+    <!-- Chat UI Overlay (2D) -->
+    <div
+      id="chat-ui-container"
+      style="
+        position: absolute;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 9999;
+        width: 600px;
+        background: rgba(8, 12, 20, 0.85);
+        border: 1px solid #00d4ff;
+        border-radius: 8px;
+        padding: 15px;
+        backdrop-filter: blur(5px);
+        box-shadow: 0 0 20px rgba(0, 212, 255, 0.15);
+      "
+    >
+      <div class="chat-input-wrapper" style="display: flex; gap: 10px">
+        <input
+          type="text"
+          id="ai-chat-input"
+          placeholder="Comunícate con la IA de ViZo..."
+          autocomplete="off"
+          style="
+            flex: 1;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid #0050ff;
+            color: #00d4ff;
+            padding: 12px 15px;
+            border-radius: 4px;
+            font-family: &quot;Outfit&quot;, sans-serif;
+            font-size: 16px;
+            outline: none;
+          "
+        />
+        <button
+          id="ai-chat-submit"
+          style="
+            background: #0050ff;
+            color: white;
+            border: none;
+            padding: 0 25px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: &quot;Outfit&quot;, sans-serif;
+            font-weight: bold;
+            letter-spacing: 1px;
+          "
+        >
+          ENVIAR
+        </button>
+      </div>
     </div>
 
     <a-scene fog="type: linear; color: #050a12; near: 30; far: 80">
-      
       <!-- General Assets -->
       <a-assets>
         <a-asset-item id="font" src="/static/fonts/font.json"></a-asset-item>
@@ -52,6 +111,9 @@
       <div id="vizo-evolution-json" style="display: none">
         {{ evolution_data | safe }}
       </div>
+      <div id="vizo-activity-json" style="display: none">
+        {{ author_activity | safe }}
+      </div>
       <div id="vizo-ai-config" style="display: none">
         {{ ai_config | safe }}
       </div>
@@ -60,6 +122,8 @@
       <a-entity id="cargador"></a-entity>
 
       <!-- Visualización dinámica generada por la IA -->
+      <script src="{% static 'js/podio.js' %}"></script>
+      <script src="{% static 'js/builders.js' %}"></script>
       <script src="{% static 'js/visualization.js' %}"></script>
 
       <!-- ── CAMERA (confined to room + object collisions) ── -->

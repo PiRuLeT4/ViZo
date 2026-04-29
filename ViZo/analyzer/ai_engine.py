@@ -3,15 +3,15 @@ import json
 import re
 
 from colorama import Fore
-from openai import OpenAI
+from openai import APIConnectionError, OpenAI
 
 # Conexión local con LM Studio (RTX 4060)
-# Se añade un timeout corto y 0 reintentos para que falle rápido si no está abierto
+# Se quita el timeout para que pueda tardar lo necesario, pero fallará si está cerrado
 client = OpenAI(
-    base_url="http://localhost:1234/v1", 
+    base_url="http://localhost:1234/v1",
     api_key="lm-studio",
-    timeout=5.0,        # 5 segundos de tiempo límite total
-    max_retries=0       # No reintentar si falla la conexión inicial
+    timeout=None,  # Sin límite de tiempo
+    max_retries=0,  # No reintentar si falla la conexión inicial
 )
 
 # Configuración por defecto si la IA falla o devuelve JSON inválido
@@ -28,91 +28,52 @@ DEFAULT_AI_CONFIG = {
 }
 
 _SYSTEM_PROMPT = """
-Eres un experto en visualización de software y BabiaXR. Tu tarea es decidir qué dashboards 3D
-generar para representar los datos de un repositorio de código.
+Eres un arquitecto de visualización de software experto en BabiaXR. 
+Tu misión es diseñar un centro de mando virtual para analizar la salud de un repositorio de código utilizando visualizaciones 3D.
 
 # DATASETS DISPONIBLES
+1. "file_metrics": Detalle por archivo (nloc, ccn, commits, language, folder).
+2. "data_by_language": Agrupaciones por lenguaje (nloc, avg_ccn, total_commits, count).
+3. "evolution_data": Historial de commits (hash, author, date, message, insertions, deletions).
+4. "author_activity": Actividad agrupada por autor y fecha (author, date, commits, insertions).
 
-Tienes acceso a dos datasets ya preparados:
+# COMPONENTES 3D (BabiaXR) — Mappings obligatorios
+- babia-boats: (Dataset: file_metrics) ESENCIAL. Visualiza archivos como edificios.
+  Mappings: {"key": "id", "height": "<campo numérico: nloc|ccn|commits>", "area": "<campo numérico: nloc|ccn|commits>"}
+- babia-cyls: (Dataset: data_by_language) Cilindros comparativos.
+  Mappings: {"x_axis": "language", "height": "<campo numérico: nloc|ccn|commits|count>", "radius": "<campo numérico: nloc|ccn|commits|count>"}
+- babia-doughnut: (Dataset: data_by_language) Gráfico de tarta 3D para distribución.
+  Mappings: {"key": "language", "size": "<campo numérico: nloc|ccn|commits|count>"}
+- babia-barsmap: (Dataset: author_activity) Mapa de barras 2D/3D para actividad por autor.
+  Mappings: {"x_axis": "author", "z_axis": "date", "height": "<campo numérico: commits|insertions>"}
 
-1. "file_metrics": lista de archivos del repo. Cada entrada tiene:
-   - "id": path relativo del archivo (ej: "src/utils/helpers.py"), sirve como clave jerárquica
-   - "name": nombre del archivo
-   - "nloc": líneas de código (valor absoluto)
-   - "ccn": complejidad ciclomática media (valor absoluto)
-   - "commits": número de commits que tocaron ese archivo
-   - "language": lenguaje del archivo
+# FORMATO DE RESPUESTA (ESTRICTO)
+A la hora de elegir los componentes, SIEMPRE DEBES ELEGIR los dashboards predefinidos para cada repositorio que son: 
 
-2. "data_by_language": lista agrupada por lenguaje. Cada entrada tiene:
-   - "id": nombre del lenguaje (ej: "py", "js")
-   - "language": nombre del lenguaje
-   - "nloc": total de líneas de código en ese lenguaje
-   - "ccn": complejidad media del lenguaje
-   - "commits": total de commits en ese lenguaje
-   - "count": número de archivos de ese lenguaje
+- file_metrics -> babia-boats: Para representar el numero de archivos y su complejidad
+- data_by_language -> babia-cyls: Para representar la cantidad de lineas de codigo por lenguaje
+- data_by_language -> babia-doughnut: Para representar la distribucion de archivos por lenguaje
+- author_activity -> babia-barsmap: Para representar la actividad de los autores
+Lo que tu puedes alterar son los mappings de cada dashboard como lo creas conveniente.
+Ademas, puedes utilizar los mismos dashboards para representar otro tipo de datos si lo crees necesario, aniadiendo los mappings correspondientes.
 
-3. "evolution_data": lista de commits ordenados por fecha. Cada entrada tiene:
-   - "hash": identificador único del commit
-   - "author": nombre del autor del commit
-   - "date": fecha (AAAA-MM-DD)
-   - "message": mensaje del commit
-   - "insertions": líneas añadidas
-   - "deletions": líneas eliminadas
+RESUMEN:
+Un breve párrafo de 2-3 líneas explicando qué has observado en los datos y por qué has elegido esos componentes.
 
-
-# COMPONENTES DISPONIBLES
-
-Puedes combinar estos componentes para crear múltiples dashboards:
-
-## babia-boats
-Representa archivos como edificios en una visualización 3D tipo "boats". Ideal para visualizar la complejidad y tamaño
-de archivos individuales. Usa minBuildingHeight/maxBuildingHeight para auto-escalar. Requiere dataset "file_metrics".
-Mappings posibles: { "key": "id", "height": "nloc/commits", "area": "ccn" }
-
-## babia-cyls
-Representa datos como cilindros. Ideal para comparar métricas por lenguaje o actividad de autor.
-Requiere dataset "data_by_language" o "evolution_data".
-Mappings posibles: { "x_axis": "language/author", "height": "nloc/commits/insertions", "radius": "count" }
-
-## babia-doughnut
-Representa distribuciones como un donut chart. Ideal para mostrar distribución de código por lenguaje.
-Requiere dataset "data_by_language".
-Mappings posibles: { "key": "language", "size": "count" }
-
-## babia-barsmap
-Representa datos como un mapa de barras en 2 ejes. Ideal para comparar métricas por lenguaje en 2D o comparar los commits
-hechos por distintos autores a lo largo del tiempo.
-Requiere dataset "data_by_language" o "evolution_data".
-Mappings posibles: 
- - Por lenguaje: { "x_axis": "language", "z_axis": "language", "height": "commits" }
- - Por autor: { "x_axis": "author", "z_axis": "date", "height": "insertions" }
-
-# REGLAS DE DECISIÓN
-
-- SIEMPRE incluye babia-boats (es la visualización principal de complejidad de archivos)
-- Si num_languages >= 2: añade babia-doughnut para mostrar distribución de lenguajes
-- Si num_languages >= 3: añade babia-cyls para comparar NLOC por lenguaje
-- Si avg_ccn > 3.0 (complejidad alta): añade babia-barsmap mostrando commits por lenguaje
-- Si num_authors > 1: añade un dashboard (cyls o barsmap) usando el dataset "evolution_data" para mostrar actividad por autor
-- No incluyas más de 4 dashboards en total
-
-# FORMATO DE RESPUESTA
-
-Devuelve ÚNICAMENTE un JSON válido con esta estructura EXACTA (sin texto adicional, sin comentarios):
+CONFIGURACIÓN:
+```json
 {
   "dashboards": [
     {
-      "id": "boats-complexity",
+      "id": "slug-unico",
       "component": "babia-boats",
       "dataset": "file_metrics",
-      "title": "Code Complexity Boats",
-      "mappings": { "key": "id", "height": "nloc", "area": "ccn" }
+      "title": "Nombre del Dashboard",
+      "mappings": { ... }
     }
   ]
 }
-
-Los valores de "component" deben ser exactamente uno de: babia-boats, babia-cyls, babia-doughnut, babia-barsmap
-Los valores de "dataset" deben ser exactamente uno de: file_metrics, data_by_language, evolution_data
+```
 """
 
 
@@ -121,39 +82,57 @@ Los valores de "dataset" deben ser exactamente uno de: file_metrics, data_by_lan
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-def _sanitize_raw_content(content: str) -> str:
+def _extract_summary_and_json(raw_content: str) -> tuple[str, str]:
     """
-    Limpia la respuesta cruda del modelo:
-      1. Extrae el contenido de bloques de código markdown (```json ... ```).
-      2. Elimina comentarios de una línea (//) que rompen el JSON.
+    Separa el resumen textual del bloque JSON en la respuesta de la IA.
     """
-    if "```" in content:
-        content = content.split("```")[1]
-        if content.startswith("json"):
-            content = content[4:]
-        content = content.strip()
+    summary = "No se pudo extraer la justificación de la IA."
+    json_part = "{}"
 
-    # Quitar comentarios inline tipo JS/JSON5
-    content = re.sub(r"//.*", "", content)
-    return content.strip()
+    # Extraer resumen (lo que esté entre RESUMEN: y CONFIGURACIÓN: o el primer ``` )
+    if "RESUMEN:" in raw_content:
+        parts = raw_content.split("RESUMEN:", 1)[1]
+        summary = parts.split("CONFIGURACIÓN:")[0].split("```")[0].strip()
+
+    # Extraer JSON del bloque de código
+    if "```json" in raw_content:
+        json_part = raw_content.split("```json")[1].split("```")[0].strip()
+    elif "```" in raw_content:
+        json_part = raw_content.split("```")[1].split("```")[0].strip()
+    else:
+        # Fallback: buscar llaves {}
+        start = raw_content.find("{")
+        end = raw_content.rfind("}")
+        if start != -1 and end != -1:
+            json_part = raw_content[start : end + 1]
+
+    # Eliminar posibles comentarios inline que rompen JSON estándar
+    json_part = re.sub(r"//.*", "", json_part)
+
+    return summary, json_part
 
 
 # Componentes y datasets válidos para validación
 _VALID_COMPONENTS = {"babia-boats", "babia-cyls", "babia-doughnut", "babia-barsmap"}
-_VALID_DATASETS = {"file_metrics", "data_by_language", "evolution_data"}
+_VALID_DATASETS = {
+    "file_metrics",
+    "data_by_language",
+    "evolution_data",
+    "author_activity",
+}
 
 # Mappings por defecto para cada componente (fallback si la IA no los especifica correctamente)
 _DEFAULT_MAPPINGS = {
     "babia-boats": {"key": "id", "height": "nloc", "area": "ccn"},
     "babia-cyls": {"x_axis": "language", "height": "nloc", "radius": "count"},
     "babia-doughnut": {"key": "language", "size": "count"},
-    "babia-barsmap": {"x_axis": "language", "z_axis": "language", "height": "commits"},
+    "babia-barsmap": {"x_axis": "author", "z_axis": "date", "height": "commits"},
 }
 _DEFAULT_DATASETS = {
     "babia-boats": "file_metrics",
     "babia-cyls": "data_by_language",
     "babia-doughnut": "data_by_language",
-    "babia-barsmap": "data_by_language",
+    "babia-barsmap": "author_activity",
 }
 
 
@@ -161,12 +140,10 @@ def _validate_and_fix_config(config: dict) -> dict:
     """
     Valida y corrige el dict de configuración devuelto por la IA.
     Asegura que dashboards sea una lista válida con al menos babia-boats.
-    Filtra componentes o datasets inválidos y rellena mappings por defecto.
     """
     dashboards = config.get("dashboards", [])
 
     if not isinstance(dashboards, list) or len(dashboards) == 0:
-        print(Fore.YELLOW + "[AI] dashboards vacío o inválido, usando fallback.")
         return DEFAULT_AI_CONFIG
 
     validated = []
@@ -176,48 +153,35 @@ def _validate_and_fix_config(config: dict) -> dict:
         component = dash.get("component", "")
         dataset = dash.get("dataset", "")
 
-        # Filtrar componentes o datasets no reconocidos
         if component not in _VALID_COMPONENTS:
-            print(Fore.YELLOW + f"[AI] Componente desconocido '{component}', ignorado.")
             continue
+
         if dataset not in _VALID_DATASETS:
-            # Asignar dataset por defecto según el componente
-            dataset = _DEFAULT_DATASETS[component]
+            dataset = _DEFAULT_DATASETS.get(component, "file_metrics")
             dash["dataset"] = dataset
 
-        # Rellenar mappings si faltan o son incorrectos
-        if not isinstance(dash.get("mappings"), dict) or not dash["mappings"]:
-            dash["mappings"] = _DEFAULT_MAPPINGS[component]
+        # Fuerza author_activity para babia-barsmap para evitar errores si la IA elige evolution_data
+        if component == "babia-barsmap" and dash["dataset"] != "author_activity":
+            dash["dataset"] = "author_activity"
+            dash["mappings"] = _DEFAULT_MAPPINGS["babia-barsmap"]
 
-        # Asegurar que tiene id y title
+        if not isinstance(dash.get("mappings"), dict) or not dash["mappings"]:
+            dash["mappings"] = _DEFAULT_MAPPINGS.get(component, {})
+
         if not dash.get("id"):
             dash["id"] = f"{component}-{len(validated)}"
         if not dash.get("title"):
-            dash["title"] = component
+            dash["title"] = f"Dashboard {component}"
 
         if component == "babia-boats":
             has_city = True
 
         validated.append(dash)
 
-    # Garantizar que babia-boats siempre está presente
     if not has_city:
-        print(
-            Fore.YELLOW
-            + "[AI] babia-boats no incluido, añadiendo como dashboard principal."
-        )
-        validated.insert(
-            0,
-            {
-                "id": "boats-complexity",
-                "component": "babia-boats",
-                "dataset": "file_metrics",
-                "title": "Code Complexity Boats",
-                "mappings": _DEFAULT_MAPPINGS["babia-boats"],
-            },
-        )
+        validated.insert(0, DEFAULT_AI_CONFIG["dashboards"][0])
 
-    config["dashboards"] = validated[:4]  # máximo 4 dashboards
+    config["dashboards"] = validated[:4]
     return config
 
 
@@ -228,42 +192,45 @@ def _validate_and_fix_config(config: dict) -> dict:
 
 def get_ai_config(repo_summary: str) -> dict:
     """
-    Envía el resumen del análisis a LM Studio y devuelve la configuración
-    de dashboards como dict de Python (ya validada y corregida).
-
-    El dict tiene la forma: { "dashboards": [ {id, component, dataset, title, mappings}, ... ] }
-
-    Si la IA no responde o devuelve JSON inválido, retorna DEFAULT_AI_CONFIG
-    (siempre contiene al menos babia-boats con file_metrics).
+    Envía el resumen del análisis a LM Studio y devuelve la configuración de dashboards.
+    Ahora también imprime el razonamiento técnico de la IA.
     """
     try:
         response = client.chat.completions.create(
             model="qwen/qwen3-coder-30b",
             messages=[
                 {"role": "system", "content": _SYSTEM_PROMPT},
-                {
-                    "role": "user",
-                    "content": f"Resumen del repo: {repo_summary}",
-                },
+                {"role": "user", "content": f"Resumen del repo: {repo_summary}"},
             ],
-            temperature=0.2,
+            temperature=0.3,
         )
+
         raw_content = response.choices[0].message.content.strip()
-        clean_content = _sanitize_raw_content(raw_content)
-        config = json.loads(clean_content)
+        summary, json_str = _extract_summary_and_json(raw_content)
+
+        # Imprimir resumen de la IA con estilo
+        print("\n" + Fore.MAGENTA + "=" * 60)
+        print(Fore.CYAN + "ESTRATEGIA DE LA IA:")
+        print(Fore.WHITE + summary)
+        print(Fore.MAGENTA + "=" * 60 + "\n")
+
+        config = json.loads(json_str)
         config = _validate_and_fix_config(config)
+
         print(
             Fore.GREEN
-            + f"[AI] Dashboards elegidos: {[d['component'] for d in config['dashboards']]}"
+            + f"[AI] Dashboards configurados: {[d['component'] for d in config['dashboards']]}"
         )
         return config
 
-    except json.JSONDecodeError as e:
+    except APIConnectionError:
         print(
             Fore.RED
-            + f"[AI] Error parseando JSON de la IA: {e}. Usando configuración por defecto."
+            + "[AI] Error de Conexión: No se pudo contactar con LM Studio. ¿Está abierto y el servidor local está corriendo?"
         )
     except Exception as e:
-        print(Fore.RED + f"[AI] Error conectando con LM Studio: {e}")
+        print(Fore.RED + f"[AI] Error: {e}. Usando fallback.")
+        # if not isinstance(e, json.JSONDecodeError):
+        #      traceback.print_exc()
 
     return DEFAULT_AI_CONFIG

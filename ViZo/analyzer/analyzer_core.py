@@ -15,11 +15,12 @@ import os
 import shutil
 import stat
 import subprocess
+import traceback
+from collections import deque
 
 import lizard
 from colorama import Fore
 from pydriller import Repository as DrillRepo
-
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Helpers internos
@@ -101,19 +102,14 @@ def _run_lizard(target_dir: str) -> list:
 
 def _run_git_history(target_dir: str) -> dict:
     """
-    Recorre el historial de commits con PyDriller y devuelve:
-      - total_commits
-      - authors (set)
-      - timeline  {fecha: nº commits}
-      - file_churn {ruta_relativa: nº commits que la tocaron}
-      - file_lines_added {ruta_relativa: total líneas añadidas acumuladas}
-      - file_lines_deleted {ruta_relativa: total líneas eliminadas acumuladas}
-
-    Funciona con repos locales ya clonados desde cualquier proveedor
-    (GitHub, GitLab, Gitea, Codeberg, Bitbucket, etc.).
+    Recorre el historial de commits con PyDriller y devuelve métricas de evolución.
+    Extrae los datos inmediatamente para evitar errores de contexto de PyDriller.
     """
-    print(Fore.YELLOW + "Analizando historial de evolución con PyDriller (máx. 150 commits)...")
-    
+    print(
+        Fore.YELLOW
+        + "Analizando historial de evolución con PyDriller (máx. 150 commits)..."
+    )
+
     evolution_data = {
         "total_commits": 0,
         "authors": set(),
@@ -121,91 +117,134 @@ def _run_git_history(target_dir: str) -> dict:
         "file_churn": {},
         "file_lines_added": {},
         "file_lines_deleted": {},
-        "commits": [],  # Lista plana para BabiaXR
+        "commits": [],
     }
 
-    # Obtenemos todos los commits y nos quedamos con los 150 más recientes
-    # Nota: traverse_commits devuelve de antiguo a nuevo por defecto
-    all_commits = list(DrillRepo(target_dir).traverse_commits())
-    total_found = len(all_commits)
-    relevant_commits = all_commits[-150:] if total_found > 150 else all_commits
+    try:
+        # Usamos un deque con maxlen para quedarnos solo con los últimos 150 sin agotar memoria
+        recent_commits_info = deque(maxlen=100)
 
-    for commit in relevant_commits:
-        evolution_data["total_commits"] += 1
-        evolution_data["authors"].add(commit.author.name)
-        date = commit.author_date.strftime("%Y-%m-%d")
-        evolution_data["timeline"][date] = evolution_data["timeline"].get(date, 0) + 1
+        # Obtenemos todos para encontrar los últimos 150
+        # (PyDriller no permite "offset" o "limit" nativamente sin iterar)
+        for commit in DrillRepo(target_dir).traverse_commits():
+            author_name = commit.author.name if commit.author else "Unknown"
+            date_str = commit.author_date.strftime("%Y-%m-%d")
 
-        # Añadir al dataset de evolución
-        evolution_data["commits"].append({
-            "hash": commit.hash,
-            "author": commit.author.name,
-            "date": date,
-            "message": commit.msg,
-            "insertions": commit.insertions,
-            "deletions": commit.deletions,
-            "files": commit.files,
-        })
+            # Extraemos lo que necesitamos mientras el objeto commit es válido
+            # Acceder a insertions/deletions aquí es SEGURO
+            info = {
+                "hash": commit.hash,
+                "author": author_name,
+                "date": date_str,
+                "message": commit.msg,
+                "insertions": commit.insertions,
+                "deletions": commit.deletions,
+                "modified_files": [],
+            }
 
-        for modified_file in commit.modified_files:
-            # new_path es None en borrados; old_path es None en archivos nuevos
-            file_path = modified_file.new_path or modified_file.old_path
-            if not file_path:
-                continue
-            file_path = file_path.replace("\\", "/")
+            for mf in commit.modified_files:
+                info["modified_files"].append(
+                    {
+                        "path": mf.new_path or mf.old_path,
+                        "added": mf.added_lines or 0,
+                        "deleted": mf.deleted_lines or 0,
+                    }
+                )
 
-            evolution_data["file_churn"][file_path] = (
-                evolution_data["file_churn"].get(file_path, 0) + 1
+            recent_commits_info.append(info)
+            evolution_data["total_commits"] += 1
+
+        # Procesamos solo los 150 finalistas
+        for info in recent_commits_info:
+            evolution_data["authors"].add(info["author"])
+            evolution_data["timeline"][info["date"]] = (
+                evolution_data["timeline"].get(info["date"], 0) + 1
             )
-            evolution_data["file_lines_added"][file_path] = (
-                evolution_data["file_lines_added"].get(file_path, 0)
-                + (modified_file.added_lines or 0)
-            )
-            evolution_data["file_lines_deleted"][file_path] = (
-                evolution_data["file_lines_deleted"].get(file_path, 0)
-                + (modified_file.deleted_lines or 0)
+
+            # Formato esperado por el resto del sistema
+            evolution_data["commits"].append(
+                {
+                    "hash": info["hash"],
+                    "author": info["author"],
+                    "date": info["date"],
+                    "message": info["message"],
+                    "insertions": info["insertions"],
+                    "deletions": info["deletions"],
+                }
             )
 
-    print(Fore.CYAN + f"Total de commits: {evolution_data['total_commits']}")
-    print(Fore.CYAN + f"Autores encontrados: {len(evolution_data['authors'])}")
+            for mf in info["modified_files"]:
+                if not mf["path"]:
+                    continue
+                file_path = mf["path"].replace("\\", "/")
+
+                evolution_data["file_churn"][file_path] = (
+                    evolution_data["file_churn"].get(file_path, 0) + 1
+                )
+                evolution_data["file_lines_added"][file_path] = (
+                    evolution_data["file_lines_added"].get(file_path, 0) + mf["added"]
+                )
+                evolution_data["file_lines_deleted"][file_path] = (
+                    evolution_data["file_lines_deleted"].get(file_path, 0)
+                    + mf["deleted"]
+                )
+
+    except Exception as e:
+        print(Fore.RED + f"Error procesando historial Git: {e}")
+        traceback.print_exc()
+
+    print(Fore.CYAN + f"Total de commits procesados: {evolution_data['total_commits']}")
     return evolution_data
 
 
-def _build_file_metrics(analysis: list, evolution_data: dict, target_dir: str) -> tuple[list, dict, list, int, float]:
+def _process_metrics(
+    analysis: list, evolution_data: dict, target_dir: str
+) -> tuple[list, list, list, int, float, dict]:
     """
-    Construye file_metrics (lista por archivo) y las estructuras auxiliares
-    necesarias para data_by_language.
+    Procesa los resultados de Lizard y PyDriller en una sola pasada.
+    Construye métricas por archivo, agrupaciones por lenguaje y totales.
 
     Devuelve:
         file_metrics      : lista de dicts con métricas por archivo
-        language_counts   : {lang: nº archivos}
-        filenames         : lista de nombres de archivo (para el summary)
+        data_by_language  : lista de dicts agrupada por lenguaje (ordenada por frecuencia)
+        filenames         : lista de nombres de archivo
         total_nloc        : suma total de NLOC
         total_ccn         : suma total de CCN
+        language_counts   : dict {lang: count} para el resumen
     """
     file_metrics = []
+    lang_data = {}  # {lang: {nloc, ccn_list, commits, count, added, deleted}}
     total_nloc = 0
     total_ccn = 0.0
     filenames = []
-    language_counts = {}
 
     for file in analysis:
         rel_path = os.path.relpath(file.filename, target_dir).replace("\\", "/")
-        commits_count = evolution_data["file_churn"].get(rel_path, 0)
-        total_nloc += file.nloc
-        total_ccn += file.average_cyclomatic_complexity
         basename = os.path.basename(file.filename)
         filenames.append(basename)
+
+        # Churn/History data
+        commits_count = evolution_data["file_churn"].get(rel_path, 0)
+        lines_added = evolution_data["file_lines_added"].get(rel_path, 0)
+        lines_deleted = evolution_data["file_lines_deleted"].get(rel_path, 0)
+
+        # Totals
+        total_nloc += file.nloc
+        total_ccn += file.average_cyclomatic_complexity
+
+        # Language
         _, ext = os.path.splitext(basename)
         lang = ext.lstrip(".").lower() if ext else "unknown"
-        language_counts[lang] = language_counts.get(lang, 0) + 1
-        # Carpeta raíz del archivo relativa al repo (primer segmento del path)
+
+        # Folder hierarchy
         parts = rel_path.split("/")
         folder = parts[0] if len(parts) > 1 else "root"
+
+        # 1. Entry for file_metrics
         file_metrics.append(
             {
-                "id": rel_path,           # path completo para babia-treebuilder split_by
-                "name": basename,         # nombre del archivo (para títulos)
+                "id": rel_path,
+                "name": basename,
                 "nloc": file.nloc,
                 "ccn": file.average_cyclomatic_complexity,
                 "commits": commits_count,
@@ -214,74 +253,73 @@ def _build_file_metrics(analysis: list, evolution_data: dict, target_dir: str) -
             }
         )
 
-    return file_metrics, language_counts, filenames, total_nloc, total_ccn
+        # 2. Aggregating for language_metrics
+        if lang not in lang_data:
+            lang_data[lang] = {
+                "nloc": 0,
+                "ccn_list": [],
+                "commits": 0,
+                "count": 0,
+                "added": 0,
+                "deleted": 0,
+            }
 
+        ld = lang_data[lang]
+        ld["nloc"] += file.nloc
+        ld["ccn_list"].append(file.average_cyclomatic_complexity)
+        ld["commits"] += commits_count
+        ld["count"] += 1
+        ld["added"] += lines_added
+        ld["deleted"] += lines_deleted
 
-def _build_language_metrics(
-    analysis: list,
-    evolution_data: dict,
-    target_dir: str,
-    languages_sorted: list,
-) -> list:
-    """
-    Construye data_by_language (lista agrupada por lenguaje).
-    Incluye lines_added y lines_deleted agregados por lenguaje.
-
-    languages_sorted: lista de tuplas (lang, count) ya ordenada por frecuencia desc.
-    """
-    lang_nloc_map: dict[str, int] = {}
-    lang_ccn_map: dict[str, list] = {}
-    lang_commits_map: dict[str, int] = {}
-    lang_lines_added_map: dict[str, int] = {}
-    lang_lines_deleted_map: dict[str, int] = {}
-
-    for file in analysis:
-        _, ext = os.path.splitext(os.path.basename(file.filename))
-        lang = ext.lstrip(".").lower() if ext else "unknown"
-        rel_path = os.path.relpath(file.filename, target_dir).replace("\\", "/")
-        commits_count = evolution_data["file_churn"].get(rel_path, 0)
-        lines_added = evolution_data["file_lines_added"].get(rel_path, 0)
-        lines_deleted = evolution_data["file_lines_deleted"].get(rel_path, 0)
-        lang_nloc_map[lang] = lang_nloc_map.get(lang, 0) + file.nloc
-        lang_ccn_map.setdefault(lang, []).append(file.average_cyclomatic_complexity)
-        lang_commits_map[lang] = lang_commits_map.get(lang, 0) + commits_count
-        lang_lines_added_map[lang] = lang_lines_added_map.get(lang, 0) + lines_added
-        lang_lines_deleted_map[lang] = lang_lines_deleted_map.get(lang, 0) + lines_deleted
-
+    # Build and sort data_by_language
     data_by_language = []
-    for lang, count in languages_sorted:
-        ccn_values = lang_ccn_map.get(lang, [])
-        avg_ccn = sum(ccn_values) / len(ccn_values) if ccn_values else 0
+    for lang, ld in lang_data.items():
+        avg_ccn = sum(ld["ccn_list"]) / len(ld["ccn_list"]) if ld["ccn_list"] else 0
         data_by_language.append(
             {
                 "id": lang,
                 "language": lang,
-                "nloc": lang_nloc_map.get(lang, 0),
+                "nloc": ld["nloc"],
                 "ccn": round(avg_ccn, 2),
-                "commits": lang_commits_map.get(lang, 0),
-                "count": count,
-                "lines_added": lang_lines_added_map.get(lang, 0),
-                "lines_deleted": lang_lines_deleted_map.get(lang, 0),
+                "commits": ld["commits"],
+                "count": ld["count"],
+                "lines_added": ld["added"],
+                "lines_deleted": ld["deleted"],
             }
         )
 
-    print(Fore.CYAN + f"Datos por lenguaje generados: {len(data_by_language)} entradas")
-    return data_by_language
+    # Ordenar por frecuencia (count) descendente
+    data_by_language.sort(key=lambda x: x["count"], reverse=True)
+    language_counts = {ld["language"]: ld["count"] for ld in data_by_language}
+
+    print(
+        Fore.CYAN
+        + f"Datos procesados: {len(file_metrics)} archivos, {len(data_by_language)} lenguajes."
+    )
+    return (
+        file_metrics,
+        data_by_language,
+        filenames,
+        total_nloc,
+        total_ccn,
+        language_counts,
+    )
 
 
 def _build_repo_summary(
     analysis: list,
     evolution_data: dict,
     filenames: list,
-    languages_sorted: list,
     language_counts: dict,
     total_nloc: float,
     total_ccn: float,
 ) -> dict:
     """Construye el resumen estadístico del repositorio que se envía a la IA."""
     n = len(analysis)
-    total_lines_added = sum(evolution_data["file_lines_added"].values())
-    total_lines_deleted = sum(evolution_data["file_lines_deleted"].values())
+
+    # Calculamos sumas de líneas desde evolution_data si están disponibles
+    # (PyDriller las acumula por commit)
     return {
         "num_files": n,
         "avg_nloc": total_nloc / n if n else 0,
@@ -289,10 +327,10 @@ def _build_repo_summary(
         "total_commits": evolution_data["total_commits"],
         "num_authors": len(evolution_data["authors"]),
         "filenames_sample": filenames[:10],
-        "languages": {k: v for k, v in languages_sorted},
+        "languages": language_counts,
         "num_languages": len(language_counts),
-        "total_lines_added": total_lines_added,
-        "total_lines_deleted": total_lines_deleted,
+        "total_lines_added": sum(c["insertions"] for c in evolution_data["commits"]),
+        "total_lines_deleted": sum(c["deletions"] for c in evolution_data["commits"]),
     }
 
 
@@ -304,22 +342,11 @@ def _build_repo_summary(
 def run_analysis(url: str) -> dict | None:
     """
     Clona el repositorio indicado por `url`, ejecuta el análisis completo
-    (Lizard + PyDriller) y devuelve un dict con:
-        - metrics           : lista raw de Lizard (compatibilidad legacy)
-        - evolution_data    : historial de commits (churn, autores, timelines, líneas)
-        - file_metrics      : lista de métricas por archivo (para BabiaXR)
-        - data_by_language  : lista de métricas por lenguaje (para BabiaXR)
-        - repo_summary      : resumen estadístico (para la IA)
-        - repo_name         : nombre del repositorio
-        - last_commit_id    : hash del commit HEAD del clon
-        - main_language     : lenguaje mayoritario
-
-    Acepta URLs de GitHub, GitLab, Gitea, Forgejo, Codeberg, Bitbucket, etc.
-    Devuelve None si ocurre un error irrecuperable.
+    (Lizard + PyDriller) y devuelve un dict con los resultados.
     """
     target_dir = _temp_dir()
 
-    # Limpieza previa por si quedó basura de un análisis anterior
+    # Limpieza previa
     if os.path.exists(target_dir):
         shutil.rmtree(target_dir, onerror=_remove_readonly)
 
@@ -329,33 +356,31 @@ def run_analysis(url: str) -> dict | None:
         repo_name = url.rstrip("/").split("/")[-1].removesuffix(".git")
 
         analysis = _run_lizard(target_dir)
-        evolution_data = _run_git_history(target_dir)
+        evolution_raw = _run_git_history(target_dir)
 
-        file_metrics, language_counts, filenames, total_nloc, total_ccn = (
-            _build_file_metrics(analysis, evolution_data, target_dir)
-        )
+        # PASADA ÚNICA: Procesar métricas y lenguajes
+        (
+            file_metrics,
+            data_by_language,
+            filenames,
+            total_nloc,
+            total_ccn,
+            language_counts,
+        ) = _process_metrics(analysis, evolution_raw, target_dir)
 
-        languages_sorted = sorted(
-            language_counts.items(), key=lambda x: x[1], reverse=True
-        )
-        main_language = languages_sorted[0][0] if languages_sorted else ""
-        print(Fore.CYAN + f"Lenguajes detectados: { {k: v for k, v in languages_sorted} }")
-
-        data_by_language = _build_language_metrics(
-            analysis, evolution_data, target_dir, languages_sorted
-        )
+        main_language = next(iter(language_counts), "unknown")
+        print(Fore.CYAN + f"Lenguaje principal: {main_language}")
 
         repo_summary = _build_repo_summary(
             analysis,
-            evolution_data,
+            evolution_raw,
             filenames,
-            languages_sorted,
             language_counts,
             total_nloc,
             total_ccn,
         )
 
-        # Lista raw de Lizard (compatibilidad con posibles consumidores futuros)
+        # Lista raw de Lizard (compatibilidad legacy)
         metrics_list = [
             {
                 "filename": os.path.basename(f.filename),
@@ -368,7 +393,7 @@ def run_analysis(url: str) -> dict | None:
 
         return {
             "metrics": metrics_list,
-            "evolution_data": evolution_data["commits"],
+            "evolution_data": evolution_raw["commits"],
             "file_metrics": file_metrics,
             "data_by_language": data_by_language,
             "repo_summary": repo_summary,
@@ -382,6 +407,7 @@ def run_analysis(url: str) -> dict | None:
         return None
     except Exception as e:
         print(Fore.RED + f"Error general en el análisis: {e}")
+        traceback.print_exc()
         return None
     finally:
         _cleanup(target_dir)
