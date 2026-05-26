@@ -22,6 +22,7 @@
 
     <!-- A-Frame Components (ViZo Lab Physics & Logic) -->
     <script src="{% static 'js/vizo-components.js' %}"></script>
+    <script src="{% static 'js/fame.js' %}"></script>
   </head>
   <body>
     <!-- HUD Overlay -->
@@ -32,62 +33,10 @@
       </div>
     </div>
 
-    <!-- Chat UI Overlay (2D) -->
-    <div
-      id="chat-ui-container"
-      style="
-        position: absolute;
-        bottom: 30px;
-        left: 50%;
-        transform: translateX(-50%);
-        z-index: 9999;
-        width: 600px;
-        background: rgba(8, 12, 20, 0.85);
-        border: 1px solid #00d4ff;
-        border-radius: 8px;
-        padding: 15px;
-        backdrop-filter: blur(5px);
-        box-shadow: 0 0 20px rgba(0, 212, 255, 0.15);
-      "
+    <a-scene
+      xr-mode-ui="enabled: true"
+      fog="type: linear; color: #050a12; near: 30; far: 80"
     >
-      <div class="chat-input-wrapper" style="display: flex; gap: 10px">
-        <input
-          type="text"
-          id="ai-chat-input"
-          placeholder="Comunícate con la IA de ViZo..."
-          autocomplete="off"
-          style="
-            flex: 1;
-            background: rgba(0, 0, 0, 0.6);
-            border: 1px solid #0050ff;
-            color: #00d4ff;
-            padding: 12px 15px;
-            border-radius: 4px;
-            font-family: &quot;Outfit&quot;, sans-serif;
-            font-size: 16px;
-            outline: none;
-          "
-        />
-        <button
-          id="ai-chat-submit"
-          style="
-            background: #0050ff;
-            color: white;
-            border: none;
-            padding: 0 25px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-family: &quot;Outfit&quot;, sans-serif;
-            font-weight: bold;
-            letter-spacing: 1px;
-          "
-        >
-          ENVIAR
-        </button>
-      </div>
-    </div>
-
-    <a-scene fog="type: linear; color: #050a12; near: 30; far: 80">
       <!-- General Assets -->
       <a-assets>
         <a-asset-item id="font" src="/static/fonts/font.json"></a-asset-item>
@@ -96,8 +45,8 @@
       <!-- ══════════════════════════════════════
            LAB ENVIRONMENT & NAVIGATION
            ══════════════════════════════════════ -->
-      {% include 'visualization/includes/environment.html' %}
-      {% include 'visualization/includes/nav_button.html' %}
+      {% include 'visualization/includes/environment.html' %} {% include
+      'visualization/includes/nav_button.html' %}
 
       <!-- ════════════════════════════════════════
            DJANGO DATA (JSON)
@@ -129,7 +78,7 @@
       <!-- ── CAMERA (confined to room + object collisions) ── -->
       <a-entity
         movement-controls
-        position="0 1.5 19"
+        position="0 1.5 30"
         room-bounds="minX: -19; maxX: 19; minY: 1; maxY: 8.5; minZ: -19; maxZ: 39"
         object-collide="radius: 0.4"
       >

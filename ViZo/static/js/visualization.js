@@ -258,45 +258,4 @@
       statusEl.textContent = "LIVE_DATA // " + names.join(" + ");
     }
   }
-  // ---------------------------------------------------------------------------
-  // 9. Lógica del Chat 2D -> 3D
-  // ---------------------------------------------------------------------------
-  const chatInput = document.getElementById("ai-chat-input");
-  const chatSubmit = document.getElementById("ai-chat-submit");
-  const chat3dText = document.getElementById("vizo-chat-3d-text");
-  
-  if (chatInput && chatSubmit && chat3dText) {
-    let chatHistory = "ViZo AI Terminal v1.0\n========================================\nSistema iniciado. Esperando ordenes...\n";
-    
-    function sendChatMessage() {
-      const msg = chatInput.value.trim();
-      if (!msg) return;
-      
-      // Añadir mensaje del usuario al log
-      chatHistory += "\n> USER: " + msg + "\n";
-      chatHistory += "> AI: Procesando solicitud...\n";
-      
-      // Mantener solo las últimas líneas para no desbordar el panel 3D
-      const lines = chatHistory.split("\n");
-      if (lines.length > 25) {
-        chatHistory = lines.slice(lines.length - 25).join("\n");
-      }
-      
-      // Actualizar el texto en 3D
-      chat3dText.setAttribute("value", chatHistory);
-      chatInput.value = "";
-      
-      // TODO: Aquí irá el fetch() real a Django (/api/ask_ai/)
-      // Simulamos respuesta para que veas el efecto de la pared 3D
-      setTimeout(() => {
-        chatHistory = chatHistory.replace("> AI: Procesando solicitud...\n", "> AI: Mensaje recibido. \n> AI: Todavía no estoy conectado al backend de Django.\n");
-        chat3dText.setAttribute("value", chatHistory);
-      }, 1500);
-    }
-    
-    chatSubmit.addEventListener("click", sendChatMessage);
-    chatInput.addEventListener("keypress", function(e) {
-      if (e.key === "Enter") sendChatMessage();
-    });
-  }
 })();
