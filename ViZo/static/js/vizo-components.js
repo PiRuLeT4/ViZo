@@ -184,6 +184,14 @@ AFRAME.registerComponent("vizo-control-btn", {
     el.addEventListener("click", function () {
       var targetEl = document.getElementById(data.targetId);
       if (!targetEl) {
+        // Búsqueda de soporte para el Menú de Muñeca VR
+        if (data.vizType === "boats") targetEl = document.querySelector("[babia-boats]");
+        else if (data.vizType === "cyls") targetEl = document.querySelector("[babia-cyls]");
+        else if (data.vizType === "doughnut") targetEl = document.querySelector("[babia-doughnut]");
+        else if (data.vizType === "barsmap") targetEl = document.querySelector("[babia-barsmap]");
+      }
+      
+      if (!targetEl) {
         console.error("ViZo // Target visualizer not found: " + data.targetId);
         return;
       }
@@ -212,6 +220,12 @@ AFRAME.registerComponent("vizo-control-btn", {
         cycleArea(targetEl, data.vizType);
       } else if (data.action === "swap-mappings") {
         swapMappings(targetEl, data.vizType);
+      } else if (data.action === "explain-ai") {
+        if (window.ViZo && window.ViZo.ui && typeof window.ViZo.ui.showExplanation === "function") {
+          window.ViZo.ui.showExplanation(data.vizType, targetEl);
+        } else {
+          console.warn("ViZo // Asistente Holográfico de UI no inicializado.");
+        }
       }
     });
   }
@@ -286,7 +300,7 @@ function swapMappings(targetEl, type) {
       color: nextHeight
     });
     
-    targetEl.setAttribute("babia-boats", "legend_text", "{name}\\n" + nextHeight.toUpperCase() + "(Altura)x" + nextArea.toUpperCase() + "(Area)");
+    targetEl.setAttribute("babia-boats", "legend_text", "{name}\\nNLOC: {nloc} | CCN: {ccn}");
     console.log("ViZo // Swapped boats mappings: Height=" + nextHeight + ", Area=" + nextArea);
   }
 }
@@ -303,7 +317,7 @@ function cycleHeight(targetEl, type) {
     
     targetEl.setAttribute("babia-boats", "height", nextField);
     targetEl.setAttribute("babia-boats", "color", nextField);
-    targetEl.setAttribute("babia-boats", "legend_text", "{name}\\n" + nextField.toUpperCase() + "(Altura)x" + (config.area || "ccn").toUpperCase() + "(Area)");
+    targetEl.setAttribute("babia-boats", "legend_text", "{name}\\nNLOC: {nloc} | CCN: {ccn}");
     console.log("ViZo // Cycled boats height to: " + nextField);
   } else if (type === "cyls") {
     var config = targetEl.getAttribute("babia-cyls") || {};
@@ -337,7 +351,7 @@ function cycleArea(targetEl, type) {
     var nextField = fields[nextIdx];
     
     targetEl.setAttribute("babia-boats", "area", nextField);
-    targetEl.setAttribute("babia-boats", "legend_text", (config.height || "nloc").toUpperCase() + "(Altura)x" + nextField.toUpperCase() + "(Area)");
+    targetEl.setAttribute("babia-boats", "legend_text", "{name}\\nNLOC: {nloc} | CCN: {ccn}");
     console.log("ViZo // Cycled boats area to: " + nextField);
   } else if (type === "cyls") {
     var config = targetEl.getAttribute("babia-cyls") || {};

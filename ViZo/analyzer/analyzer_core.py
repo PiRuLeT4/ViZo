@@ -10,13 +10,13 @@ Lógica pura de análisis de repositorio:
 
 No contiene lógica de BD, caché ni IA. Solo análisis.
 """
-
+import gc
 import os
 import shutil
 import stat
 import subprocess
+import time
 import traceback
-from collections import deque
 
 import lizard
 from colorama import Fore
@@ -44,11 +44,20 @@ def _cleanup(target_dir: str) -> None:
     """Elimina el directorio temporal si existe."""
     if os.path.exists(target_dir):
         print(Fore.LIGHTBLACK_EX + "Limpiando archivos temporales...")
+        # Forzar recolección de basura para cerrar descriptores de archivos de GitPython/PyDriller
+        gc.collect()
         try:
             shutil.rmtree(target_dir, onerror=_remove_readonly)
             print(Fore.LIGHTBLACK_EX + "Carpeta temporal eliminada.")
-        except Exception as e:
-            print(Fore.RED + f"No se pudo eliminar la carpeta temporal: {e}")
+        except Exception:
+            # Reintentar tras una pausa para que el sistema operativo libere bloqueos de archivos
+            gc.collect()
+            time.sleep(0.5)
+            try:
+                shutil.rmtree(target_dir, onerror=_remove_readonly)
+                print(Fore.LIGHTBLACK_EX + "Carpeta temporal eliminada tras reintento.")
+            except Exception as re_err:
+                print(Fore.RED + f"No se pudo eliminar la carpeta temporal: {re_err}")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -88,6 +97,22 @@ def _get_head_commit(target_dir: str) -> str:
     return result.stdout.strip()
 
 
+def _get_total_commits(target_dir: str) -> int:
+    """Obtiene el número total de commits en el repositorio de forma rápida via git rev-list."""
+    result = subprocess.run(
+        ["git", "rev-list", "--count", "HEAD"],
+        capture_output=True,
+        text=True,
+        cwd=target_dir,
+    )
+    if result.returncode != 0:
+        return 0
+    try:
+        return int(result.stdout.strip())
+    except ValueError:
+        return 0
+
+
 def _run_lizard(target_dir: str) -> list:
     """Ejecuta Lizard sobre target_dir y devuelve la lista de resultados por archivo."""
     print(Fore.YELLOW + "Analizando métricas con Lizard...")
@@ -100,14 +125,15 @@ def _run_lizard(target_dir: str) -> list:
     return analysis
 
 
-def _run_git_history(target_dir: str) -> dict:
+def _run_git_history(target_dir: str, max_commits: int = 150) -> dict:
     """
-    Recorre el historial de commits con PyDriller y devuelve métricas de evolución.
-    Extrae los datos inmediatamente para evitar errores de contexto de PyDriller.
+    Recorre el historial de commits con PyDriller de forma inversa y devuelve métricas de evolución.
+    Limita la búsqueda a max_commits (si es > 0) para rendimiento óptimo.
     """
+    limit_str = f"máx. {max_commits}" if max_commits > 0 else "completo"
     print(
         Fore.YELLOW
-        + "Analizando historial de evolución con PyDriller (máx. 150 commits)..."
+        + f"Analizando historial de evolución con PyDriller ({limit_str} commits)..."
     )
 
     evolution_data = {
@@ -118,43 +144,56 @@ def _run_git_history(target_dir: str) -> dict:
         "file_lines_added": {},
         "file_lines_deleted": {},
         "commits": [],
+        "author_activity": [],
     }
 
     try:
-        # Usamos un deque con maxlen para quedarnos solo con los últimos 150 sin agotar memoria
-        recent_commits_info = deque(maxlen=100)
+        # Obtenemos el número total real de commits instantáneamente
+        total_commits = _get_total_commits(target_dir)
+        evolution_data["total_commits"] = total_commits
 
-        # Obtenemos todos para encontrar los últimos 150
-        # (PyDriller no permite "offset" o "limit" nativamente sin iterar)
-        for commit in DrillRepo(target_dir).traverse_commits():
-            author_name = commit.author.name if commit.author else "Unknown"
-            date_str = commit.author_date.strftime("%Y-%m-%d")
+        recent_commits_info = []
 
-            # Extraemos lo que necesitamos mientras el objeto commit es válido
-            # Acceder a insertions/deletions aquí es SEGURO
-            info = {
-                "hash": commit.hash,
-                "author": author_name,
-                "date": date_str,
-                "message": commit.msg,
-                "insertions": commit.insertions,
-                "deletions": commit.deletions,
-                "modified_files": [],
-            }
+        # Recorremos en orden inverso (los más nuevos primero) y limitamos a max_commits
+        generator = DrillRepo(target_dir, order="reverse").traverse_commits()
+        try:
+            for commit in generator:
+                if max_commits > 0 and len(recent_commits_info) >= max_commits:
+                    break
 
-            for mf in commit.modified_files:
-                info["modified_files"].append(
-                    {
-                        "path": mf.new_path or mf.old_path,
-                        "added": mf.added_lines or 0,
-                        "deleted": mf.deleted_lines or 0,
-                    }
-                )
+                author_name = commit.author.name if commit.author else "Unknown"
+                date_str = commit.author_date.strftime("%Y-%m-%d")
 
-            recent_commits_info.append(info)
-            evolution_data["total_commits"] += 1
+                # Extraemos lo que necesitamos mientras el objeto commit es válido
+                info = {
+                    "hash": commit.hash,
+                    "author": author_name,
+                    "date": date_str,
+                    "message": commit.msg,
+                    "insertions": commit.insertions,
+                    "deletions": commit.deletions,
+                    "modified_files": [],
+                }
 
-        # Procesamos solo los 150 finalistas
+                for mf in commit.modified_files:
+                    info["modified_files"].append(
+                        {
+                            "path": mf.new_path or mf.old_path,
+                            "added": mf.added_lines or 0,
+                            "deleted": mf.deleted_lines or 0,
+                        }
+                    )
+
+                recent_commits_info.append(info)
+        finally:
+            generator.close()
+
+        # Invertimos la lista para restaurar el orden cronológico
+        recent_commits_info.reverse()
+
+        activity_dict = {}
+
+        # Procesamos solo los finalistas
         for info in recent_commits_info:
             evolution_data["authors"].add(info["author"])
             evolution_data["timeline"][info["date"]] = (
@@ -173,6 +212,21 @@ def _run_git_history(target_dir: str) -> dict:
                 }
             )
 
+            # Agrupar para author_activity
+            author = info["author"]
+            date = info["date"]
+            insertions = info["insertions"]
+            key = (author, date)
+            if key not in activity_dict:
+                activity_dict[key] = {
+                    "author": author,
+                    "date": date,
+                    "commits": 0,
+                    "insertions": 0,
+                }
+            activity_dict[key]["commits"] += 1
+            activity_dict[key]["insertions"] += insertions
+
             for mf in info["modified_files"]:
                 if not mf["path"]:
                     continue
@@ -189,11 +243,23 @@ def _run_git_history(target_dir: str) -> dict:
                     + mf["deleted"]
                 )
 
+        # Filtrar las 15 fechas más recientes para evitar que el barsmap sea inmanejable
+        author_activity = list(activity_dict.values())
+        all_dates = sorted(
+            list(set(item["date"] for item in author_activity if item["date"])),
+            reverse=True,
+        )
+        recent_dates = set(all_dates[:15])
+        evolution_data["author_activity"] = [
+            item for item in author_activity if item["date"] in recent_dates
+        ]
+
     except Exception as e:
         print(Fore.RED + f"Error procesando historial Git: {e}")
         traceback.print_exc()
 
-    print(Fore.CYAN + f"Total de commits procesados: {evolution_data['total_commits']}")
+    num_processed = len(evolution_data["commits"])
+    print(Fore.CYAN + f"Total de commits procesados: {evolution_data['total_commits']} ({num_processed} analizados)")
     return evolution_data
 
 
@@ -339,7 +405,7 @@ def _build_repo_summary(
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-def run_analysis(url: str) -> dict | None:
+def run_analysis(url: str, max_commits: int = 150) -> dict | None:
     """
     Clona el repositorio indicado por `url`, ejecuta el análisis completo
     (Lizard + PyDriller) y devuelve un dict con los resultados.
@@ -356,7 +422,7 @@ def run_analysis(url: str) -> dict | None:
         repo_name = url.rstrip("/").split("/")[-1].removesuffix(".git")
 
         analysis = _run_lizard(target_dir)
-        evolution_raw = _run_git_history(target_dir)
+        evolution_raw = _run_git_history(target_dir, max_commits=max_commits)
 
         # PASADA ÚNICA: Procesar métricas y lenguajes
         (
@@ -394,6 +460,7 @@ def run_analysis(url: str) -> dict | None:
         return {
             "metrics": metrics_list,
             "evolution_data": evolution_raw["commits"],
+            "author_activity": evolution_raw["author_activity"],
             "file_metrics": file_metrics,
             "data_by_language": data_by_language,
             "repo_summary": repo_summary,
@@ -411,3 +478,6 @@ def run_analysis(url: str) -> dict | None:
         return None
     finally:
         _cleanup(target_dir)
+
+
+

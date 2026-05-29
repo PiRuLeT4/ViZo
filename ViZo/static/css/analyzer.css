@@ -338,10 +338,32 @@ button:active {
 
 /* ── Features: estilo rack LED ── */
 .features {
-  margin-top: 2.8rem;
+  margin-top: 0.6rem;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 1.2rem;
+}
+
+.feature {
+  cursor: pointer;
+}
+
+.feature.active {
+  background: rgba(0, 212, 255, 0.12);
+  border-color: var(--cyan);
+  box-shadow: 
+    0 0 20px rgba(0, 212, 255, 0.35),
+    0 0 10px rgba(26, 79, 255, 0.15);
+  transform: translateY(-2px);
+}
+
+.feature.active::after {
+  opacity: 1;
+}
+
+.feature.active .feature-title {
+  color: var(--cyan);
+  text-shadow: 0 0 8px rgba(0, 212, 255, 0.6);
 }
 
 .feature {
@@ -530,3 +552,70 @@ button:active {
   min-height: 1.2em;
   transition: opacity 0.4s ease;
 }
+
+/* ── Custom Styled Premium Select ── */
+select {
+  width: 100%;
+  padding: 1.2rem 3rem 1.2rem 1.2rem;
+  background: rgba(5, 10, 18, 0.7);
+  border: 1px solid var(--border-blue);
+  border-radius: 14px;
+  color: var(--text-primary);
+  font-size: 0.98rem;
+  font-family: inherit;
+  transition: all 0.3s ease;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300d4ff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 1.2rem center;
+  background-size: 1.2rem;
+}
+
+select:focus {
+  border-color: var(--cyan);
+  background: rgba(0, 212, 255, 0.04);
+  box-shadow:
+    0 0 0 1px rgba(0, 212, 255, 0.15),
+    0 0 20px rgba(0, 212, 255, 0.08);
+}
+
+select option {
+  background: var(--bg-dark);
+  color: var(--text-primary);
+}
+
+/* ── Django Flash Messages Premium Styling ── */
+.messages-container {
+  margin-bottom: 2rem;
+  animation: entrance 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.message {
+  padding: 1rem 1.2rem;
+  border-radius: 12px;
+  font-size: 0.88rem;
+  line-height: 1.4;
+  margin-bottom: 0.8rem;
+  border: 1px solid rgba(255, 107, 107, 0.25);
+  background: rgba(255, 107, 107, 0.06);
+  color: #ff8b8b;
+  box-shadow: 0 0 15px rgba(255, 107, 107, 0.05);
+}
+
+.message.error {
+  border-color: rgba(255, 107, 107, 0.35);
+  background: rgba(255, 107, 107, 0.08);
+  color: #ff8b8b;
+  text-shadow: 0 0 5px rgba(255, 107, 107, 0.2);
+}
+
+.message.success {
+  border-color: rgba(74, 247, 160, 0.35);
+  background: rgba(74, 247, 160, 0.08);
+  color: #8bffb2;
+  text-shadow: 0 0 5px rgba(74, 247, 160, 0.2);
+}
+

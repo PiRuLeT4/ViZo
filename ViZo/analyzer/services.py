@@ -23,7 +23,7 @@ from .analyzer_core import run_analysis
 from .db_helpers import build_result_from_session, save_session
 from .models import Repository
 
-init(autoreset=True)
+init(autoreset=True) 
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -45,7 +45,7 @@ def _get_remote_head(url: str) -> str | None:
             env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
         )
         if result.returncode == 0 and result.stdout:
-            # Formato de salida: "<hash>\tHEAD"
+            # Formato de salida: "<hash>\tHEAD" 
             return result.stdout.split()[0]
     except Exception as e:
         print(Fore.YELLOW + f"[Git ls-remote] No disponible: {e}")
@@ -107,6 +107,7 @@ def _persist_results(
         analysis_result["evolution_data"],
         ai_config,
         analysis_result["repo_summary"],
+        analysis_result["author_activity"],
     )
 
 
@@ -115,7 +116,7 @@ def _persist_results(
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-def analyze_repository(url: str) -> dict | None:
+def analyze_repository(url: str, max_commits: int = 150) -> dict | None:
     """
     Punto de entrada principal que la vista llama directamente.
 
@@ -130,6 +131,7 @@ def analyze_repository(url: str) -> dict | None:
         - ai_config         : configuración visual elegida por la IA
         - metrics           : lista raw de Lizard
         - evolution_data    : historial de commits
+        - author_activity    : actividad agrupada por autor
         - from_cache        : bool
 
     O None si ocurre un error irrecuperable.
@@ -148,7 +150,7 @@ def analyze_repository(url: str) -> dict | None:
         )
 
     # ── Paso 2: Análisis completo ─────────────────────────────────────────────
-    analysis_result = run_analysis(url)
+    analysis_result = run_analysis(url, max_commits=max_commits)
     if analysis_result is None:
         return None
 
@@ -164,6 +166,7 @@ def analyze_repository(url: str) -> dict | None:
         "repo_name": analysis_result["repo_name"],
         "metrics": analysis_result["metrics"],
         "evolution_data": analysis_result["evolution_data"],
+        "author_activity": analysis_result["author_activity"],
         "file_metrics": analysis_result["file_metrics"],
         "data_by_language": analysis_result["data_by_language"],
         "ai_config": ai_config,

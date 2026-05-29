@@ -8,6 +8,62 @@ const POSITIONS = [
   { x: 0, y: 0.1, z: 10 }, // Slot 3: BARSMAP
 ];
 
+// Configuración de posición, rotación e interactividad (botones) de los paneles de control de cada tipo de dashboard.
+// Modifica este objeto centralizado para ajustar de manera simple el diseño espacial en la sala 3D.
+const PANEL_CONFIGS = {
+  boats: {
+    x: 0,
+    y: 0.9,
+    z: -3.4,
+    rotX: 0,
+    rotY: 0,
+    rotZ: 0,
+    height: 0.88,
+    buttons: [
+      { text: "WIREFRAMES", action: "wireframe", x: -0.52, y: -0.05 },
+      { text: "CCN/NLOC", action: "swap-mappings", x: 0.52, y: -0.05 },
+      { text: "EXPLICAR CON IA", action: "explain-ai", x: 0, y: -0.26 },
+    ],
+  },
+  cyls: {
+    x: 0,
+    y: 0.9,
+    z: -10,
+    rotX: 0,
+    rotY: 90,
+    rotZ: 0,
+    height: 0.7,
+    buttons: [
+      { text: "EXPLICAR CON IA", action: "explain-ai", x: 0, y: -0.15 }
+    ],
+  },
+  doughnut: {
+    x: 0,
+    y: 0.9,
+    z: -9,
+    rotX: 0,
+    rotY: -45,
+    rotZ: 0,
+    height: 0.7,
+    buttons: [
+      { text: "EXPLICAR CON IA", action: "explain-ai", x: 0, y: -0.15 }
+    ],
+  },
+  barsmap: {
+    x: 0,
+    y: 0.9,
+    z: -7.4,
+    rotX: 0,
+    rotY: 0,
+    rotZ: 0,
+    height: 0.7,
+    buttons: [
+      { text: "COMMITS/INS", action: "cycle-height", x: -0.52, y: -0.15 },
+      { text: "EXPLICAR CON IA", action: "explain-ai", x: 0.52, y: -0.15 }
+    ],
+  },
+};
+
 /**
  * babia-boats: necesita un babia-treebuilder intermedio.
  * Usa el campo "id" como jerarquía (path del archivo).
@@ -39,9 +95,11 @@ function buildCity(scene, dash, loaderId, pos) {
       "minBuildingHeight: 1",
       "maxBuildingHeight: 10",
       "separation: 0.25",
-      "legend_text: {name}\n{height}(NLOC)x{area}(CCN)",
+      "legend_text: {name}\nNLOC: {nloc} | CCN: {ccn}",
       "color: " + m.height,
       "autoscale: true",
+      "highlightQuarter: true",
+      "highlightQuarterByClick: true",
     ].join("; "),
   );
 
@@ -70,7 +128,6 @@ function buildCyls(scene, dash, loaderId, pos) {
       "radius: " + (m.radius || "count"),
       "legend: true",
       "animation: true",
-      "title: " + dash.title,
       "titlePosition: 18 8 0",
       "titleFont: #font",
       "titleColor: #00d4ff",
@@ -81,6 +138,7 @@ function buildCyls(scene, dash, loaderId, pos) {
   scene.appendChild(vizEl);
   vizEl.setAttribute("vizo-podio", "");
   console.log("ViZo // babia-cyls creado sobre pedestal");
+  buildControlPanel(scene, dash, "vizo-viz-" + dash.id, pos, "cyls");
 }
 
 /**
@@ -101,7 +159,6 @@ function buildDoughnut(scene, dash, loaderId, pos) {
       "size: " + (m.size || "count"),
       "legend: true",
       "animation: true",
-      "title: " + dash.title,
       "titlePosition: 2 0 -3",
       "palette: pearl",
     ].join("; "),
@@ -110,6 +167,7 @@ function buildDoughnut(scene, dash, loaderId, pos) {
   scene.appendChild(vizEl);
   vizEl.setAttribute("vizo-podio", "");
   console.log("ViZo // babia-doughnut creado sobre pedestal");
+  buildControlPanel(scene, dash, "vizo-viz-" + dash.id, pos, "doughnut");
 }
 
 /**
@@ -121,6 +179,7 @@ function buildBarsmap(scene, dash, loaderId, pos) {
   vizEl.setAttribute("id", "vizo-viz-" + dash.id);
   vizEl.setAttribute("position", pos.x + " 0.1 " + (pos.z - 4));
   vizEl.setAttribute("scale", "0.2 0.2 0.2");
+  vizEl.setAttribute("rotation", "0 90 0");
   vizEl.setAttribute(
     "babia-barsmap",
     [
@@ -130,81 +189,122 @@ function buildBarsmap(scene, dash, loaderId, pos) {
       "height: " + (m.height || "commits"),
       "legend: true",
       "palette: pearl",
-      "title: " + dash.title,
-      "titlePosition: -3 10 0",
+      "titlePosition: -5 12 0",
       "axis_name: true",
+      "animation: true",
     ].join("; "),
   );
 
   scene.appendChild(vizEl);
   vizEl.setAttribute("vizo-podio", "");
   console.log("ViZo // babia-barsmap creado sobre pedestal");
+  buildControlPanel(scene, dash, "vizo-viz-" + dash.id, pos, "barsmap");
 }
 
 /**
  * Generates an interactive 3D control panel in front of each visualizer
  */
+/**
+ * Generates an interactive 3D control panel in front of each visualizer
+ */
 function buildControlPanel(scene, dash, vizId, pos, type) {
-  if (type !== "boats") return;
+  const cfg = PANEL_CONFIGS[type];
+  if (!cfg) return;
 
-  var panelX = pos.x;
-  var panelY = 2.3;
-  var panelZ = pos.z - 3.0;
+  var panelX = pos.x + cfg.x;
+  var panelY = cfg.y;
+  var panelZ = pos.z + cfg.z;
+  var panelHeight = cfg.height || 0.7;
+  var halfHeight = panelHeight / 2;
+
+  // Calculate panel width dynamically based on title length
+  var titleTextValue = dash.title
+    ? dash.title.toUpperCase()
+    : "PANEL DE CONTROL";
+  var titleLen = titleTextValue.length;
+  // Standard title "CODE COMPLEXITY BOATS" has 21 chars, fits on width 1.9
+  // 1.9 / 21 = ~0.09. Let's use 0.085 per char + 0.3 offset, minimum 1.9 meters wide
+  var panelWidth = Math.max(1.9, titleLen * 0.085 + 0.3);
+  if (type === "barsmap" || type === "boats") {
+    panelWidth = Math.max(panelWidth, 2.2);
+  }
 
   var panelEl = document.createElement("a-entity");
   panelEl.setAttribute("id", "vizo-panel-" + dash.id);
   panelEl.setAttribute("position", `${panelX} ${panelY} ${panelZ}`);
-  panelEl.setAttribute("rotation", "0 0 0");
+  panelEl.setAttribute("rotation", `${cfg.rotX} ${cfg.rotY} ${cfg.rotZ}`);
+
+  // Create tilted sub-entity for the screen plate
+  var screenEl = document.createElement("a-entity");
+  screenEl.setAttribute("rotation", "-30 0 0");
 
   // Holographic blue semi-transparent base plate
   var plate = document.createElement("a-plane");
-  plate.setAttribute("width", "1.9");
-  plate.setAttribute("height", "0.7");
+  plate.setAttribute("width", panelWidth.toString());
+  plate.setAttribute("height", panelHeight.toString());
   plate.setAttribute("color", "#021530");
   plate.setAttribute(
     "material",
     "opacity: 0.8; transparent: true; roughness: 0.1; metalness: 0.9",
   );
-  panelEl.appendChild(plate);
+  screenEl.appendChild(plate);
 
   // Glowing borders
   var borderTop = document.createElement("a-box");
-  borderTop.setAttribute("position", "0 0.35 0.01");
-  borderTop.setAttribute("width", "1.9");
+  borderTop.setAttribute("position", `0 ${halfHeight} 0.01`);
+  borderTop.setAttribute("width", (panelWidth + 0.05).toString());
   borderTop.setAttribute("height", "0.04");
   borderTop.setAttribute("depth", "0.02");
   borderTop.setAttribute("color", "#00d4ff");
   borderTop.setAttribute("emissive", "#00d4ff");
   borderTop.setAttribute("emissive-intensity", "1.5");
-  panelEl.appendChild(borderTop);
+  screenEl.appendChild(borderTop);
 
   var borderBottom = document.createElement("a-box");
-  borderBottom.setAttribute("position", "0 -0.35 0.01");
-  borderBottom.setAttribute("width", "1.9");
+  borderBottom.setAttribute("position", `0 ${-halfHeight} 0.01`);
+  borderBottom.setAttribute("width", (panelWidth + 0.05).toString());
   borderBottom.setAttribute("height", "0.04");
   borderBottom.setAttribute("depth", "0.02");
   borderBottom.setAttribute("color", "#00d4ff");
   borderBottom.setAttribute("emissive", "#00d4ff");
   borderBottom.setAttribute("emissive-intensity", "1.5");
-  panelEl.appendChild(borderBottom);
+  screenEl.appendChild(borderBottom);
 
-  // Title text
+  var borderLeft = document.createElement("a-box");
+  borderLeft.setAttribute("position", `${-panelWidth / 2} 0 0.01`);
+  borderLeft.setAttribute("width", "0.04");
+  borderLeft.setAttribute("height", panelHeight.toString());
+  borderLeft.setAttribute("depth", "0.02");
+  borderLeft.setAttribute("color", "#00d4ff");
+  borderLeft.setAttribute("emissive", "#00d4ff");
+  borderLeft.setAttribute("emissive-intensity", "1.5");
+  screenEl.appendChild(borderLeft);
+
+  var borderRight = document.createElement("a-box");
+  borderRight.setAttribute("position", `${panelWidth / 2} 0 0.01`);
+  borderRight.setAttribute("width", "0.04");
+  borderRight.setAttribute("height", panelHeight.toString());
+  borderRight.setAttribute("depth", "0.02");
+  borderRight.setAttribute("color", "#00d4ff");
+  borderRight.setAttribute("emissive", "#00d4ff");
+  borderRight.setAttribute("emissive-intensity", "1.5");
+  screenEl.appendChild(borderRight);
+
+  // Title text - Uses custom dashboard title
   var titleText = document.createElement("a-text");
-  titleText.setAttribute("value", "PANEL DE CONTROL: CIUDAD");
-  titleText.setAttribute("position", "0 0.22 0.02");
+  titleText.setAttribute("value", titleTextValue);
+  titleText.setAttribute("position", `0 ${halfHeight - 0.13} 0.02`);
   titleText.setAttribute("align", "center");
   titleText.setAttribute("color", "#4af7a0");
   titleText.setAttribute("emissive", "#4af7a0");
   titleText.setAttribute("emissive-intensity", "1");
-  titleText.setAttribute("width", "3.2");
+  titleText.setAttribute("width", (panelWidth - 0.3).toString());
+  titleText.setAttribute("wrap-count", Math.max(24, titleLen + 3).toString());
   titleText.setAttribute("font", "https://cdn.aframe.io/fonts/Exo2Bold.fnt");
-  panelEl.appendChild(titleText);
+  screenEl.appendChild(titleText);
 
-  // Buttons definitions (simplificado para elboats - sin ask-ai)
-  var buttons = [
-    { text: "WIREFRAMES", action: "wireframe", x: -0.4, y: -0.15 },
-    { text: "CCN/NLOC", action: "swap-mappings", x: 0.4, y: -0.15 },
-  ];
+  // Buttons definitions dynamically based on viz type config
+  var buttons = cfg.buttons || [];
 
   // Generate A-Frame button entities
   buttons.forEach(function (btn) {
@@ -215,10 +315,13 @@ function buildControlPanel(scene, dash, vizId, pos, type) {
       `action: ${btn.action}; targetId: ${vizId}; vizType: ${type}`,
     );
 
+    var btnWidth = btn.action === "explain-ai" ? 0.72 : 0.52;
+    var btnBorderWidth = btnWidth + 0.04;
+
     // Interactive button box base
     var btnBase = document.createElement("a-box");
     btnBase.setAttribute("class", "clickable");
-    btnBase.setAttribute("width", "0.52");
+    btnBase.setAttribute("width", btnWidth.toString());
     btnBase.setAttribute("height", "0.17");
     btnBase.setAttribute("depth", "0.04");
     btnBase.setAttribute("color", "#002a5a");
@@ -230,7 +333,7 @@ function buildControlPanel(scene, dash, vizId, pos, type) {
     // Glowing solid backplate border (completely removes diagonal wireframe lines)
     var btnBorder = document.createElement("a-box");
     btnBorder.setAttribute("position", "0 0 -0.01");
-    btnBorder.setAttribute("width", "0.56");
+    btnBorder.setAttribute("width", btnBorderWidth.toString());
     btnBorder.setAttribute("height", "0.21");
     btnBorder.setAttribute("depth", "0.02");
     btnBorder.setAttribute("color", "#00d4ff");
@@ -251,19 +354,169 @@ function buildControlPanel(scene, dash, vizId, pos, type) {
     btnTxt.setAttribute("font", "https://cdn.aframe.io/fonts/Exo2Bold.fnt");
     btnEl.appendChild(btnTxt);
 
-    panelEl.appendChild(btnEl);
+    screenEl.appendChild(btnEl);
   });
 
-  // Solid box collider for player collision resolution
+  panelEl.appendChild(screenEl);
+
+  // Futuristic Metallic Console Desk Stand
+  var standCol = document.createElement("a-cylinder");
+  standCol.setAttribute("radius", "0.04");
+  standCol.setAttribute("height", "0.9");
+  standCol.setAttribute("color", "#101828");
+  standCol.setAttribute("roughness", "0.5");
+  standCol.setAttribute("metalness", "0.8");
+  standCol.setAttribute("position", "0 -0.45 0");
+  panelEl.appendChild(standCol);
+
+  var standBase = document.createElement("a-cylinder");
+  standBase.setAttribute("radius", "0.3");
+  standBase.setAttribute("height", "0.05");
+  standBase.setAttribute("color", "#101828");
+  standBase.setAttribute("roughness", "0.4");
+  standBase.setAttribute("metalness", "0.9");
+  standBase.setAttribute("position", "0 -0.88 0");
+  panelEl.appendChild(standBase);
+
+  // Solid box collider for player collision resolution dynamically sized
   var solidEl = document.createElement("a-entity");
   solidEl.setAttribute(
     "solid-box",
-    `cx: ${panelX}; cy: ${panelY}; cz: ${panelZ}; halfW: 0.9; halfH: 0.4; halfD: 0.1`,
+    `cx: ${panelX}; cy: 0.5; cz: ${panelZ}; halfW: ${(panelWidth / 2 + 0.05).toFixed(2)}; halfH: 0.5; halfD: 0.4`,
   );
   scene.appendChild(solidEl);
 
   scene.appendChild(panelEl);
-  console.log("ViZo // Panel de Control creado para la ciudad (boats)");
+  console.log(
+    "ViZo // Panel de Control creado para el dashboard (" +
+      type +
+      ") como consola de escritorio inclinada",
+  );
+}
+
+/**
+ * Genera dinámicamente un panel holográfico 3D de muñeca para VR anclado al mando izquierdo
+ */
+function buildVRWristMenu(parentEl) {
+  console.log("ViZo // Generando Menú de Muñeca VR holográfico...");
+
+  // Base panel plate (semi-transparente, azul holográfico)
+  var plate = document.createElement("a-plane");
+  plate.setAttribute("width", "0.85");
+  plate.setAttribute("height", "0.85");
+  plate.setAttribute("color", "#021530");
+  plate.setAttribute("material", "opacity: 0.85; transparent: true; roughness: 0.1; metalness: 0.9");
+  parentEl.appendChild(plate);
+
+  // Glowing neón borders
+  var borderTop = document.createElement("a-box");
+  borderTop.setAttribute("position", "0 0.425 0.01");
+  borderTop.setAttribute("width", "0.87");
+  borderTop.setAttribute("height", "0.02");
+  borderTop.setAttribute("depth", "0.01");
+  borderTop.setAttribute("color", "#00d4ff");
+  borderTop.setAttribute("emissive", "#00d4ff");
+  borderTop.setAttribute("emissive-intensity", "1.5");
+  parentEl.appendChild(borderTop);
+
+  var borderBottom = document.createElement("a-box");
+  borderBottom.setAttribute("position", "0 -0.425 0.01");
+  borderBottom.setAttribute("width", "0.87");
+  borderBottom.setAttribute("height", "0.02");
+  borderBottom.setAttribute("depth", "0.01");
+  borderBottom.setAttribute("color", "#00d4ff");
+  borderBottom.setAttribute("emissive", "#00d4ff");
+  borderBottom.setAttribute("emissive-intensity", "1.5");
+  parentEl.appendChild(borderBottom);
+
+  var borderLeft = document.createElement("a-box");
+  borderLeft.setAttribute("position", "-0.425 0 0.01");
+  borderLeft.setAttribute("width", "0.02");
+  borderLeft.setAttribute("height", "0.87");
+  borderLeft.setAttribute("depth", "0.01");
+  borderLeft.setAttribute("color", "#00d4ff");
+  borderLeft.setAttribute("emissive", "#00d4ff");
+  borderLeft.setAttribute("emissive-intensity", "1.5");
+  parentEl.appendChild(borderLeft);
+
+  var borderRight = document.createElement("a-box");
+  borderRight.setAttribute("position", "0.425 0 0.01");
+  borderRight.setAttribute("width", "0.02");
+  borderRight.setAttribute("height", "0.87");
+  borderRight.setAttribute("depth", "0.01");
+  borderRight.setAttribute("color", "#00d4ff");
+  borderRight.setAttribute("emissive", "#00d4ff");
+  borderRight.setAttribute("emissive-intensity", "1.5");
+  parentEl.appendChild(borderRight);
+
+  // Title header text
+  var titleText = document.createElement("a-text");
+  titleText.setAttribute("value", "VZ_CONTROLS_VR");
+  titleText.setAttribute("position", "0 0.3 0.02");
+  titleText.setAttribute("align", "center");
+  titleText.setAttribute("color", "#4af7a0");
+  titleText.setAttribute("emissive", "#4af7a0");
+  titleText.setAttribute("emissive-intensity", "1");
+  titleText.setAttribute("width", "1.8");
+  titleText.setAttribute("font", "https://cdn.aframe.io/fonts/Exo2Bold.fnt");
+  parentEl.appendChild(titleText);
+
+  // Grid layout parameters for buttons (2 columns, 3 rows)
+  var buttons = [
+    { text: "EXP. BOATS", action: "explain-ai", type: "boats", x: -0.22, y: 0.12 },
+    { text: "EXP. CYLS", action: "explain-ai", type: "cyls", x: 0.22, y: 0.12 },
+    { text: "EXP. DONUT", action: "explain-ai", type: "doughnut", x: -0.22, y: -0.06 },
+    { text: "EXP. BARS", action: "explain-ai", type: "barsmap", x: 0.22, y: -0.06 },
+    { text: "W-FRAME", action: "wireframe", type: "boats", x: -0.22, y: -0.24 },
+    { text: "SWAP EJES", action: "swap-mappings", type: "boats", x: 0.22, y: -0.24 },
+  ];
+
+  buttons.forEach(function (btn) {
+    var btnEl = document.createElement("a-entity");
+    btnEl.setAttribute("position", `${btn.x} ${btn.y} 0.02`);
+    btnEl.setAttribute(
+      "vizo-control-btn",
+      `action: ${btn.action}; targetId: vizo-viz-dummy; vizType: ${btn.type}`
+    );
+
+    // Mini button base box
+    var btnBase = document.createElement("a-box");
+    btnBase.setAttribute("class", "clickable");
+    btnBase.setAttribute("width", "0.38");
+    btnBase.setAttribute("height", "0.14");
+    btnBase.setAttribute("depth", "0.02");
+    btnBase.setAttribute("color", "#002a5a");
+    btnBase.setAttribute("emissive", "#002a5a");
+    btnBase.setAttribute("emissive-intensity", "0.5");
+    btnBase.setAttribute("material", "roughness: 0.2; metalness: 0.8");
+    btnEl.appendChild(btnBase);
+
+    // Mini glowing border
+    var btnBorder = document.createElement("a-box");
+    btnBorder.setAttribute("position", "0 0 -0.005");
+    btnBorder.setAttribute("width", "0.4");
+    btnBorder.setAttribute("height", "0.16");
+    btnBorder.setAttribute("depth", "0.01");
+    btnBorder.setAttribute("color", "#00d4ff");
+    btnBorder.setAttribute("emissive", "#00d4ff");
+    btnBorder.setAttribute("emissive-intensity", "1.2");
+    btnBorder.setAttribute("material", "roughness: 0.1; metalness: 0.9");
+    btnEl.appendChild(btnBorder);
+
+    // Label text
+    var btnTxt = document.createElement("a-text");
+    btnTxt.setAttribute("value", btn.text);
+    btnTxt.setAttribute("position", "0 0 0.015");
+    btnTxt.setAttribute("align", "center");
+    btnTxt.setAttribute("color", "#00d4ff");
+    btnTxt.setAttribute("emissive", "#00d4ff");
+    btnTxt.setAttribute("emissive-intensity", "1.5");
+    btnTxt.setAttribute("width", "1.2");
+    btnTxt.setAttribute("font", "https://cdn.aframe.io/fonts/Exo2Bold.fnt");
+    btnEl.appendChild(btnTxt);
+
+    parentEl.appendChild(btnEl);
+  });
 }
 
 // Export for global access
@@ -274,4 +527,5 @@ window.ViZoBuilders = {
   buildDoughnut,
   buildBarsmap,
   buildControlPanel,
+  buildVRWristMenu,
 };

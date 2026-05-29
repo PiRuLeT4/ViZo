@@ -18,10 +18,48 @@ def build_result_from_session(session: AnalysisSession) -> dict:
         Fore.CYAN
         + f"[Cache] Datos cargados desde BD (session id={session.pk}, commit={session.last_commit_id[:8]})"
     )
+    
+    author_activity = session.author_activity
+    # Lógica de autocuración para sesiones antiguas donde author_activity no estaba persistido
+    if not author_activity and session.evolution_data:
+        print(Fore.YELLOW + "[Cache Warning] 'author_activity' vacío en base de datos. Reconstruyendo retroactivamente...")
+        activity_dict = {}
+        for commit in session.evolution_data:
+            author = commit.get("author", "Unknown")
+            date = commit.get("date", "")
+            insertions = commit.get("insertions", 0)
+
+            key = (author, date)
+            if key not in activity_dict:
+                activity_dict[key] = {
+                    "author": author,
+                    "date": date,
+                    "commits": 0,
+                    "insertions": 0,
+                }
+            activity_dict[key]["commits"] += 1
+            activity_dict[key]["insertions"] += insertions
+
+        author_activity = list(activity_dict.values())
+        all_dates = sorted(
+            list(set(item["date"] for item in author_activity if item["date"])),
+            reverse=True,
+        )
+        recent_dates = set(all_dates[:15])
+        author_activity = [
+            item for item in author_activity if item["date"] in recent_dates
+        ]
+        
+        # Persistimos la autocuración para evitar futuros recálculos
+        session.author_activity = author_activity
+        session.save(update_fields=["author_activity"])
+        print(Fore.GREEN + "[Cache Success] 'author_activity' reconstruido y persistido.")
+
     return {
         "repo_name": session.repo.name,
         "metrics": file_metrics,
         "evolution_data": session.evolution_data,
+        "author_activity": author_activity,
         "file_metrics": file_metrics,
         "data_by_language": data_by_language,
         "ai_config": session.ai_config,
@@ -37,6 +75,7 @@ def save_session(
     evolution_data: list,
     ai_config: dict,
     repo_summary: dict,
+    author_activity: list,
 ) -> AnalysisSession:
     """Persiste una nueva AnalysisSession con todas sus métricas en la BD."""
     session = AnalysisSession.objects.create(
@@ -45,6 +84,7 @@ def save_session(
         ai_config=ai_config,
         repo_summary=repo_summary,
         evolution_data=evolution_data,
+        author_activity=author_activity,
     )
 
     # Métricas por archivo

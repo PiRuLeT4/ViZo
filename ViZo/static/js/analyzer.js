@@ -87,3 +87,36 @@ form.addEventListener("submit", function (e) {
     }, 700);
   }, 7500);
 });
+
+// ── Feature Selector logic for Commit Depth ──
+document.addEventListener("DOMContentLoaded", function () {
+  const depthInput = document.getElementById("depthInput");
+  const features = document.querySelectorAll(".features .feature");
+
+  features.forEach((feature) => {
+    feature.addEventListener("click", function () {
+      // Remover la clase active de todas las cards
+      features.forEach((f) => {
+        f.classList.remove("active");
+        const desc = f.querySelector(".feature-desc");
+        if (desc) {
+          desc.style.color = "var(--text-dim)";
+        }
+      });
+      
+      // Añadir active al seleccionado
+      this.classList.add("active");
+      const activeDesc = this.querySelector(".feature-desc");
+      if (activeDesc) {
+        activeDesc.style.color = "var(--cyan)";
+      }
+      
+      // Actualizar el valor del input hidden
+      const val = this.getAttribute("data-depth");
+      if (depthInput) {
+        depthInput.value = val;
+      }
+      console.log("Selected depth:", val);
+    });
+  });
+});

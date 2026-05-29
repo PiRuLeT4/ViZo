@@ -31,6 +31,36 @@
       <div class="vizo-status" data-repo="{{ repo_name|default:'LIVE_DATA' }}">
         {{ repo_name|default:'LIVE_DATA_ANALYSIS'|upper }} // LOADING...
       </div>
+      {% if ai_status == 'offline' %}
+      <div class="vizo-warning">
+        [AI_OFFLINE] Servidor de IA local no detectado. Visualización estándar activada.
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Desktop HUD Panel (Fallback & Desktop) -->
+    <div id="vizo-hud-panel">
+      <div class="hud-title">ASISTENTE VIZO</div>
+      <div class="hud-grid">
+        <button class="hud-btn" data-hud-btn="boats" onclick="window.ViZoTrigger('explain-ai', 'boats')">EXP. BOATS</button>
+        <button class="hud-btn" data-hud-btn="cyls" onclick="window.ViZoTrigger('explain-ai', 'cyls')">EXP. CYLS</button>
+        <button class="hud-btn" data-hud-btn="doughnut" onclick="window.ViZoTrigger('explain-ai', 'doughnut')">EXP. DONUT</button>
+        <button class="hud-btn" data-hud-btn="barsmap" onclick="window.ViZoTrigger('explain-ai', 'barsmap')">EXP. BARS</button>
+        <button class="hud-btn" onclick="window.ViZoTrigger('wireframe', 'boats')">W-FRAME</button>
+        <button class="hud-btn" onclick="window.ViZoTrigger('swap-mappings', 'boats')">SWAP EJES</button>
+      </div>
+    </div>
+
+    <!-- Holographic Terminal Modal -->
+    <div id="vizo-terminal-modal">
+      <div class="terminal-header">
+        <div class="terminal-title">VIZO_01 // ASISTENTE IA</div>
+        <button class="terminal-close" onclick="window.ViZo.ui.closeExplanation()">CLOSE [X]</button>
+      </div>
+      <div class="terminal-body">
+        <div class="terminal-prompt">> INICIANDO COMUNICACIÓN CON LA IA DE ANÁLISIS...</div>
+        <div id="terminal-content"></div>
+      </div>
     </div>
 
     <a-scene
@@ -45,8 +75,8 @@
       <!-- ══════════════════════════════════════
            LAB ENVIRONMENT & NAVIGATION
            ══════════════════════════════════════ -->
-      {% include 'visualization/includes/environment.html' %} {% include
-      'visualization/includes/nav_button.html' %}
+      {% include 'visualization/includes/environment.html' %} 
+      {% include 'visualization/includes/nav_button.html' %}
 
       <!-- ════════════════════════════════════════
            DJANGO DATA (JSON)
@@ -77,6 +107,7 @@
 
       <!-- ── CAMERA (confined to room + object collisions) ── -->
       <a-entity
+        id="rig"
         movement-controls
         position="0 1.5 30"
         room-bounds="minX: -19; maxX: 19; minY: 1; maxY: 8.5; minZ: -19; maxZ: 39"
@@ -87,7 +118,16 @@
           cursor="rayOrigin:mouse"
           raycaster="objects: .babiaxraycasterclass, #cityinformation, .clickable"
         ></a-entity>
-        <a-entity laser-controls="hand: right"></a-entity>
+
+        <!-- Mando Derecho (Puntero Láser para Clics) -->
+        <a-entity laser-controls="hand: right" raycaster="objects: .clickable; far: 20"></a-entity>
+
+        <!-- Mando Izquierdo (Menú de Muñeca VR flotante) -->
+        <a-entity oculus-touch-controls="hand: left">
+          <a-entity id="vr-wrist-menu" position="0.1 0.1 -0.2" rotation="-30 45 -45" scale="0.12 0.12 0.12" visible="false">
+            <!-- Menú holográfico 3D de muñeca se inyectará dinámicamente -->
+          </a-entity>
+        </a-entity>
       </a-entity>
     </a-scene>
   </body>

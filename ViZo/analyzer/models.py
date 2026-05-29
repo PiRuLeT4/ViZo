@@ -34,6 +34,9 @@ class AnalysisSession(models.Model):
     # Datos de evolución (lista de commits)
     evolution_data = models.JSONField(default=list)
 
+    # Actividad agrupada por autor y fecha (author, date, commits, insertions)
+    author_activity = models.JSONField(default=list)
+
     class Meta:
         ordering = ["-analysis_date"]
 

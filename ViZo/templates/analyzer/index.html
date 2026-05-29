@@ -33,6 +33,16 @@
           </p>
         </div>
 
+        {% if messages %}
+        <div class="messages-container">
+          {% for message in messages %}
+          <div class="message {{ message.tags }}">
+            {{ message }}
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
         <form id="analyzerForm" action="{% url 'index' %}" method="post">
           {% csrf_token %}
           <div class="form-group">
@@ -68,23 +78,30 @@
             </p>
           </div>
 
-          <button type="submit" id="submitBtn">Iniciar Análisis</button>
-        </form>
+          <div class="form-group">
+            <label>Profundidad de Análisis (Historial de Commits)</label>
+            <input type="hidden" id="depthInput" name="depth" value="150" />
+            <div class="features">
+              <div class="feature" data-depth="50">
+                <div class="feature-icon">⚡</div>
+                <div class="feature-title">FAST FLOW</div>
+                <div class="feature-desc" style="font-size: 0.65rem; color: var(--text-dim); opacity: 0.8; margin-top: 6px;">50 COMMITS</div>
+              </div>
+              <div class="feature active" data-depth="150">
+                <div class="feature-icon">📊</div>
+                <div class="feature-title">BALANCED FLOW</div>
+                <div class="feature-desc" style="font-size: 0.65rem; color: var(--cyan); opacity: 0.8; margin-top: 6px;">150 COMMITS</div>
+              </div>
+              <div class="feature" data-depth="300">
+                <div class="feature-icon">🔍</div>
+                <div class="feature-title">DEEP FLOW</div>
+                <div class="feature-desc" style="font-size: 0.65rem; color: var(--text-dim); opacity: 0.8; margin-top: 6px;">300 COMMITS</div>
+              </div>
+            </div>
+          </div>
 
-        <div class="features">
-          <div class="feature">
-            <div class="feature-icon">📊</div>
-            <div class="feature-title">XR VISUAL</div>
-          </div>
-          <div class="feature">
-            <div class="feature-icon">🔍</div>
-            <div class="feature-title">DEEP METRICS</div>
-          </div>
-          <div class="feature">
-            <div class="feature-icon">⚡</div>
-            <div class="feature-title">FAST FLOW</div>
-          </div>
-        </div>
+          <button type="submit" id="submitBtn" style="margin-top: 1rem;">Iniciar Análisis</button>
+        </form>
       </div>
     </div>
 

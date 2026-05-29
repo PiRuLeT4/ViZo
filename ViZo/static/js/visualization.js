@@ -35,6 +35,22 @@
   const evolutionData = parseJson("vizo-evolution-json");
   const authorActivity = parseJson("vizo-activity-json");
 
+  // Redondear CCN a un máximo de 2 decimales para leyendas y visualización limpia
+  if (fileMetrics) {
+    fileMetrics.forEach(function (fm) {
+      if (typeof fm.ccn === "number") {
+        fm.ccn = Math.round(fm.ccn * 100) / 100;
+      }
+    });
+  }
+  if (dataByLanguage) {
+    dataByLanguage.forEach(function (lm) {
+      if (typeof lm.ccn === "number") {
+        lm.ccn = Math.round(lm.ccn * 100) / 100;
+      }
+    });
+  }
+
   // DEBUG: estado de cada dataset parseado
   console.log(
     "ViZo // [DEBUG] fileMetrics:",
@@ -257,5 +273,225 @@
       );
       statusEl.textContent = "LIVE_DATA // " + names.join(" + ");
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // 9. AI Explanation & Typewriter System
+  // ---------------------------------------------------------------------------
+  let typewriterInterval = null;
+
+  // Caché de explicaciones ya obtenidas
+  const explanationCache = {
+    boats: null,
+    cyls: null,
+    doughnut: null,
+    barsmap: null
+  };
+
+  function updateButtonLabels(dashboardType) {
+    // 1. Actualizar botón del HUD 2D
+    const hudBtn = document.querySelector(`[data-hud-btn="${dashboardType}"]`);
+    if (hudBtn) {
+      const cleanType = dashboardType.toUpperCase();
+      const shortType = cleanType === 'BARSMAP' ? 'BARS' : cleanType === 'DOUGHNUT' ? 'DONUT' : cleanType;
+      hudBtn.textContent = `VER EXP. ${shortType}`;
+      hudBtn.style.borderColor = "#4af7a0"; // Borde verde neón
+      hudBtn.style.color = "#4af7a0";
+      hudBtn.style.textShadow = "0 0 8px rgba(74, 247, 160, 0.4)";
+    }
+
+    // 2. Actualizar botones 3D de A-Frame (Pedestales y Menú de Muñeca)
+    const scene3dBtns = document.querySelectorAll('[vizo-control-btn]');
+    scene3dBtns.forEach(btnEl => {
+      const comp = btnEl.getAttribute('vizo-control-btn');
+      if (comp) {
+        let isMatch = false;
+        if (typeof comp === 'string') {
+          isMatch = comp.indexOf('action: explain-ai') !== -1 && comp.indexOf('vizType: ' + dashboardType) !== -1;
+        } else if (typeof comp === 'object') {
+          isMatch = comp.action === 'explain-ai' && comp.vizType === dashboardType;
+        }
+
+        if (isMatch) {
+          const textEl = btnEl.querySelector("a-text");
+          if (textEl) {
+            const isWrist = btnEl.parentNode.id === "vr-wrist-menu";
+            if (isWrist) {
+              const cleanType = dashboardType.toUpperCase();
+              const shortType = cleanType === 'BARSMAP' ? 'BARS' : cleanType === 'DOUGHNUT' ? 'DONUT' : cleanType;
+              textEl.setAttribute("value", `VER ${shortType}`);
+            } else {
+              textEl.setAttribute("value", "VER EXPLICACION");
+            }
+            textEl.setAttribute("color", "#4af7a0");
+            textEl.setAttribute("emissive", "#4af7a0");
+          }
+          
+          const baseEl = btnEl.querySelector("a-box, a-cylinder");
+          if (baseEl) {
+            baseEl.setAttribute("color", "#003d1c"); // Cambiar a verde oscuro
+            baseEl.setAttribute("emissive", "#4af7a0");
+            baseEl.setAttribute("emissive-intensity", "1.2");
+          }
+        }
+      }
+    });
+  }
+
+  function showExplanation(dashboardType, targetEl) {
+    console.log("ViZo // Solicitando explicación IA para:", dashboardType);
+
+    const modal = document.getElementById("vizo-terminal-modal");
+    const contentEl = document.getElementById("terminal-content");
+
+    if (!modal || !contentEl) {
+      console.error("ViZo // Modal o terminal content no encontrado en el DOM.");
+      return;
+    }
+
+    // Limpiar intervalo anterior si existe
+    if (typewriterInterval) {
+      clearInterval(typewriterInterval);
+      typewriterInterval = null;
+    }
+
+    // Si ya existe en caché, mostrar inmediatamente sin fetch
+    if (explanationCache[dashboardType]) {
+      console.log("ViZo // Obteniendo explicación desde caché para:", dashboardType);
+      modal.classList.add("active");
+      typewriterEffect(contentEl, explanationCache[dashboardType]);
+      return;
+    }
+
+    // Mostrar modal con efecto de carga/transición
+    contentEl.innerHTML = "<span class='blink'>[CONECTANDO CON EL NÚCLEO DE LA IA...]</span>";
+    modal.classList.add("active");
+
+    // Obtener los datos correctos
+    let dashboardData = null;
+    if (dashboardType === "boats") {
+      dashboardData = fileMetrics;
+    } else if (dashboardType === "cyls" || dashboardType === "doughnut") {
+      dashboardData = dataByLanguage;
+    } else if (dashboardType === "barsmap") {
+      dashboardData = authorActivity;
+    }
+
+    // Obtener el nombre del repositorio
+    const repoName = statusEl ? statusEl.getAttribute("data-repo") : "LIVE_DATA";
+
+    // Petición AJAX al backend
+    fetch("/api/explain/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        dashboard_type: dashboardType,
+        dashboard_data: dashboardData || {},
+        repo_name: repoName,
+      }),
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Server returned status " + res.status);
+        return res.json();
+      })
+      .then((data) => {
+        const text = data.explanation || "No se pudo obtener explicación de la IA.";
+        explanationCache[dashboardType] = text;
+        updateButtonLabels(dashboardType);
+        typewriterEffect(contentEl, text);
+      })
+      .catch((err) => {
+        console.error("ViZo // Error al obtener la explicación de la IA:", err);
+        contentEl.textContent = ">>> ERROR: ERROR DE CONEXIÓN CON EL SERVIDOR DE IA.\n" + err.message;
+      });
+  }
+
+  function closeExplanation() {
+    const modal = document.getElementById("vizo-terminal-modal");
+    if (modal) {
+      modal.classList.remove("active");
+    }
+    if (typewriterInterval) {
+      clearInterval(typewriterInterval);
+      typewriterInterval = null;
+    }
+  }
+
+  function typewriterEffect(element, text) {
+    // Renderizado instantáneo
+    element.innerHTML = text.replace(/\n/g, "<br>");
+    
+    // Auto-scroll al final de la terminal
+    const body = document.querySelector(".terminal-body");
+    if (body) {
+      body.scrollTop = body.scrollHeight;
+    }
+  }
+
+  // Registrar en el espacio de nombres global
+  window.ViZo = {
+    ui: {
+      showExplanation: showExplanation,
+      closeExplanation: closeExplanation,
+    },
+  };
+
+  // Implementar disparador global para clicks desde el HUD 2D
+  window.ViZoTrigger = function (action, vizType) {
+    console.log("ViZoTrigger // Acción:", action, "Visualizador:", vizType);
+    let targetEl = null;
+    if (vizType === "boats") targetEl = document.querySelector("[babia-boats]");
+    else if (vizType === "cyls") targetEl = document.querySelector("[babia-cyls]");
+    else if (vizType === "doughnut") targetEl = document.querySelector("[babia-doughnut]");
+    else if (vizType === "barsmap") targetEl = document.querySelector("[babia-barsmap]");
+
+    if (!targetEl) {
+      console.warn("ViZoTrigger // No se encontró el componente visualizador de tipo:", vizType);
+      return;
+    }
+
+    if (action === "wireframe") {
+      if (typeof toggleWireframe === "function") {
+        toggleWireframe(targetEl, vizType);
+      }
+    } else if (action === "swap-mappings") {
+      if (typeof swapMappings === "function") {
+        swapMappings(targetEl, vizType);
+      }
+    } else if (action === "cycle-height") {
+      if (typeof cycleHeight === "function") {
+        cycleHeight(targetEl, vizType);
+      }
+    } else if (action === "explain-ai") {
+      showExplanation(vizType, targetEl);
+    }
+  };
+
+  // ---------------------------------------------------------------------------
+  // 10. Construir Menú de Muñeca VR holográfico al conectar el mando
+  // ---------------------------------------------------------------------------
+  const leftController = document.querySelector('[oculus-touch-controls="hand: left"]');
+  const menuEl = document.getElementById("vr-wrist-menu");
+
+  if (menuEl) {
+    menuEl.setAttribute("visible", "false");
+  }
+
+  if (leftController && menuEl) {
+    leftController.addEventListener("controllerconnected", function (evt) {
+      console.log("ViZo // Mando izquierdo conectado. Generando Menú de Muñeca VR...");
+      menuEl.setAttribute("visible", "true");
+      menuEl.innerHTML = "";
+      if (window.ViZoBuilders && typeof window.ViZoBuilders.buildVRWristMenu === "function") {
+        window.ViZoBuilders.buildVRWristMenu(menuEl);
+      }
+    });
+
+    leftController.addEventListener("controllerdisconnected", function (evt) {
+      console.log("ViZo // Mando izquierdo desconectado. Ocultando Menú de Muñeca VR...");
+      menuEl.setAttribute("visible", "false");
+    });
   }
 })();
