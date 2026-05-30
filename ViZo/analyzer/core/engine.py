@@ -1,6 +1,6 @@
 """
-analyzer_core.py
-────────────────
+engine.py
+─────────
 Lógica pura de análisis de repositorio:
   - Clonado con git (subprocess nativo)
   - Análisis estático con Lizard (métricas por archivo)
@@ -33,10 +33,11 @@ def _remove_readonly(func, path, excinfo):
     func(path)
 
 
-def _temp_dir() -> str:
-    """Devuelve la ruta absoluta del directorio temporal de análisis."""
+def _temp_dir(session_id: int = None) -> str:
+    """Devuelve la ruta absoluta del directorio temporal, aislado por sesión si se provee."""
+    suffix = f"_{session_id}" if session_id else ""
     return os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "..", "temp_repo_analysis")
+        os.path.join(os.path.dirname(__file__), "..", "..", f"temp_repo_analysis{suffix}")
     )
 
 
@@ -405,12 +406,12 @@ def _build_repo_summary(
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-def run_analysis(url: str, max_commits: int = 150) -> dict | None:
+def run_analysis(url: str, max_commits: int = 150, session_id: int = None) -> dict | None:
     """
     Clona el repositorio indicado por `url`, ejecuta el análisis completo
     (Lizard + PyDriller) y devuelve un dict con los resultados.
     """
-    target_dir = _temp_dir()
+    target_dir = _temp_dir(session_id)
 
     # Limpieza previa
     if os.path.exists(target_dir):
@@ -478,6 +479,3 @@ def run_analysis(url: str, max_commits: int = 150) -> dict | None:
         return None
     finally:
         _cleanup(target_dir)
-
-
-

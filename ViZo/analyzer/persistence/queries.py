@@ -1,13 +1,12 @@
 """
-db_helpers.py
-─────────────
-Funciones auxiliares para leer y escribir sesiones de análisis en la BD.
-Están separadas aquí para mantener services.py limpio y orientado a orquestación.
+queries.py
+──────────
+Funciones de persistencia y consultas para la base de datos de ViZo.
+SSOT (Single Source of Truth) para la persistencia del análisis.
 """
-
 from colorama import Fore
 
-from .models import AnalysisSession, FileMetric, LanguageMetric, Repository
+from analyzer.models import AnalysisSession, FileMetric, LanguageMetric, Repository
 
 
 def build_result_from_session(session: AnalysisSession) -> dict:
@@ -67,6 +66,23 @@ def build_result_from_session(session: AnalysisSession) -> dict:
     }
 
 
+def get_latest_active_sessions(limit: int = 10) -> list:
+    """
+    Selector centralizado de persistencia. Recupera las últimas sesiones
+    exitosas agrupadas por repositorio único.
+    """
+    sessions = AnalysisSession.objects.filter(status="completed").select_related("repo").order_by("-analysis_date")
+    unique_sessions = []
+    seen_repos = set()
+    for s in sessions:
+        if s.repo_id not in seen_repos:
+            unique_sessions.append(s)
+            seen_repos.add(s.repo_id)
+            if len(unique_sessions) >= limit:
+                break
+    return unique_sessions
+
+
 def save_session(
     repo_obj: Repository,
     last_commit_id: str,
@@ -76,18 +92,35 @@ def save_session(
     ai_config: dict,
     repo_summary: dict,
     author_activity: list,
+    session_obj: AnalysisSession = None,
 ) -> AnalysisSession:
-    """Persiste una nueva AnalysisSession con todas sus métricas en la BD."""
-    session = AnalysisSession.objects.create(
-        repo=repo_obj,
-        last_commit_id=last_commit_id,
-        ai_config=ai_config,
-        repo_summary=repo_summary,
-        evolution_data=evolution_data,
-        author_activity=author_activity,
-    )
+    """
+    Persiste o actualiza una AnalysisSession con todas sus métricas asociadas.
+    SSOT (Single Source of Truth) para la persistencia del análisis.
+    """
+    if session_obj:
+        # Modo actualización (para flujos asíncronos que pre-crearon la sesión en 'pending')
+        session = session_obj
+        session.last_commit_id = last_commit_id
+        session.ai_config = ai_config
+        session.repo_summary = repo_summary
+        session.evolution_data = evolution_data
+        session.author_activity = author_activity
+        session.status = "completed"
+        session.save()
+    else:
+        # Modo creación clásico (síncrono / legacy)
+        session = AnalysisSession.objects.create(
+            repo=repo_obj,
+            last_commit_id=last_commit_id,
+            ai_config=ai_config,
+            repo_summary=repo_summary,
+            evolution_data=evolution_data,
+            author_activity=author_activity,
+            status="completed",
+        )
 
-    # Métricas por archivo
+    # 1. Guardar métricas por archivo en bulk
     file_metric_objs = [
         FileMetric(
             session=session,
@@ -99,10 +132,13 @@ def save_session(
         )
         for entry in file_metrics
     ]
+    # Borrar posibles métricas previas si es una actualización para evitar duplicados
+    if session_obj:
+        session.file_metrics.all().delete()
     FileMetric.objects.bulk_create(file_metric_objs)
 
-    # Métricas por lenguaje
-    lang_metrics = [
+    # 2. Guardar métricas por lenguaje en bulk
+    lang_metric_objs = [
         LanguageMetric(
             session=session,
             language=entry["language"],
@@ -113,10 +149,12 @@ def save_session(
         )
         for entry in data_by_language
     ]
-    LanguageMetric.objects.bulk_create(lang_metrics)
+    if session_obj:
+        session.language_metrics.all().delete()
+    LanguageMetric.objects.bulk_create(lang_metric_objs)
 
     print(
         Fore.GREEN
-        + f"[DB] Sesión guardada (id={session.pk}) con {len(file_metric_objs)} archivos y {len(lang_metrics)} lenguajes."
+        + f"[DB] Sesión guardada con éxito (id={session.pk}) con {len(file_metric_objs)} archivos y {len(lang_metric_objs)} lenguajes."
     )
     return session

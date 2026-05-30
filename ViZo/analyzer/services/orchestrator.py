@@ -1,27 +1,20 @@
 """
-services.py
-───────────
+orchestrator.py
+───────────────
 Orquestador principal del flujo de análisis de ViZo.
-
-Responsabilidades:
-  1. Obtener el HEAD remoto sin clonar (ls-remote) para decidir si usar caché.
-  2. Si hay caché válida → devolver datos de BD directamente.
-  3. Si no hay caché → delegar el análisis a analyzer_core, obtener la config
-     de la IA desde ai_engine y persistir los resultados en BD con db_helpers.
-
-Este módulo NO contiene lógica de análisis, persistence ni IA: solo coordinación.
+Controla el flujo Cache-First, la concurrencia de hilos (ThreadPoolExecutor) y llamadas a la IA.
 """
-
 import json
 import os
 import subprocess
+from concurrent.futures import ThreadPoolExecutor
 
 from colorama import Fore, init
 
-from .ai_engine import get_ai_config
-from .analyzer_core import run_analysis
-from .db_helpers import build_result_from_session, save_session
-from .models import Repository
+from analyzer.core.ai import get_ai_config
+from analyzer.core.engine import run_analysis
+from analyzer.persistence.queries import build_result_from_session, save_session
+from analyzer.models import Repository, AnalysisSession
 
 init(autoreset=True) 
 
@@ -112,7 +105,7 @@ def _persist_results(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Función pública principal
+# Función pública principal (Legacy / Sync)
 # ─────────────────────────────────────────────────────────────────────────────
 
 
@@ -172,3 +165,108 @@ def analyze_repository(url: str, max_commits: int = 150) -> dict | None:
         "ai_config": ai_config,
         "from_cache": False,
     }
+
+
+# Pool de hilos acotado global para limitar tareas concurrentes y proteger el procesador
+_ANALYSIS_EXECUTOR = ThreadPoolExecutor(max_workers=3, thread_name_prefix="vizo-task")
+
+
+def start_async_analysis(url: str, max_commits: int = 150) -> tuple:
+    """
+    Inicia un flujo de análisis asíncrono optimizado mediante caché previa.
+    Retorna: (session_id, is_cache_hit)
+    """
+    # ── 1. Chequeo de Caché Inteligente (Cache-First) ──
+    latest_commit_id = _get_remote_head(url)
+    if latest_commit_id:
+        cached_data = _check_cache(url, latest_commit_id)
+        if cached_data:
+            # Obtener el id de la sesión cacheada de forma limpia
+            repo_obj = Repository.objects.get(url=url)
+            latest_session = repo_obj.sessions.filter(status="completed").first()
+            if latest_session:
+                return latest_session.id, True
+
+    # ── 2. Cache MISS: Registrar sesión y disparar tarea asíncrona ──
+    repo_name = url.strip("/").split("/")[-1].replace(".git", "")
+    url_parts = url.strip("/").split("/")
+    if len(url_parts) > 1:
+        repo_name = "/".join(url_parts[-2:]).replace(".git", "")
+
+    repo_obj, _ = Repository.objects.get_or_create(
+        url=url,
+        defaults={"name": repo_name, "main_language": ""}
+    )
+
+    session = AnalysisSession.objects.create(
+        repo=repo_obj,
+        last_commit_id="",
+        status="pending",
+        ai_config={},
+        repo_summary={},
+        evolution_data=[],
+        author_activity=[]
+    )
+
+    # Enviamos la tarea al ThreadPoolExecutor controlado
+    _ANALYSIS_EXECUTOR.submit(async_analysis_worker, session.id, url, max_commits)
+    
+    return session.id, False
+
+
+def async_analysis_worker(session_id: int, url: str, max_commits: int):
+    """
+    Worker asíncrono que procesa el análisis y utiliza SSOT para guardar en BD.
+    """
+    import traceback
+    from django.db import connection
+
+    try:
+        session = AnalysisSession.objects.get(pk=session_id)
+        session.status = "processing"
+        session.save(update_fields=["status"])
+
+        # Pasar session_id para aislar el directorio temporal
+        analysis_result = run_analysis(url, max_commits=max_commits, session_id=session_id)
+        if not analysis_result:
+            raise Exception("El análisis del motor analyzer_core ha fallado.")
+
+        # Obtener configuración del dashboard con la IA
+        ai_config = get_ai_config(json.dumps(analysis_result["repo_summary"]))
+        if not ai_config:
+            raise Exception("No se pudo obtener una configuración visual de la IA válida.")
+
+        # Actualizar lenguaje principal si es necesario
+        repo_obj = session.repo
+        main_lang = analysis_result["main_language"]
+        if repo_obj.main_language != main_lang:
+            repo_obj.main_language = main_lang
+            repo_obj.save(update_fields=["main_language"])
+
+        # SSOT: Invocar a la capa de persistencia única
+        save_session(
+            repo_obj=session.repo,
+            last_commit_id=analysis_result["last_commit_id"],
+            file_metrics=analysis_result["file_metrics"],
+            data_by_language=analysis_result["data_by_language"],
+            evolution_data=analysis_result["evolution_data"],
+            ai_config=ai_config,
+            repo_summary=analysis_result["repo_summary"],
+            author_activity=analysis_result["author_activity"],
+            session_obj=session
+        )
+        print(f"[Async Worker Success] Sesión {session_id} completada exitosamente.")
+
+    except Exception as e:
+        traceback.print_exc()
+        try:
+            session = AnalysisSession.objects.get(pk=session_id)
+            session.status = "failed"
+            session.error_message = str(e)
+            session.save(update_fields=["status", "error_message"])
+            print(f"[Async Worker Failed] Sesión {session_id} marcada como fallida. Motivo: {e}")
+        except Exception as inner_ex:
+            print(f"[Async Worker Inner Error] Error al marcar sesión fallida: {inner_ex}")
+    finally:
+        # Liberar la conexión en el hilo secundario
+        connection.close()

@@ -11,9 +11,9 @@
       href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="{% static 'css/analyzer.css' %}?v=3" />
+    <link rel="stylesheet" href="{% static 'css/landing/analyzer.css' %}?v=3" />
     <link rel="icon" type="image/x-icon" href="{% static 'favicon1.png' %}" />
-    <script src="{% static 'js/analyzer.js' %}?v=3" defer></script>
+    <script src="{% static 'js/landing/analyzer.js' %}?v=3" defer></script>
   </head>
   <body>
     <!-- Background Design Elements -->
@@ -21,105 +21,176 @@
     <div class="glow-sphere glow-magenta"></div>
     <div class="grid-overlay"></div>
 
-    <div class="container">
-      <div class="card">
-        <div class="header">
-          <div class="logo">
-            <span class="logo-text">VZ</span>
-          </div>
-          <h1 class="vizo-title">VIZO_ANALYZE</h1>
-          <p class="subtitle">
-            Ingeniería Inversa de Código & Visualización XR
-          </p>
-        </div>
-
-        {% if messages %}
-        <div class="messages-container">
-          {% for message in messages %}
-          <div class="message {{ message.tags }}">
-            {{ message }}
-          </div>
-          {% endfor %}
-        </div>
-        {% endif %}
-
-        <form id="analyzerForm" action="{% url 'index' %}" method="post">
-          {% csrf_token %}
-          <div class="form-group">
-            <label for="repoUrl">Target Repository URL</label>
-            <div class="input-wrapper">
-              <input
-                type="url"
-                id="repoUrl"
-                name="repoUrl"
-                placeholder="https://github.com/usuario/repositorio"
-                required
-                autocomplete="off"
-              />
-              <svg
-                class="input-icon"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path
-                  d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"
-                ></path>
-              </svg>
-            </div>
-            <p class="helper-text" id="helperText">
-              <span id="statusIcon">⚡</span>
-              <span id="statusInfo">Esperando flujo de datos externo...</span>
-            </p>
-          </div>
-
-          <div class="form-group">
-            <label>Profundidad de Análisis (Historial de Commits)</label>
-            <input type="hidden" id="depthInput" name="depth" value="150" />
-            <div class="features">
-              <div class="feature" data-depth="50">
-                <div class="feature-icon">⚡</div>
-                <div class="feature-title">FAST FLOW</div>
-                <div class="feature-desc" style="font-size: 0.65rem; color: var(--text-dim); opacity: 0.8; margin-top: 6px;">50 COMMITS</div>
-              </div>
-              <div class="feature active" data-depth="150">
-                <div class="feature-icon">📊</div>
-                <div class="feature-title">BALANCED FLOW</div>
-                <div class="feature-desc" style="font-size: 0.65rem; color: var(--cyan); opacity: 0.8; margin-top: 6px;">150 COMMITS</div>
-              </div>
-              <div class="feature" data-depth="300">
-                <div class="feature-icon">🔍</div>
-                <div class="feature-title">DEEP FLOW</div>
-                <div class="feature-desc" style="font-size: 0.65rem; color: var(--text-dim); opacity: 0.8; margin-top: 6px;">300 COMMITS</div>
-              </div>
-            </div>
-          </div>
-
-          <button type="submit" id="submitBtn" style="margin-top: 1rem;">Iniciar Análisis</button>
-        </form>
-      </div>
-    </div>
-
-    <!-- ── Loading Overlay ── -->
-    <div id="loadingOverlay" class="loading-overlay">
-      <div class="loading-content">
-        <div class="loading-logo">
-          <div class="ring"></div>
+    <div class="dashboard-wrapper">
+      <div class="header">
+        <div class="logo">
           <span class="logo-text">VZ</span>
         </div>
-        <h2 class="loading-title">ANALYZING_CORE</h2>
-        <div class="loading-bar-container">
-          <div class="loading-bar"></div>
-        </div>
-        <p id="loadingMessage" class="loading-message">
-          Iniciando secuencia de análisis...
+        <h1 class="vizo-title">VIZO_ANALYZE</h1>
+        <p class="subtitle">
+          Ingeniería Inversa de Código & Visualización XR
         </p>
       </div>
+
+      <div class="vizo-dashboard">
+        <!-- Columna Izquierda: Historial de Repositorios Analizados -->
+        <div class="vizo-panel history-panel">
+          <div class="panel-header">
+            <span class="panel-status-dot"></span>
+            <h2>VZ_PUBLIC_ARCHIVE</h2>
+          </div>
+
+          <div class="history-scroll-container">
+            {% if latest_sessions %}
+              <div class="repo-list">
+                {% for session in latest_sessions %}
+                  <div class="repo-item">
+                    <div class="repo-info">
+                      <div class="repo-name">{{ session.repo.name }}</div>
+                      <div class="repo-meta">
+                        <span class="lang-badge lang-{{ session.repo.main_language|lower }}">{{ session.repo.main_language|upper|default:"UNKNOWN" }}</span>
+                        <span class="meta-item">📅 {{ session.analysis_date|date:"d/m/Y H:i" }}</span>
+                      </div>
+                      <div class="repo-metrics">
+                        {% if session.repo_summary %}
+                          <span>📂 {{ session.repo_summary.num_files }} arch.</span>
+                          <span>💻 {{ session.repo_summary.avg_nloc|floatformat:0 }} NLOC</span>
+                          <span>📊 CCN: {{ session.repo_summary.avg_ccn|floatformat:2 }}</span>
+                        {% endif %}
+                      </div>
+                    </div>
+                    <div class="repo-actions">
+                      <a href="{% url 'show_visualization' session.id %}" class="enter-room-btn">
+                        SALA 3D <span>[ENTER]</span>
+                      </a>
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <div class="empty-history">
+                <span class="blink">&gt;</span> ARCHIVO SIN REPOSITORIOS.<br />
+                INICIE UN ANÁLISIS A LA DERECHA PARA INAUGURAR EL PORTAL.
+              </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Columna Derecha: Formulario de Análisis -->
+        <div class="vizo-panel form-panel">
+          <div class="panel-header">
+            <span class="panel-status-dot pulse"></span>
+            <h2>NEW_CORE_ANALYSIS</h2>
+          </div>
+
+          {% if messages %}
+          <div class="messages-container">
+            {% for message in messages %}
+            <div class="message {{ message.tags }}">
+              {{ message }}
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          <form id="analyzerForm" action="{% url 'index' %}" method="post">
+            {% csrf_token %}
+            <div class="form-group">
+              <label for="repoUrl">Target Repository URL</label>
+              <div class="input-wrapper">
+                <input
+                  type="url"
+                  id="repoUrl"
+                  name="repoUrl"
+                  placeholder="https://github.com/usuario/repositorio"
+                  required
+                  autocomplete="off"
+                />
+                <svg
+                  class="input-icon"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"
+                  ></path>
+                </svg>
+              </div>
+              <p class="helper-text" id="helperText">
+                <span id="statusIcon">⚡</span>
+                <span id="statusInfo">Esperando flujo de datos externo...</span>
+              </p>
+            </div>
+
+            <div class="form-group">
+              <label>Profundidad de Análisis (Historial de Commits)</label>
+              <input type="hidden" id="depthInput" name="depth" value="150" />
+              <div class="features">
+                <div class="feature" data-depth="50">
+                  <div class="feature-icon">⚡</div>
+                  <div class="feature-title">FAST FLOW</div>
+                  <div class="feature-desc" style="font-size: 0.65rem; color: var(--text-dim); opacity: 0.8; margin-top: 6px;">50 COMMITS</div>
+                </div>
+                <div class="feature active" data-depth="150">
+                  <div class="feature-icon">📊</div>
+                  <div class="feature-title">BALANCED FLOW</div>
+                  <div class="feature-desc" style="font-size: 0.65rem; color: var(--cyan); opacity: 0.8; margin-top: 6px;">150 COMMITS</div>
+                </div>
+                <div class="feature" data-depth="300">
+                  <div class="feature-icon">🔍</div>
+                  <div class="feature-title">DEEP FLOW</div>
+                  <div class="feature-desc" style="font-size: 0.65rem; color: var(--text-dim); opacity: 0.8; margin-top: 6px;">300 COMMITS</div>
+                </div>
+              </div>
+            </div>
+
+            <button type="submit" id="submitBtn" style="margin-top: 1rem;">Iniciar Análisis</button>
+          </form>
+        </div>
+      </div>
     </div>
+
+    <!-- ── Floating Holographic Progress HUD ── -->
+    <div id="vizo-progress-hud" class="vizo-progress-hud">
+      <div class="hud-header">
+        <span class="hud-status-dot pulse"></span>
+        <span class="hud-title">VZ_PROCESS_MONITOR</span>
+        <button id="closeHudBtn" class="hud-close">&times;</button>
+      </div>
+      <div class="hud-body">
+        <div class="hud-target-repo">
+          <span class="hud-label">TARGET:</span>
+          <span id="hudRepoName" class="hud-value">Ninguno</span>
+        </div>
+        <div class="hud-status-text" id="hudStatusText">
+          Inicializando secuencia de análisis...
+        </div>
+        <div class="hud-bar-container">
+          <div class="hud-bar" id="hudBar"></div>
+        </div>
+        
+        <!-- Simulación de logs retro de neón en terminal miniatura -->
+        <div class="hud-terminal" id="hudTerminal">
+          <div class="terminal-line">&gt; INICIANDO SISTEMA VIZO_MONITOR_01...</div>
+          <div class="terminal-line">&gt; ESCUCHANDO FLUJO DE DATOS...</div>
+        </div>
+
+        <div class="hud-actions" id="hudActions" style="display: none;">
+          <a href="#" id="enterRoomBtn" class="hud-action-btn">SALA 3D PREPARADA [ENTER_ROOM]</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Floating Reopen HUD Button ── -->
+    <button id="vizo-reopen-hud-btn" class="vizo-reopen-hud-btn">
+      <span class="pulse-dot"></span>
+      <span class="btn-text">VZ_MONITOR</span>
+    </button>
   </body>
 </html>

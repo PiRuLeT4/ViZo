@@ -1,4 +1,11 @@
-# ai_engine.py
+"""
+ai.py
+─────
+Integración de Inteligencia Artificial para ViZo:
+  - Generación de configuraciones dinámicas de dashboards
+  - Generación de reportes explicativos del visualizador 3D/VR
+  - Fallbacks locales y offline autosanables
+"""
 import json
 import os
 import re
@@ -240,8 +247,6 @@ def get_ai_config(repo_summary: str) -> dict:
         )
     except Exception as e:
         print(Fore.RED + f"[AI] Error: {e}. Usando fallback.")
-        # if not isinstance(e, json.JSONDecodeError):
-        #      traceback.print_exc()
 
     return DEFAULT_AI_CONFIG
 

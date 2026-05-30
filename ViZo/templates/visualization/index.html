@@ -14,15 +14,15 @@
     <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-particle-system-component@master/dist/aframe-particle-system-component.min.js"></script>
 
     <!-- ViZo Styles -->
-    <link rel="stylesheet" href="{% static 'css/visualization.css' %}" />
+    <link rel="stylesheet" href="{% static 'css/visualizer/visualization.css' %}" />
     <link
       href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;700&display=swap"
       rel="stylesheet"
     />
 
     <!-- A-Frame Components (ViZo Lab Physics & Logic) -->
-    <script src="{% static 'js/vizo-components.js' %}"></script>
-    <script src="{% static 'js/fame.js' %}"></script>
+    <script src="{% static 'js/visualizer/vizo-components.js' %}"></script>
+    <script src="{% static 'js/visualizer/fame.js' %}"></script>
   </head>
   <body>
     <!-- HUD Overlay -->
@@ -101,9 +101,9 @@
       <a-entity id="cargador"></a-entity>
 
       <!-- Visualización dinámica generada por la IA -->
-      <script src="{% static 'js/podio.js' %}"></script>
-      <script src="{% static 'js/builders.js' %}"></script>
-      <script src="{% static 'js/visualization.js' %}"></script>
+      <script src="{% static 'js/visualizer/podio.js' %}"></script>
+      <script src="{% static 'js/visualizer/builders.js' %}"></script>
+      <script src="{% static 'js/visualizer/visualization.js' %}"></script>
 
       <!-- ── CAMERA (confined to room + object collisions) ── -->
       <a-entity

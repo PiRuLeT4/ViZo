@@ -24,6 +24,10 @@ class AnalysisSession(models.Model):
     )
     analysis_date = models.DateTimeField(auto_now_add=True)
     last_commit_id = models.CharField(max_length=255)
+    
+    # Seguimiento de estado asíncrono
+    status = models.CharField(max_length=20, default="completed")
+    error_message = models.TextField(null=True, blank=True)
 
     # Configuración que la IA eligió para representar este análisis
     ai_config = models.JSONField(default=dict)
