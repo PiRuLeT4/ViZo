@@ -73,6 +73,29 @@ if (closeHudBtn) {
     // Si hay una sesión activa registrada en memoria, mostramos el botón de reapertura flotante
     if (currentSessionId && reopenHudBtn) {
       reopenHudBtn.classList.add("active");
+      
+      const dot = reopenHudBtn.querySelector(".pulse-dot");
+      const txt = reopenHudBtn.querySelector(".btn-text");
+      
+      if (hud.className.includes("status-completed")) {
+        if (dot) {
+          dot.style.backgroundColor = "var(--green-rack)";
+          dot.style.boxShadow = "0 0 10px var(--green-rack)";
+        }
+        if (txt) {
+          txt.textContent = "SALA_LISTA!";
+          txt.style.color = "var(--green-rack)";
+        }
+      } else if (hud.className.includes("status-failed")) {
+        if (dot) {
+          dot.style.backgroundColor = "#ff6b6b";
+          dot.style.boxShadow = "0 0 10px #ff6b6b";
+        }
+        if (txt) {
+          txt.textContent = "SALA_FALLIDA!";
+          txt.style.color = "#ff6b6b";
+        }
+      }
     }
 
     const isFinished = hud.className.includes("status-completed") || hud.className.includes("status-failed");
@@ -296,12 +319,19 @@ form.addEventListener("submit", function (e) {
     }
   })
     .then(res => {
-      if (!res.ok) throw new Error("API returned HTTP " + res.status);
-      return res.json();
+      return res.json().then(data => {
+        if (!res.ok) {
+          throw new Error(data.error || "API returned HTTP " + res.status);
+        }
+        return data;
+      });
     })
     .then(data => {
       if (data.status === "success") {
         if (data.is_cache_hit) {
+          // Registrar la sesión en memoria para habilitar la reapertura
+          currentSessionId = data.session_id;
+
           appendTerminalLog(`SALA CACHEADA ENCONTRADA. ID: ${data.session_id}`);
           appendTerminalLog("ESTADO: ÉXITO. CARGANDO MÉTRICAS INSTANTÁNEAMENTE...");
           
@@ -393,4 +423,21 @@ document.addEventListener("DOMContentLoaded", function () {
     // Si quedó colgado en pending antes del fetch exitoso, limpiamos
     clearActiveSessionStorage();
   }
+
+  // ── Manejador de cerrado para mensajes flash de Django ──
+  const closeButtons = document.querySelectorAll(".close-msg-btn");
+  closeButtons.forEach(btn => {
+    btn.addEventListener("click", function() {
+      const messageCard = this.parentElement;
+      messageCard.style.opacity = "0";
+      messageCard.style.transform = "translateY(-10px)";
+      setTimeout(() => {
+        messageCard.remove();
+        const container = document.querySelector(".messages-container");
+        if (container && container.children.length === 0) {
+          container.remove();
+        }
+      }, 300);
+    });
+  });
 });

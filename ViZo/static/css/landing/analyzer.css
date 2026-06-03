@@ -594,7 +594,7 @@ select option {
 }
 
 .message {
-  padding: 1rem 1.2rem;
+  padding: 1rem 2.8rem 1rem 1.2rem;
   border-radius: 12px;
   font-size: 0.88rem;
   line-height: 1.4;
@@ -603,6 +603,28 @@ select option {
   background: rgba(255, 107, 107, 0.06);
   color: #ff8b8b;
   box-shadow: 0 0 15px rgba(255, 107, 107, 0.05);
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.close-msg-btn {
+  position: absolute;
+  top: 50%;
+  right: 1.2rem;
+  transform: translateY(-50%);
+  font-size: 1.3rem;
+  font-weight: 700;
+  cursor: pointer;
+  opacity: 0.55;
+  transition: all 0.2s ease;
+  user-select: none;
+  line-height: 1;
+}
+
+.close-msg-btn:hover {
+  opacity: 1;
+  transform: translateY(-50%) scale(1.2);
+  text-shadow: 0 0 8px currentColor;
 }
 
 .message.error {
@@ -642,6 +664,10 @@ body {
   gap: 2.5rem;
   width: 100%;
   margin-top: 1rem;
+}
+
+.form-panel {
+  align-self: start;
 }
 
 /* ── Panel Styling (Mirroring Card design tokens) ── */
@@ -1264,5 +1290,322 @@ body {
   box-shadow: 0 0 8px var(--cyan);
   animation: blink 1.5s infinite alternate;
 }
+
+/* ── GitHub OAuth Connection Panel ── */
+.oauth-panel {
+  position: absolute;
+  top: 1rem;
+  right: 1.5rem;
+  z-index: 100;
+  animation: entrance 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.connect-github-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 1.2rem;
+  background: rgba(5, 10, 18, 0.6);
+  border: 1px solid var(--border-cyan);
+  border-radius: 20px;
+  color: var(--cyan);
+  font-family: monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.connect-github-btn:hover {
+  color: #fff;
+  border-color: var(--cyan);
+  background: rgba(0, 212, 255, 0.08);
+  box-shadow: 
+    0 0 20px rgba(0, 212, 255, 0.25),
+    0 4px 15px rgba(0, 0, 0, 0.4);
+  transform: translateY(-2px);
+}
+
+.connect-github-btn .github-icon {
+  display: flex;
+  align-items: center;
+}
+
+.user-profile-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.5rem 0.8rem 0.5rem 0.6rem;
+  background: rgba(8, 17, 31, 0.85);
+  border: 1px solid rgba(74, 247, 160, 0.2);
+  border-left: 2px solid var(--green-rack);
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.avatar-ring {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  padding: 1.5px;
+  background: linear-gradient(135deg, var(--green-rack) 0%, var(--cyan) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 8px rgba(74, 247, 160, 0.4);
+}
+
+.user-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.default-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--bg-dark);
+  color: var(--cyan);
+  font-size: 0.7rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: monospace;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.user-info .username {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-family: monospace;
+}
+
+.user-info .provider-label {
+  font-size: 0.55rem;
+  color: var(--green-rack);
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-shadow: 0 0 4px rgba(74, 247, 160, 0.3);
+}
+
+.logout-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  margin-left: 0.4rem;
+  padding: 0.3rem 0.6rem;
+  background: rgba(255, 107, 107, 0.1);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  border-radius: 12px;
+  color: #ff6b6b;
+  text-decoration: none;
+  font-family: monospace;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.logout-btn:hover {
+  background: #ff6b6b;
+  border-color: #ff6b6b;
+  color: #fff;
+  box-shadow: 0 0 10px rgba(255, 107, 107, 0.4);
+  transform: scale(1.03);
+}
+
+.logout-btn .power-icon {
+  font-size: 0.68rem;
+}
+
+/* ── Cyberpunk Premium Checkbox (isPrivate) ── */
+.privacy-toggle-group {
+  margin-top: -0.5rem;
+  margin-bottom: 1.8rem !important;
+}
+
+.checkbox-container {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+}
+
+.checkbox-container input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+}
+
+.custom-checkbox {
+  position: relative;
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  background: rgba(5, 10, 18, 0.7);
+  border: 1.5px solid var(--border-blue);
+  border-radius: 4px;
+  margin-right: 0.8rem;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+
+.checkbox-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 3px;
+  background-color: var(--cyan);
+  opacity: 0;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 10px var(--cyan);
+}
+
+.checkbox-container input:checked ~ .custom-checkbox {
+  border-color: var(--cyan);
+}
+
+.checkbox-container input:checked ~ .custom-checkbox .checkbox-glow {
+  opacity: 0.7;
+}
+
+.checkbox-container input:checked ~ .custom-checkbox::after {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 1.5px;
+  width: 4px;
+  height: 8px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+  z-index: 2;
+}
+
+.checkbox-container input:disabled ~ .custom-checkbox {
+  background: rgba(5, 10, 18, 0.3);
+  border-color: rgba(26, 79, 255, 0.08);
+  cursor: not-allowed;
+}
+
+.checkbox-container input:disabled ~ .checkbox-label {
+  color: var(--text-dim);
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.checkbox-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--cyan);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.3s ease;
+}
+
+.checkbox-label .lock-hint {
+  font-size: 0.55rem;
+  color: rgba(200, 220, 255, 0.3);
+  letter-spacing: 1px;
+}
+
+/* ── Secure Private Archive List ── */
+.left-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.private-panel {
+  border-top-color: var(--green-rack) !important;
+}
+
+.private-panel::before {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--green-rack),
+    var(--cyan),
+    var(--green-rack),
+    transparent
+  ) !important;
+}
+
+.private-dot {
+  background-color: var(--green-rack) !important;
+  box-shadow: 0 0 8px var(--green-rack) !important;
+}
+
+.private-item {
+  border-color: rgba(74, 247, 160, 0.18) !important;
+}
+
+.private-item:hover {
+  background: rgba(74, 247, 160, 0.04) !important;
+  border-color: rgba(74, 247, 160, 0.45) !important;
+  box-shadow: 
+    0 6px 20px rgba(74, 247, 160, 0.1),
+    0 0 15px rgba(74, 247, 160, 0.05) !important;
+}
+
+.private-badge {
+  font-family: monospace;
+  font-size: 0.55rem;
+  font-weight: 700;
+  padding: 1px 5px;
+  background: rgba(74, 247, 160, 0.15);
+  border: 1px solid var(--green-rack);
+  border-radius: 4px;
+  color: var(--green-rack);
+  letter-spacing: 1px;
+  margin-left: 0.5rem;
+  vertical-align: middle;
+  text-shadow: 0 0 4px rgba(74, 247, 160, 0.4);
+}
+
+.enter-room-btn.private-btn {
+  background: rgba(74, 247, 160, 0.05);
+  border-color: rgba(74, 247, 160, 0.3);
+  color: var(--green-rack);
+}
+
+.enter-room-btn.private-btn:hover {
+  background: var(--green-rack);
+  border-color: var(--green-rack);
+  color: var(--bg-dark);
+  box-shadow: 0 0 15px rgba(74, 247, 160, 0.4);
+}
+
+.private-empty {
+  border-color: rgba(74, 247, 160, 0.15) !important;
+}
+
+/* Fix header positioning relative context */
+.header {
+  position: relative;
+  width: 100%;
+}
+
 
 

@@ -30,50 +30,128 @@
         <p class="subtitle">
           Ingeniería Inversa de Código & Visualización XR
         </p>
+
+        <!-- GitHub Connection Panel (OAuth) -->
+        <div class="oauth-panel">
+          {% if user.is_authenticated %}
+            <div class="user-profile-badge">
+              <div class="avatar-ring">
+                {% if user.profile.avatar_url %}
+                  <img src="{{ user.profile.avatar_url }}" alt="{{ user.username }}" class="user-avatar" />
+                {% else %}
+                  <div class="default-avatar">{{ user.username|slice:":2"|upper }}</div>
+                {% endif %}
+              </div>
+              <div class="user-info">
+                <span class="username">{{ user.profile.github_username|default:user.username }}</span>
+                <span class="provider-label">GITHUB_CONNECTED</span>
+              </div>
+              <a href="{% url 'user_logout' %}" class="logout-btn" title="Cerrar sesión">
+                <span class="power-icon">⏻</span>
+                <span class="btn-text">LOGOUT</span>
+              </a>
+            </div>
+          {% else %}
+            <a href="{% url 'github_login' %}" class="connect-github-btn">
+              <span class="github-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
+                </svg>
+              </span>
+              <span>CONNECT_GITHUB</span>
+            </a>
+          {% endif %}
+        </div>
       </div>
 
       <div class="vizo-dashboard">
         <!-- Columna Izquierda: Historial de Repositorios Analizados -->
-        <div class="vizo-panel history-panel">
-          <div class="panel-header">
-            <span class="panel-status-dot"></span>
-            <h2>VZ_PUBLIC_ARCHIVE</h2>
+        <div class="left-column">
+          <div class="vizo-panel history-panel">
+            <div class="panel-header">
+              <span class="panel-status-dot"></span>
+              <h2>VZ_PUBLIC_ARCHIVE</h2>
+            </div>
+
+            <div class="history-scroll-container">
+              {% if latest_sessions %}
+                <div class="repo-list">
+                  {% for session in latest_sessions %}
+                    <div class="repo-item">
+                      <div class="repo-info">
+                        <div class="repo-name">{{ session.repo.name }}</div>
+                        <div class="repo-meta">
+                          <span class="lang-badge lang-{{ session.repo.main_language|lower }}">{{ session.repo.main_language|upper|default:"UNKNOWN" }}</span>
+                          <span class="meta-item">📅 {{ session.analysis_date|date:"d/m/Y H:i" }}</span>
+                        </div>
+                        <div class="repo-metrics">
+                          {% if session.repo_summary %}
+                            <span>📂 {{ session.repo_summary.num_files }} arch.</span>
+                            <span>💻 {{ session.repo_summary.avg_nloc|floatformat:0 }} NLOC</span>
+                            <span>📊 CCN: {{ session.repo_summary.avg_ccn|floatformat:2 }}</span>
+                          {% endif %}
+                        </div>
+                      </div>
+                      <div class="repo-actions">
+                        <a href="{% url 'show_visualization' session.id %}" class="enter-room-btn">
+                          SALA 3D <span>[ENTER]</span>
+                        </a>
+                      </div>
+                    </div>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <div class="empty-history">
+                  <span class="blink">&gt;</span> ARCHIVO SIN REPOSITORIOS.<br />
+                  INICIE UN ANÁLISIS A LA DERECHA PARA INAUGURAR EL PORTAL.
+                </div>
+              {% endif %}
+            </div>
           </div>
 
-          <div class="history-scroll-container">
-            {% if latest_sessions %}
-              <div class="repo-list">
-                {% for session in latest_sessions %}
-                  <div class="repo-item">
-                    <div class="repo-info">
-                      <div class="repo-name">{{ session.repo.name }}</div>
-                      <div class="repo-meta">
-                        <span class="lang-badge lang-{{ session.repo.main_language|lower }}">{{ session.repo.main_language|upper|default:"UNKNOWN" }}</span>
-                        <span class="meta-item">📅 {{ session.analysis_date|date:"d/m/Y H:i" }}</span>
+          {% if user.is_authenticated %}
+          <div class="vizo-panel history-panel private-panel" style="margin-top: 2rem;">
+            <div class="panel-header">
+              <span class="panel-status-dot private-dot"></span>
+              <h2>VZ_SECURE_ARCHIVE 🔒</h2>
+            </div>
+
+            <div class="history-scroll-container">
+              {% if private_sessions %}
+                <div class="repo-list">
+                  {% for session in private_sessions %}
+                    <div class="repo-item private-item">
+                      <div class="repo-info">
+                        <div class="repo-name">{{ session.repo.name }} <span class="private-badge">SECURE</span></div>
+                        <div class="repo-meta">
+                          <span class="lang-badge lang-{{ session.repo.main_language|lower }}">{{ session.repo.main_language|upper|default:"UNKNOWN" }}</span>
+                          <span class="meta-item">📅 {{ session.analysis_date|date:"d/m/Y H:i" }}</span>
+                        </div>
+                        <div class="repo-metrics">
+                          {% if session.repo_summary %}
+                            <span>📂 {{ session.repo_summary.num_files }} arch.</span>
+                            <span>💻 {{ session.repo_summary.avg_nloc|floatformat:0 }} NLOC</span>
+                            <span>📊 CCN: {{ session.repo_summary.avg_ccn|floatformat:2 }}</span>
+                          {% endif %}
+                        </div>
                       </div>
-                      <div class="repo-metrics">
-                        {% if session.repo_summary %}
-                          <span>📂 {{ session.repo_summary.num_files }} arch.</span>
-                          <span>💻 {{ session.repo_summary.avg_nloc|floatformat:0 }} NLOC</span>
-                          <span>📊 CCN: {{ session.repo_summary.avg_ccn|floatformat:2 }}</span>
-                        {% endif %}
+                      <div class="repo-actions">
+                        <a href="{% url 'show_visualization' session.id %}" class="enter-room-btn private-btn">
+                          SALA 3D <span>[ENTER]</span>
+                        </a>
                       </div>
                     </div>
-                    <div class="repo-actions">
-                      <a href="{% url 'show_visualization' session.id %}" class="enter-room-btn">
-                        SALA 3D <span>[ENTER]</span>
-                      </a>
-                    </div>
-                  </div>
-                {% endfor %}
-              </div>
-            {% else %}
-              <div class="empty-history">
-                <span class="blink">&gt;</span> ARCHIVO SIN REPOSITORIOS.<br />
-                INICIE UN ANÁLISIS A LA DERECHA PARA INAUGURAR EL PORTAL.
-              </div>
-            {% endif %}
+                  {% endfor %}
+                </div>
+              {% else %}
+                <div class="empty-history private-empty">
+                  <span class="blink">&gt;</span> ARCHIVO PRIVADO SIN REGISTROS.<br />
+                  ANALICE UN REPOSITORIO PROPIO CONFIGURADO COMO PRIVADO.
+                </div>
+              {% endif %}
+            </div>
           </div>
+          {% endif %}
         </div>
 
         <!-- Columna Derecha: Formulario de Análisis -->
@@ -88,6 +166,7 @@
             {% for message in messages %}
             <div class="message {{ message.tags }}">
               {{ message }}
+              <span class="close-msg-btn">&times;</span>
             </div>
             {% endfor %}
           </div>
@@ -126,6 +205,22 @@
                 <span id="statusIcon">⚡</span>
                 <span id="statusInfo">Esperando flujo de datos externo...</span>
               </p>
+            </div>
+
+            <!-- Privacy Toggle Section -->
+            <div class="form-group privacy-toggle-group">
+              <label class="checkbox-container">
+                <input type="checkbox" id="isPrivate" name="isPrivate" value="true" {% if not user.is_authenticated %}disabled{% endif %} />
+                <span class="custom-checkbox">
+                  <span class="checkbox-glow"></span>
+                </span>
+                <span class="checkbox-label">
+                  ANALIZAR REPOSITORIO COMO PRIVADO 🔒
+                  {% if not user.is_authenticated %}
+                    <span class="lock-hint">(CONECTA GITHUB PARA ACTIVAR)</span>
+                  {% endif %}
+                </span>
+              </label>
             </div>
 
             <div class="form-group">

@@ -119,12 +119,27 @@
           raycaster="objects: .babiaxraycasterclass, #cityinformation, .clickable"
         ></a-entity>
 
-        <!-- Mando Derecho (Puntero Láser para Clics) -->
-        <a-entity laser-controls="hand: right" raycaster="objects: .clickable; far: 20"></a-entity>
+        <!-- Mando Derecho (Puntero Láser con raycaster completo) -->
+        <a-entity
+          id="right-controller"
+          laser-controls="hand: right"
+          raycaster="objects: .babiaxraycasterclass, #cityinformation, .clickable; far: 20"
+        ></a-entity>
 
-        <!-- Mando Izquierdo (Menú de Muñeca VR flotante) -->
-        <a-entity oculus-touch-controls="hand: left">
-          <a-entity id="vr-wrist-menu" position="0.1 0.1 -0.2" rotation="-30 45 -45" scale="0.12 0.12 0.12" visible="false">
+        <!-- Mando Izquierdo (Menú de Muñeca VR flotante con soporte Multi-Dispositivo) -->
+        <a-entity
+          id="left-controller"
+          oculus-touch-controls="hand: left"
+          vive-controls="hand: left"
+          hand-controls="hand: left"
+        >
+          <a-entity
+            id="vr-wrist-menu"
+            position="0.1 0.1 -0.2"
+            rotation="-30 45 -45"
+            scale="0.12 0.12 0.12"
+            visible="false"
+          >
             <!-- Menú holográfico 3D de muñeca se inyectará dinámicamente -->
           </a-entity>
         </a-entity>
