@@ -24,18 +24,40 @@ init(autoreset=True)
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-def _get_remote_head(url: str) -> str | None:
+def _get_clean_git_env() -> dict:
+    """
+    Retorna un diccionario de variables de entorno limpio, de forma que se
+    desactiven AskPass de VS Code y otros promnpts interactivos de Git.
+    """
+    import os
+    env = os.environ.copy()
+    # Eliminar cualquier variable de AskPass para evitar que VS Code o Git abran popups
+    for key in list(env.keys()):
+        if "ASKPASS" in key or key.startswith("VSCODE_GIT"):
+            env.pop(key)
+    # Forzar no interactivo
+    env["GIT_TERMINAL_PROMPT"] = "0"
+    env["GIT_ASKPASS"] = "true"  # Evita prompts interactivos
+    return env
+
+
+def _get_remote_head(url: str, disable_helpers: bool = False) -> str | None:
     """
     Obtiene el hash del commit HEAD del repo remoto usando git ls-remote,
     sin necesidad de clonar. Devuelve None si falla.
     """
     try:
+        args = ["git"]
+        if disable_helpers:
+            args.extend(["-c", "credential.helper="])
+        args.extend(["ls-remote", "--quiet", "--exit-code", url, "HEAD"])
+        
         result = subprocess.run(
-            ["git", "ls-remote", "--quiet", "--exit-code", url, "HEAD"],
+            args,
             capture_output=True,
             text=True,
             timeout=15,
-            env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
+            env=_get_clean_git_env(),
         )
         if result.returncode == 0 and result.stdout:
             # Formato de salida: "<hash>\tHEAD" 
@@ -171,23 +193,68 @@ def analyze_repository(url: str, max_commits: int = 150) -> dict | None:
 _ANALYSIS_EXECUTOR = ThreadPoolExecutor(max_workers=3, thread_name_prefix="vizo-task")
 
 
-def start_async_analysis(url: str, max_commits: int = 150) -> tuple:
+def start_async_analysis(url: str, max_commits: int = 150, user=None, is_private=False) -> tuple:
     """
     Inicia un flujo de análisis asíncrono optimizado mediante caché previa.
     Retorna: (session_id, is_cache_hit)
     """
-    # ── 1. Chequeo de Caché Inteligente (Cache-First) ──
-    latest_commit_id = _get_remote_head(url)
+    # 1. Recuperar token de GitHub si el usuario está autenticado
+    token = None
+    if user and user.is_authenticated:
+        try:
+            token = user.profile.github_token
+        except Exception:
+            pass
+
+    # 2. Control de seguridad proactivo: Evitar analizar repos privados como públicos
+    if not is_private and token and "github.com" in url:
+        # Probamos primero si es públicamente accesible deshabilitando helpers de credenciales locales
+        public_head = _get_remote_head(url, disable_helpers=True)
+        if public_head is None:
+            # Si no es público, probamos con el token para ver si existe de forma privada
+            auth_url = url.replace("https://github.com/", f"https://{token}@github.com/")
+            private_head = _get_remote_head(auth_url, disable_helpers=True)
+            if private_head is not None:
+                # Es un repositorio privado pero no se marcó la casilla de privacidad
+                raise PermissionError("PRIVATE_REPO_WITHOUT_SHIELD")
+
+    # 3. Construir la URL de Git autenticada si corresponde
+    clone_url = url
+    if is_private and token and "github.com" in url:
+        # Reemplazar https://github.com/ por https://<token>@github.com/
+        clone_url = url.replace("https://github.com/", f"https://{token}@github.com/")
+
+    # ── 3. Chequeo de Caché Inteligente (Cache-First) ──
+    latest_commit_id = _get_remote_head(clone_url)
     if latest_commit_id:
         cached_data = _check_cache(url, latest_commit_id)
         if cached_data:
-            # Obtener el id de la sesión cacheada de forma limpia
-            repo_obj = Repository.objects.get(url=url)
-            latest_session = repo_obj.sessions.filter(status="completed").first()
-            if latest_session:
-                return latest_session.id, True
+            # Obtener el id de la sesión cacheada de forma limpia y sincronizar privacidad si cambió
+            try:
+                repo_obj = Repository.objects.get(url=url)
+                
+                # Sincronizar privacidad y propietario
+                has_changed = False
+                if repo_obj.is_private != is_private:
+                    repo_obj.is_private = is_private
+                    has_changed = True
+                if is_private and repo_obj.user != user:
+                    repo_obj.user = user
+                    has_changed = True
+                elif not is_private and repo_obj.user is not None:
+                    repo_obj.user = None
+                    has_changed = True
+                    
+                if has_changed:
+                    repo_obj.save(update_fields=["is_private", "user"])
+                
+                latest_session = repo_obj.sessions.filter(status="completed").first()
+                if latest_session:
+                    return latest_session.id, True
+            except Repository.DoesNotExist:
+                pass
 
-    # ── 2. Cache MISS: Registrar sesión y disparar tarea asíncrona ──
+    # ── 4. Cache MISS: Registrar sesión y disparar tarea asíncrona ──
     repo_name = url.strip("/").split("/")[-1].replace(".git", "")
     url_parts = url.strip("/").split("/")
     if len(url_parts) > 1:
@@ -195,8 +262,24 @@ def start_async_analysis(url: str, max_commits: int = 150) -> tuple:
 
     repo_obj, _ = Repository.objects.get_or_create(
         url=url,
-        defaults={"name": repo_name, "main_language": ""}
+        defaults={
+            "name": repo_name, 
+            "main_language": "",
+            "is_private": is_private,
+            "user": user if is_private else None
+        }
     )
+    # Sincronizar estado de privacidad si ya existía pero cambió
+    if not _:
+        has_changed = False
+        if repo_obj.is_private != is_private:
+            repo_obj.is_private = is_private
+            has_changed = True
+        if repo_obj.user != user and is_private:
+            repo_obj.user = user
+            has_changed = True
+        if has_changed:
+            repo_obj.save(update_fields=["is_private", "user"])
 
     session = AnalysisSession.objects.create(
         repo=repo_obj,
@@ -208,8 +291,8 @@ def start_async_analysis(url: str, max_commits: int = 150) -> tuple:
         author_activity=[]
     )
 
-    # Enviamos la tarea al ThreadPoolExecutor controlado
-    _ANALYSIS_EXECUTOR.submit(async_analysis_worker, session.id, url, max_commits)
+    # Enviamos la tarea al ThreadPoolExecutor controlado pasándole la URL de clonado autenticada
+    _ANALYSIS_EXECUTOR.submit(async_analysis_worker, session.id, clone_url, max_commits)
     
     return session.id, False
 

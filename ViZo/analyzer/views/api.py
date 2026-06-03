@@ -28,8 +28,27 @@ def api_analyze(request):
     except ValueError:
         max_commits = 150
 
-    # Iniciar flujo asíncrono con control de hilos y caché inteligente
-    session_id, is_cache_hit = start_async_analysis(url, max_commits=max_commits)
+    is_private = request.POST.get("isPrivate") in ["true", "on", "1"] or request.POST.get("is_private") in ["true", "on", "1"]
+    if is_private and not request.user.is_authenticated:
+        return JsonResponse(
+            {"error": "Debes iniciar sesión con GitHub para poder analizar repositorios privados."},
+            status=401
+        )
+
+    try:
+        # Iniciar flujo asíncrono con control de hilos, usuario, privacidad y caché inteligente
+        session_id, is_cache_hit = start_async_analysis(
+            url,
+            max_commits=max_commits,
+            user=request.user,
+            is_private=is_private
+        )
+    except PermissionError as e:
+        if str(e) == "PRIVATE_REPO_WITHOUT_SHIELD":
+            return JsonResponse({
+                "error": "El repositorio es privado. Debes activar la opción 'Analizar como Privado' para poder proceder de forma segura y confidencial."
+            }, status=403)
+        raise e
 
     return JsonResponse({
         "status": "success",

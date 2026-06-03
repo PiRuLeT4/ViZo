@@ -1,4 +1,16 @@
 from django.db import models
+from django.contrib.auth.models import User
+
+
+class UserProfile(models.Model):
+    """Perfil ampliado del usuario para guardar tokens de OAuth y metadatos."""
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
+    github_token = models.CharField(max_length=255, blank=True, null=True)
+    avatar_url = models.CharField(max_length=500, blank=True, null=True)
+    github_username = models.CharField(max_length=150, blank=True, null=True)
+
+    def __str__(self):
+        return f"Profile of {self.user.username}"
 
 
 class Repository(models.Model):
@@ -8,6 +20,10 @@ class Repository(models.Model):
     url = models.CharField(max_length=500, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
     main_language = models.CharField(max_length=100, blank=True, default="")
+    
+    # Campos para repositorios privados y propiedad
+    is_private = models.BooleanField(default=False)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="repositories", null=True, blank=True)
 
     def __str__(self):
         return f"{self.name} ({self.url})"

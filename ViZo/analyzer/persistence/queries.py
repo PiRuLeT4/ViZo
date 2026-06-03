@@ -69,9 +69,33 @@ def build_result_from_session(session: AnalysisSession) -> dict:
 def get_latest_active_sessions(limit: int = 10) -> list:
     """
     Selector centralizado de persistencia. Recupera las últimas sesiones
-    exitosas agrupadas por repositorio único.
+    públicas completadas agrupadas por repositorio único.
     """
-    sessions = AnalysisSession.objects.filter(status="completed").select_related("repo").order_by("-analysis_date")
+    sessions = AnalysisSession.objects.filter(status="completed", repo__is_private=False).select_related("repo").order_by("-analysis_date")
+    unique_sessions = []
+    seen_repos = set()
+    for s in sessions:
+        if s.repo_id not in seen_repos:
+            unique_sessions.append(s)
+            seen_repos.add(s.repo_id)
+            if len(unique_sessions) >= limit:
+                break
+    return unique_sessions
+
+
+def get_user_active_sessions(user, limit: int = 5) -> list:
+    """
+    Recupera el historial de repositorios privados analizados del usuario autenticado.
+    """
+    if not user or not user.is_authenticated:
+        return []
+        
+    sessions = AnalysisSession.objects.filter(
+        status="completed", 
+        repo__is_private=True,
+        repo__user=user
+    ).select_related("repo").order_by("-analysis_date")
+    
     unique_sessions = []
     seen_repos = set()
     for s in sessions:

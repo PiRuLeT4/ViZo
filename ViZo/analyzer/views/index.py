@@ -4,7 +4,7 @@ index.py
 Vista para el portal principal (Landing Page) de ViZo.
 """
 from django.shortcuts import redirect, render
-from analyzer.persistence.queries import get_latest_active_sessions
+from analyzer.persistence.queries import get_latest_active_sessions, get_user_active_sessions
 
 
 def index(request):
@@ -17,4 +17,17 @@ def index(request):
         
     # GET: Carga el historial desde la capa de persistencia limpia
     latest_sessions = get_latest_active_sessions(limit=10)
-    return render(request, "analyzer/index.html", {"latest_sessions": latest_sessions})
+    
+    # Cargar sesiones privadas sólo para usuarios autenticados
+    private_sessions = []
+    if request.user.is_authenticated:
+        private_sessions = get_user_active_sessions(request.user, limit=5)
+        
+    return render(
+        request, 
+        "analyzer/index.html", 
+        {
+            "latest_sessions": latest_sessions,
+            "private_sessions": private_sessions,
+        }
+    )
