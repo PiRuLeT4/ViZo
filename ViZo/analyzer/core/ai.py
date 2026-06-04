@@ -54,27 +54,25 @@ Tu misión es diseñar un centro de mando virtual para analizar la salud de un r
 4. "author_activity": Actividad agrupada por autor y fecha (author, date, commits, insertions).
 
 # COMPONENTES 3D (BabiaXR) — Mappings obligatorios
-- babia-boats: (Dataset: file_metrics) ESENCIAL. Visualiza archivos como edificios.
+- babia-boats: (Dataset: file_metrics) ESENCIAL/OBLIGATORIO. Mapea archivos individuales como edificios.
   Mappings: {"key": "id", "height": "<campo numérico: nloc|ccn|commits>", "area": "<campo numérico: nloc|ccn|commits>"}
-- babia-cyls: (Dataset: data_by_language) Cilindros comparativos.
+- babia-cyls: (Dataset: data_by_language) Cilindros comparativos por lenguaje. Úsalo solo si la diversidad tecnológica es real (más de 1 lenguaje de programación).
   Mappings: {"x_axis": "language", "height": "<campo numérico: nloc|ccn|commits|count>", "radius": "<campo numérico: nloc|ccn|commits|count>"}
-- babia-doughnut: (Dataset: data_by_language) Gráfico de tarta 3D para distribución.
+- babia-doughnut: (Dataset: data_by_language) Gráfico de tarta 3D para distribución. Úsalo solo si hay más de 1 lenguaje de programación.
   Mappings: {"key": "language", "size": "<campo numérico: nloc|ccn|commits|count>"}
-- babia-barsmap: (Dataset: author_activity) Mapa de barras 2D/3D para actividad por autor.
+- babia-barsmap: (Dataset: author_activity) Mapa de barras 3D para actividad por autor a lo largo del tiempo. Úsalo solo si hay múltiples desarrolladores activos (más de 1 autor).
   Mappings: {"x_axis": "author", "z_axis": "date", "height": "<campo numérico: commits|insertions>"}
 
-# FORMATO DE RESPUESTA (ESTRICTO)
-A la hora de elegir los componentes, SIEMPRE DEBES ELEGIR los dashboards predefinidos para cada repositorio que son: 
-
-- file_metrics -> babia-boats: Para representar el numero de archivos y su complejidad
-- data_by_language -> babia-cyls: Para representar la cantidad de lineas de codigo por lenguaje
-- data_by_language -> babia-doughnut: Para representar la distribucion de archivos por lenguaje
-- author_activity -> babia-barsmap: Para representar la actividad de los autores
-Lo que tu puedes alterar son los mappings de cada dashboard como lo creas conveniente.
-Ademas, puedes utilizar los mismos dashboards para representar otro tipo de datos si lo crees necesario, aniadiendo los mappings correspondientes.
+# INSTRUCCIONES DE SELECCIÓN DINÁMICA
+Debes analizar detenidamente las estadísticas del repositorio recibidas en el prompt del usuario (resumen del repo) para decidir qué dashboards instanciar (de 1 a 4 máximo):
+*   `babia-boats` es siempre OBLIGATORIO para representar la ciudad de archivos.
+*   Si el repositorio es "monolenguaje" (un único lenguaje detectado, o num_languages == 1), NO instancies `babia-cyls` ni `babia-doughnut` ya que serían totalmente redundantes.
+*   Si el proyecto solo tiene un único autor (o num_authors == 1), NO instancies `babia-barsmap` para representar el historial de commits por autor,
+    pero puedes usar el barsmap para representar cualquier otro aspecto que creas conveniente para un mapa de barras nombrando correctamente los ejes.
+*   Elige los mappings de cada componente para resaltar los hotspots de calidad. Por ejemplo, si el CCN promedio es alto, mapea la altura o el área a "ccn" para hacerlo visible.
 
 RESUMEN:
-Un breve párrafo de 2-3 líneas explicando qué has observado en los datos y por qué has elegido esos componentes.
+Un breve párrafo de 2-3 líneas explicando qué has observado en los datos y por qué has elegido esos componentes (por ejemplo, si has descartado alguno por falta de diversidad de autores o lenguajes).
 
 CONFIGURACIÓN:
 ```json
@@ -105,27 +103,64 @@ def _extract_summary_and_json(raw_content: str) -> tuple[str, str]:
     summary = "No se pudo extraer la justificación de la IA."
     json_part = "{}"
 
-    # Extraer resumen (lo que esté entre RESUMEN: y CONFIGURACIÓN: o el primer ``` )
-    if "RESUMEN:" in raw_content:
-        parts = raw_content.split("RESUMEN:", 1)[1]
-        summary = parts.split("CONFIGURACIÓN:")[0].split("```")[0].strip()
-
-    # Extraer JSON del bloque de código
+    # 1. Extraer el bloque JSON
+    json_start = -1
+    
     if "```json" in raw_content:
-        json_part = raw_content.split("```json")[1].split("```")[0].strip()
+        parts = raw_content.split("```json", 1)
+        if len(parts) > 1:
+            json_part = parts[1].split("```", 1)[0].strip()
+            json_start = raw_content.find("```json")
     elif "```" in raw_content:
-        json_part = raw_content.split("```")[1].split("```")[0].strip()
+        parts = raw_content.split("```", 1)
+        if len(parts) > 1:
+            json_part = parts[1].split("```", 1)[0].strip()
+            json_start = raw_content.find("```")
     else:
         # Fallback: buscar llaves {}
         start = raw_content.find("{")
         end = raw_content.rfind("}")
         if start != -1 and end != -1:
             json_part = raw_content[start : end + 1]
+            json_start = start
 
     # Eliminar posibles comentarios inline que rompen JSON estándar
     json_part = re.sub(r"//.*", "", json_part)
 
+    # 2. Extraer el resumen
+    text_before_json = raw_content[:json_start] if json_start != -1 else raw_content
+
+    # Buscar "RESUMEN" en el texto de forma insensible a mayúsculas/minúsculas
+    match = re.search(r"(?i)\bresumen\b", text_before_json)
+    if match:
+        start_pos = match.end()
+        extra_match = re.match(r"^[\s\*\#\-\:]*", text_before_json[start_pos:])
+        if extra_match:
+            start_pos += extra_match.end()
+            
+        summary_text = text_before_json[start_pos:].strip()
+        
+        # Limpiar cualquier texto de "CONFIGURACIÓN" al final del resumen
+        config_match = re.search(r"(?i)\bconfiguraci[oó]n\b", summary_text)
+        if config_match:
+            summary_text = summary_text[:config_match.start()].strip()
+            summary_text = re.sub(r"[\s\*\#\-\:]+$", "", summary_text).strip()
+            
+        if summary_text:
+            summary = summary_text
+    else:
+        # Fallback si no hay cabecera explícita
+        candidate = text_before_json.strip()
+        config_match = re.search(r"(?i)\bconfiguraci[oó]n\b", candidate)
+        if config_match:
+            candidate = candidate[:config_match.start()].strip()
+            candidate = re.sub(r"[\s\*\#\-\:]+$", "", candidate).strip()
+            
+        if len(candidate) > 10:
+            summary = candidate
+
     return summary, json_part
+
 
 
 # Componentes y datasets válidos para validación

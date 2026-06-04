@@ -150,7 +150,7 @@
   // ---------------------------------------------------------------------------
   // 4. Importar constructores y posiciones desde builders.js
   // ---------------------------------------------------------------------------
-  const { POSITIONS, buildCity, buildCyls, buildDoughnut, buildBarsmap } = window.ViZoBuilders;
+  const { POSITIONS, calculateSatellitePosition, buildCity, buildCyls, buildDoughnut, buildBarsmap } = window.ViZoBuilders;
 
   // ---------------------------------------------------------------------------
   // 5. Función que crea un cargador (babia-queryjson) compartido por dataset
@@ -199,15 +199,11 @@
   });
 
   console.log("ViZo // Dashboards ordenados (Hero primero):", dashboards);
-  const total = dashboards.length;
-
-  // Las posiciones se asignan en orden: 0=Centro, 1=Izquierda, 2=Derecha, 3=Fondo
-  const positionSlots = [
-    POSITIONS[0],
-    POSITIONS[1],
-    POSITIONS[2],
-    POSITIONS[3],
-  ];
+  
+  // Calcular satélites (todos los que no son babia-boats)
+  const satellites = dashboards.filter(d => d.component !== "babia-boats");
+  const totalSatellites = satellites.length;
+  let satelliteIdx = 0;
 
   dashboards.forEach(function (dash, idx) {
     console.log(
@@ -234,7 +230,16 @@
       loaderId,
     );
 
-    const pos = positionSlots[idx] || POSITIONS[0];
+    let pos;
+    if (dash.component === "babia-boats") {
+      // El visualizador Hero (Boats) siempre se coloca en el centro
+      pos = POSITIONS[0] || { x: 0, y: 0.1, z: 20 };
+      pos.rotY = 0; // Mirando al norte
+    } else {
+      // Los satélites se calculan en un arco semicircular dinámico
+      pos = calculateSatellitePosition(satelliteIdx, totalSatellites);
+      satelliteIdx++;
+    }
 
     // Crear el componente visual
     switch (dash.component) {

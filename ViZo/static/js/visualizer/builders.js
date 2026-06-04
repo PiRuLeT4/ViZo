@@ -3,21 +3,46 @@
 // Posiciones fijas por número de dashboards
 const POSITIONS = [
   { x: 0, y: 0.1, z: 20 }, // Slot 0: BOATS
-  { x: -12, y: 0.1, z: 10 }, // Slot 1: CYLS
-  { x: 12, y: 0.1, z: 10 }, // Slot 2: DONUT
-  { x: 0, y: 0.1, z: 10 }, // Slot 3: BARSMAP
 ];
 
+/**
+ * Calcula dinámicamente la posición y rotación de un pedestal satélite en arco semicircular.
+ * @param {number} index - Índice del satélite (0, 1, 2).
+ * @param {number} total - Cantidad total de satélites activos.
+ */
+function calculateSatellitePosition(index, total) {
+  if (total <= 0) return { x: 0, y: 0.1, z: 20, rotY: 0 };
+  
+  const R = 13.5; // Radio de la media luna
+  const X_CENTER = 0;
+  const Z_CENTER = 20; // Centro de la ciudad boats
+
+  let angleDeg;
+  if (total === 1) {
+    angleDeg = 270; // Justo en el fondo (mirando al sur hacia Z=30)
+  } else if (total === 2) {
+    angleDeg = index === 0 ? 230 : 310;
+  } else {
+    // Tres satélites
+    const angles = [220, 270, 320];
+    angleDeg = angles[index] || 270;
+  }
+
+  const angleRad = (angleDeg * Math.PI) / 180;
+  const posX = X_CENTER + R * Math.cos(angleRad);
+  const posZ = Z_CENTER + R * Math.sin(angleRad);
+  
+  // Calcular la rotación Y para que el visualizador mire hacia la ciudad
+  const rotY = (360 - angleDeg + 90) % 360;
+
+  return { x: posX, y: 0.1, z: posZ, rotY: rotY };
+}
+
 // Configuración de posición, rotación e interactividad (botones) de los paneles de control de cada tipo de dashboard.
-// Modifica este objeto centralizado para ajustar de manera simple el diseño espacial en la sala 3D.
 const PANEL_CONFIGS = {
   boats: {
-    x: 0,
     y: 0.9,
-    z: -3.4,
-    rotX: 0,
-    rotY: 0,
-    rotZ: 0,
+    dist: 3.4,
     height: 0.88,
     buttons: [
       { text: "WIREFRAMES", action: "wireframe", x: -0.52, y: -0.05 },
@@ -26,36 +51,24 @@ const PANEL_CONFIGS = {
     ],
   },
   cyls: {
-    x: 0,
     y: 0.9,
-    z: -10,
-    rotX: 0,
-    rotY: 90,
-    rotZ: 0,
+    dist: 3.6,
     height: 0.7,
     buttons: [
       { text: "EXPLICAR CON IA", action: "explain-ai", x: 0, y: -0.15 }
     ],
   },
   doughnut: {
-    x: 0,
     y: 0.9,
-    z: -9,
-    rotX: 0,
-    rotY: -45,
-    rotZ: 0,
+    dist: 3.2,
     height: 0.7,
     buttons: [
       { text: "EXPLICAR CON IA", action: "explain-ai", x: 0, y: -0.15 }
     ],
   },
   barsmap: {
-    x: 0,
     y: 0.9,
-    z: -7.4,
-    rotX: 0,
-    rotY: 0,
-    rotZ: 0,
+    dist: 3.6,
     height: 0.7,
     buttons: [
       { text: "COMMITS/INS", action: "cycle-height", x: -0.52, y: -0.15 },
@@ -116,9 +129,9 @@ function buildCyls(scene, dash, loaderId, pos) {
   const m = dash.mappings;
   const vizEl = document.createElement("a-entity");
   vizEl.setAttribute("id", "vizo-viz-" + dash.id);
-  vizEl.setAttribute("position", pos.x + " 0.1 " + (pos.z - 4));
+  vizEl.setAttribute("position", pos.x + " 0.1 " + pos.z);
   vizEl.setAttribute("scale", "0.3 0.3 0.3");
-  vizEl.setAttribute("rotation", "0 90 0");
+  vizEl.setAttribute("rotation", `0 ${pos.rotY} 0`);
   vizEl.setAttribute(
     "babia-cyls",
     [
@@ -148,8 +161,8 @@ function buildDoughnut(scene, dash, loaderId, pos) {
   const m = dash.mappings;
   const vizEl = document.createElement("a-entity");
   vizEl.setAttribute("id", "vizo-viz-" + dash.id);
-  vizEl.setAttribute("position", pos.x + " 1.2 " + (pos.z - 4));
-  vizEl.setAttribute("rotation", "90 90 0");
+  vizEl.setAttribute("position", pos.x + " 1.2 " + pos.z);
+  vizEl.setAttribute("rotation", `90 ${pos.rotY} 0`);
   vizEl.setAttribute("scale", "0.6 0.6 0.6");
   vizEl.setAttribute(
     "babia-doughnut",
@@ -177,9 +190,9 @@ function buildBarsmap(scene, dash, loaderId, pos) {
   const m = dash.mappings;
   const vizEl = document.createElement("a-entity");
   vizEl.setAttribute("id", "vizo-viz-" + dash.id);
-  vizEl.setAttribute("position", pos.x + " 0.1 " + (pos.z - 4));
+  vizEl.setAttribute("position", pos.x + " 0.1 " + pos.z);
   vizEl.setAttribute("scale", "0.2 0.2 0.2");
-  vizEl.setAttribute("rotation", "0 90 0");
+  vizEl.setAttribute("rotation", `0 ${pos.rotY} 0`);
   vizEl.setAttribute(
     "babia-barsmap",
     [
@@ -211,9 +224,18 @@ function buildControlPanel(scene, dash, vizId, pos, type) {
   const cfg = PANEL_CONFIGS[type];
   if (!cfg) return;
 
-  var panelX = pos.x + cfg.x;
+  // Orientar y posicionar dinámicamente el panel de control enfrente del pedestal
+  const yawDegrees = pos.rotY || 0;
+  const yawRad = (yawDegrees * Math.PI) / 180;
+  
+  // Distancia del panel al centro del visualizador
+  const dist = cfg.dist || 3.2;
+  
+  // Calcular posición global en base a rotación
+  var panelX = pos.x - dist * Math.sin(yawRad);
   var panelY = cfg.y;
-  var panelZ = pos.z + cfg.z;
+  var panelZ = pos.z - dist * Math.cos(yawRad);
+  
   var panelHeight = cfg.height || 0.7;
   var halfHeight = panelHeight / 2;
 
@@ -232,7 +254,7 @@ function buildControlPanel(scene, dash, vizId, pos, type) {
   var panelEl = document.createElement("a-entity");
   panelEl.setAttribute("id", "vizo-panel-" + dash.id);
   panelEl.setAttribute("position", `${panelX} ${panelY} ${panelZ}`);
-  panelEl.setAttribute("rotation", `${cfg.rotX} ${cfg.rotY} ${cfg.rotZ}`);
+  panelEl.setAttribute("rotation", `0 ${yawDegrees} 0`);
 
   // Create tilted sub-entity for the screen plate
   var screenEl = document.createElement("a-entity");
@@ -522,6 +544,7 @@ function buildVRWristMenu(parentEl) {
 // Export for global access
 window.ViZoBuilders = {
   POSITIONS,
+  calculateSatellitePosition,
   buildCity,
   buildCyls,
   buildDoughnut,
