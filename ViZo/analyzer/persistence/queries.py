@@ -62,6 +62,9 @@ def build_result_from_session(session: AnalysisSession) -> dict:
         "file_metrics": file_metrics,
         "data_by_language": data_by_language,
         "ai_config": session.ai_config,
+        "file_ownership": session.file_ownership or [],
+        "age_distribution": session.age_distribution or [],
+        "top_complex_files": session.top_complex_files or [],
         "from_cache": True,
     }
 
@@ -116,6 +119,9 @@ def save_session(
     ai_config: dict,
     repo_summary: dict,
     author_activity: list,
+    file_ownership: list = None,
+    age_distribution: list = None,
+    top_complex_files: list = None,
     session_obj: AnalysisSession = None,
 ) -> AnalysisSession:
     """
@@ -130,6 +136,12 @@ def save_session(
         session.repo_summary = repo_summary
         session.evolution_data = evolution_data
         session.author_activity = author_activity
+        if file_ownership is not None:
+            session.file_ownership = file_ownership
+        if age_distribution is not None:
+            session.age_distribution = age_distribution
+        if top_complex_files is not None:
+            session.top_complex_files = top_complex_files
         session.status = "completed"
         session.save()
     else:
@@ -141,6 +153,9 @@ def save_session(
             repo_summary=repo_summary,
             evolution_data=evolution_data,
             author_activity=author_activity,
+            file_ownership=file_ownership or [],
+            age_distribution=age_distribution or [],
+            top_complex_files=top_complex_files or [],
             status="completed",
         )
 
@@ -153,6 +168,11 @@ def save_session(
             nloc=entry.get("nloc", 0),
             ccn=entry.get("ccn", 0.0),
             commits=entry.get("commits", 0),
+            num_functions=entry.get("num_functions", 0),
+            peak_ccn=entry.get("peak_ccn", 0.0),
+            ownership=entry.get("ownership", 0.0),
+            owner_name=entry.get("owner_name", "N/A"),
+            age_days=entry.get("age_days", 0),
         )
         for entry in file_metrics
     ]

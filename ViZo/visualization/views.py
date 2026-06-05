@@ -3,6 +3,7 @@ views.py
 ────────
 Vistas y endpoints correspondientes a la experiencia visual 3D/VR de ViZo.
 """
+
 import json
 
 from django.shortcuts import render, get_object_or_404
@@ -30,6 +31,9 @@ def show_visualization(request, session_id):
             "data_by_language": json.dumps(data["data_by_language"]),
             "evolution_data": json.dumps(data.get("evolution_data", [])),
             "author_activity": json.dumps(data.get("author_activity", [])),
+            "file_ownership": json.dumps(data.get("file_ownership", [])),
+            "age_distribution": json.dumps(data.get("age_distribution", [])),
+            "top_complex_files": json.dumps(data.get("top_complex_files", [])),
             "ai_config": json.dumps(data["ai_config"]),
             "ai_status": data["ai_config"].get("ai_status", "success"),
         },
@@ -51,10 +55,19 @@ def api_explain(request):
         repo_name = data.get("repo_name", "")
 
         if not dashboard_type or not repo_name:
-            return JsonResponse({"error": "Missing dashboard_type or repo_name"}, status=400)
+            return JsonResponse(
+                {"error": "Missing dashboard_type or repo_name"}, status=400
+            )
 
         # Generar explicación con el LLM
-        explanation = get_ai_explanation(dashboard_type, json.dumps(dashboard_data), repo_name)
+        from analyzer.core.ai import client, AI_MODEL
+
+        print(f"Generating explanation for dashboard type: {dashboard_type}")
+        print(f"Using AI client base_url: {client.base_url}, model: {AI_MODEL}")
+        explanation = get_ai_explanation(
+            dashboard_type, json.dumps(dashboard_data), repo_name
+        )
+        print("Explanation: Done")
         return JsonResponse({"explanation": explanation})
 
     except Exception as e:

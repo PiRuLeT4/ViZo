@@ -183,3 +183,75 @@ class CleanupSessionsTestCase(TestCase):
     def test_cleanup_no_criteria_errors(self):
         with self.assertRaises(CommandError):
             call_command("cleanup_sessions")
+
+
+class LocalMetricsTestCase(TestCase):
+    def test_process_metrics_calculations(self):
+        from unittest.mock import MagicMock
+        from datetime import datetime
+        from analyzer.core.engine import _process_metrics
+
+        # Create a mock Lizard file
+        mock_func = MagicMock()
+        mock_func.cyclomatic_complexity = 5
+        
+        mock_file = MagicMock()
+        mock_file.filename = "/tmp/test_dir/file1.py"
+        mock_file.nloc = 100
+        mock_file.average_cyclomatic_complexity = 3.0
+        mock_file.function_list = [mock_func]
+
+        # Create evolution data
+        now = datetime.now()
+        evolution_data = {
+            "file_churn": {"file1.py": 2},
+            "file_lines_added": {"file1.py": 50},
+            "file_lines_deleted": {"file1.py": 10},
+            "file_author_commits": {"file1.py": {"Author A": 2, "Author B": 1}},
+            "file_last_modified": {"file1.py": now},
+            "commits": [],
+            "author_activity": []
+        }
+
+        # Run process_metrics
+        (
+            file_metrics,
+            data_by_language,
+            filenames,
+            total_nloc,
+            total_ccn,
+            language_counts,
+            file_ownership,
+            age_distribution,
+            top_complex_files,
+        ) = _process_metrics([mock_file], evolution_data, "/tmp/test_dir")
+
+        # Verify calculations
+        self.assertEqual(len(file_metrics), 1)
+        fm = file_metrics[0]
+        self.assertEqual(fm["name"], "file1.py")
+        self.assertEqual(fm["num_functions"], 1)
+        self.assertEqual(fm["peak_ccn"], 5.0)
+        self.assertEqual(fm["age_days"], 0)
+        # Dominant author: Author A (2 commits out of 3 total) -> ownership = 66.67%
+        self.assertAlmostEqual(fm["ownership"], 66.67, places=2)
+        self.assertEqual(fm["owner_name"], "Author A")
+
+        # Verify file_ownership list
+        # It should list A (66.67%) and B (33.33%)
+        self.assertEqual(len(file_ownership), 2)
+        self.assertEqual(file_ownership[0]["author"], "Author A")
+        self.assertAlmostEqual(file_ownership[0]["ownership"], 66.67, places=2)
+        self.assertEqual(file_ownership[1]["author"], "Author B")
+        self.assertAlmostEqual(file_ownership[1]["ownership"], 33.33, places=2)
+
+        # Verify age_distribution
+        # Since age_days is 0, it should be in "Active"
+        active_cat = next(cat for cat in age_distribution if cat["category"] == "Active")
+        self.assertEqual(active_cat["count"], 1)
+        self.assertEqual(active_cat["nloc"], 100)
+
+        # Verify top_complex_files
+        self.assertEqual(len(top_complex_files), 1)
+        self.assertEqual(top_complex_files[0]["name"], "file1.py")
+        self.assertEqual(top_complex_files[0]["peak_ccn"], 5.0)

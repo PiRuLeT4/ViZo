@@ -4,6 +4,7 @@ orchestrator.py
 Orquestador principal del flujo de análisis de ViZo.
 Controla el flujo Cache-First, la concurrencia de hilos (ThreadPoolExecutor) y llamadas a la IA.
 """
+
 import json
 import os
 import subprocess
@@ -16,7 +17,7 @@ from analyzer.core.engine import run_analysis
 from analyzer.persistence.queries import build_result_from_session, save_session
 from analyzer.models import Repository, AnalysisSession
 
-init(autoreset=True) 
+init(autoreset=True)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -29,7 +30,6 @@ def _get_clean_git_env() -> dict:
     Retorna un diccionario de variables de entorno limpio, de forma que se
     desactiven AskPass de VS Code y otros promnpts interactivos de Git.
     """
-    import os
     env = os.environ.copy()
     # Eliminar cualquier variable de AskPass para evitar que VS Code o Git abran popups
     for key in list(env.keys()):
@@ -51,7 +51,7 @@ def _get_remote_head(url: str, disable_helpers: bool = False) -> str | None:
         if disable_helpers:
             args.extend(["-c", "credential.helper="])
         args.extend(["ls-remote", "--quiet", "--exit-code", url, "HEAD"])
-        
+
         result = subprocess.run(
             args,
             capture_output=True,
@@ -60,7 +60,7 @@ def _get_remote_head(url: str, disable_helpers: bool = False) -> str | None:
             env=_get_clean_git_env(),
         )
         if result.returncode == 0 and result.stdout:
-            # Formato de salida: "<hash>\tHEAD" 
+            # Formato de salida: "<hash>\tHEAD"
             return result.stdout.split()[0]
     except Exception as e:
         print(Fore.YELLOW + f"[Git ls-remote] No disponible: {e}")
@@ -123,6 +123,9 @@ def _persist_results(
         ai_config,
         analysis_result["repo_summary"],
         analysis_result["author_activity"],
+        file_ownership=analysis_result.get("file_ownership", []),
+        age_distribution=analysis_result.get("age_distribution", []),
+        top_complex_files=analysis_result.get("top_complex_files", []),
     )
 
 
@@ -193,7 +196,9 @@ def analyze_repository(url: str, max_commits: int = 150) -> dict | None:
 _ANALYSIS_EXECUTOR = ThreadPoolExecutor(max_workers=3, thread_name_prefix="vizo-task")
 
 
-def start_async_analysis(url: str, max_commits: int = 150, user=None, is_private=False) -> tuple:
+def start_async_analysis(
+    url: str, max_commits: int = 150, user=None, is_private=False
+) -> tuple:
     """
     Inicia un flujo de análisis asíncrono optimizado mediante caché previa.
     Retorna: (session_id, is_cache_hit)
@@ -212,7 +217,9 @@ def start_async_analysis(url: str, max_commits: int = 150, user=None, is_private
         public_head = _get_remote_head(url, disable_helpers=True)
         if public_head is None:
             # Si no es público, probamos con el token para ver si existe de forma privada
-            auth_url = url.replace("https://github.com/", f"https://{token}@github.com/")
+            auth_url = url.replace(
+                "https://github.com/", f"https://{token}@github.com/"
+            )
             private_head = _get_remote_head(auth_url, disable_helpers=True)
             if private_head is not None:
                 # Es un repositorio privado pero no se marcó la casilla de privacidad
@@ -232,7 +239,7 @@ def start_async_analysis(url: str, max_commits: int = 150, user=None, is_private
             # Obtener el id de la sesión cacheada de forma limpia y sincronizar privacidad si cambió
             try:
                 repo_obj = Repository.objects.get(url=url)
-                
+
                 # Sincronizar privacidad y propietario
                 has_changed = False
                 if repo_obj.is_private != is_private:
@@ -244,10 +251,10 @@ def start_async_analysis(url: str, max_commits: int = 150, user=None, is_private
                 elif not is_private and repo_obj.user is not None:
                     repo_obj.user = None
                     has_changed = True
-                    
+
                 if has_changed:
                     repo_obj.save(update_fields=["is_private", "user"])
-                
+
                 latest_session = repo_obj.sessions.filter(status="completed").first()
                 if latest_session:
                     return latest_session.id, True
@@ -263,11 +270,11 @@ def start_async_analysis(url: str, max_commits: int = 150, user=None, is_private
     repo_obj, _ = Repository.objects.get_or_create(
         url=url,
         defaults={
-            "name": repo_name, 
+            "name": repo_name,
             "main_language": "",
             "is_private": is_private,
-            "user": user if is_private else None
-        }
+            "user": user if is_private else None,
+        },
     )
     # Sincronizar estado de privacidad si ya existía pero cambió
     if not _:
@@ -288,12 +295,12 @@ def start_async_analysis(url: str, max_commits: int = 150, user=None, is_private
         ai_config={},
         repo_summary={},
         evolution_data=[],
-        author_activity=[]
+        author_activity=[],
     )
 
     # Enviamos la tarea al ThreadPoolExecutor controlado pasándole la URL de clonado autenticada
     _ANALYSIS_EXECUTOR.submit(async_analysis_worker, session.id, clone_url, max_commits)
-    
+
     return session.id, False
 
 
@@ -310,14 +317,18 @@ def async_analysis_worker(session_id: int, url: str, max_commits: int):
         session.save(update_fields=["status"])
 
         # Pasar session_id para aislar el directorio temporal
-        analysis_result = run_analysis(url, max_commits=max_commits, session_id=session_id)
+        analysis_result = run_analysis(
+            url, max_commits=max_commits, session_id=session_id
+        )
         if not analysis_result:
             raise Exception("El análisis del motor analyzer_core ha fallado.")
 
         # Obtener configuración del dashboard con la IA
         ai_config = get_ai_config(json.dumps(analysis_result["repo_summary"]))
         if not ai_config:
-            raise Exception("No se pudo obtener una configuración visual de la IA válida.")
+            raise Exception(
+                "No se pudo obtener una configuración visual de la IA válida."
+            )
 
         # Actualizar lenguaje principal si es necesario
         repo_obj = session.repo
@@ -336,7 +347,10 @@ def async_analysis_worker(session_id: int, url: str, max_commits: int):
             ai_config=ai_config,
             repo_summary=analysis_result["repo_summary"],
             author_activity=analysis_result["author_activity"],
-            session_obj=session
+            file_ownership=analysis_result.get("file_ownership", []),
+            age_distribution=analysis_result.get("age_distribution", []),
+            top_complex_files=analysis_result.get("top_complex_files", []),
+            session_obj=session,
         )
         print(f"[Async Worker Success] Sesión {session_id} completada exitosamente.")
 
@@ -347,9 +361,13 @@ def async_analysis_worker(session_id: int, url: str, max_commits: int):
             session.status = "failed"
             session.error_message = str(e)
             session.save(update_fields=["status", "error_message"])
-            print(f"[Async Worker Failed] Sesión {session_id} marcada como fallida. Motivo: {e}")
+            print(
+                f"[Async Worker Failed] Sesión {session_id} marcada como fallida. Motivo: {e}"
+            )
         except Exception as inner_ex:
-            print(f"[Async Worker Inner Error] Error al marcar sesión fallida: {inner_ex}")
+            print(
+                f"[Async Worker Inner Error] Error al marcar sesión fallida: {inner_ex}"
+            )
     finally:
         # Liberar la conexión en el hilo secundario
         connection.close()

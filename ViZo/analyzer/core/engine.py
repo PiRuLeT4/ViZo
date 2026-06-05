@@ -17,6 +17,7 @@ import stat
 import subprocess
 import time
 import traceback
+from datetime import datetime
 
 import lizard
 from colorama import Fore
@@ -164,6 +165,8 @@ def _run_git_history(target_dir: str, max_commits: int = 150) -> dict:
         "file_lines_deleted": {},
         "commits": [],
         "author_activity": [],
+        "file_author_commits": {},
+        "file_last_modified": {},
     }
 
     try:
@@ -172,6 +175,8 @@ def _run_git_history(target_dir: str, max_commits: int = 150) -> dict:
         evolution_data["total_commits"] = total_commits
 
         recent_commits_info = []
+        file_author_commits = {}
+        file_last_modified = {}
 
         # Recorremos en orden inverso (los más nuevos primero) y limitamos a max_commits
         generator = DrillRepo(target_dir, order="reverse").traverse_commits()
@@ -195,9 +200,18 @@ def _run_git_history(target_dir: str, max_commits: int = 150) -> dict:
                 }
 
                 for mf in commit.modified_files:
+                    path = mf.new_path or mf.old_path
+                    if path:
+                        rel_path = path.replace("\\", "/")
+                        if rel_path not in file_last_modified:
+                            file_last_modified[rel_path] = commit.author_date
+                        if rel_path not in file_author_commits:
+                            file_author_commits[rel_path] = {}
+                        file_author_commits[rel_path][author_name] = file_author_commits[rel_path].get(author_name, 0) + 1
+
                     info["modified_files"].append(
                         {
-                            "path": mf.new_path or mf.old_path,
+                            "path": path,
                             "added": mf.added_lines or 0,
                             "deleted": mf.deleted_lines or 0,
                         }
@@ -272,6 +286,8 @@ def _run_git_history(target_dir: str, max_commits: int = 150) -> dict:
         evolution_data["author_activity"] = [
             item for item in author_activity if item["date"] in recent_dates
         ]
+        evolution_data["file_author_commits"] = file_author_commits
+        evolution_data["file_last_modified"] = file_last_modified
 
     except Exception as e:
         print(Fore.RED + f"Error procesando historial Git: {e}")
@@ -284,10 +300,10 @@ def _run_git_history(target_dir: str, max_commits: int = 150) -> dict:
 
 def _process_metrics(
     analysis: list, evolution_data: dict, target_dir: str
-) -> tuple[list, list, list, int, float, dict]:
+) -> tuple[list, list, list, int, float, dict, list, list, list]:
     """
     Procesa los resultados de Lizard y PyDriller en una sola pasada.
-    Construye métricas por archivo, agrupaciones por lenguaje y totales.
+    Construye métricas por archivo, agrupaciones por lenguaje, totales y datasets avanzados.
 
     Devuelve:
         file_metrics      : lista de dicts con métricas por archivo
@@ -296,12 +312,24 @@ def _process_metrics(
         total_nloc        : suma total de NLOC
         total_ccn         : suma total de CCN
         language_counts   : dict {lang: count} para el resumen
+        file_ownership    : lista de dicts con propiedad de autores para Barsmap
+        age_distribution  : lista de dicts con agregaciones de Legacy Code
+        top_complex_files : lista de dicts con el Top 10 de complejidad Peak CCN
     """
     file_metrics = []
     lang_data = {}  # {lang: {nloc, ccn_list, commits, count, added, deleted}}
     total_nloc = 0
     total_ccn = 0.0
     filenames = []
+    file_ownership = []
+
+    # Age distribution counters
+    active_count = 0
+    active_nloc = 0
+    maintained_count = 0
+    maintained_nloc = 0
+    legacy_count = 0
+    legacy_nloc = 0
 
     for file in analysis:
         rel_path = os.path.relpath(file.filename, target_dir).replace("\\", "/")
@@ -325,6 +353,55 @@ def _process_metrics(
         parts = rel_path.split("/")
         folder = parts[0] if len(parts) > 1 else "root"
 
+        # Lizard metrics
+        num_functions = len(file.function_list)
+        peak_ccn = float(max([func.cyclomatic_complexity for func in file.function_list])) if file.function_list else 0.0
+
+        # PyDriller age calculation
+        last_mod_dt = evolution_data["file_last_modified"].get(rel_path)
+        if last_mod_dt:
+            if last_mod_dt.tzinfo:
+                now = datetime.now(last_mod_dt.tzinfo)
+            else:
+                now = datetime.now()
+            age_days = (now - last_mod_dt).days
+            if age_days < 0:
+                age_days = 0
+        else:
+            age_days = 365  # Fallback for files not modified in the last 150 commits
+
+        # Categorize age
+        if age_days < 30:
+            active_count += 1
+            active_nloc += file.nloc
+        elif age_days <= 180:
+            maintained_count += 1
+            maintained_nloc += file.nloc
+        else:
+            legacy_count += 1
+            legacy_nloc += file.nloc
+
+        # PyDriller ownership & Bus Factor
+        author_counts = evolution_data["file_author_commits"].get(rel_path, {})
+        total_file_commits = sum(author_counts.values())
+        if total_file_commits > 0:
+            dominant_author = max(author_counts, key=author_counts.get)
+            dominant_commits = author_counts[dominant_author]
+            ownership = (dominant_commits / total_file_commits) * 100.0
+            owner_name = dominant_author
+
+            # Records for all authors who touched this file
+            for auth, auth_commits in author_counts.items():
+                pct = (auth_commits / total_file_commits) * 100.0
+                file_ownership.append({
+                    "author": auth,
+                    "file": basename,
+                    "ownership": round(pct, 2)
+                })
+        else:
+            ownership = 0.0
+            owner_name = "N/A"
+
         # 1. Entry for file_metrics
         file_metrics.append(
             {
@@ -335,6 +412,11 @@ def _process_metrics(
                 "commits": commits_count,
                 "language": lang,
                 "folder": folder,
+                "num_functions": num_functions,
+                "peak_ccn": peak_ccn,
+                "ownership": round(ownership, 2),
+                "owner_name": owner_name,
+                "age_days": age_days,
             }
         )
 
@@ -378,6 +460,24 @@ def _process_metrics(
     data_by_language.sort(key=lambda x: x["count"], reverse=True)
     language_counts = {ld["language"]: ld["count"] for ld in data_by_language}
 
+    # Aggregate age distribution
+    age_distribution = [
+        {"category": "Active", "nloc": active_nloc, "count": active_count},
+        {"category": "Maintained", "nloc": maintained_nloc, "count": maintained_count},
+        {"category": "Legacy", "nloc": legacy_nloc, "count": legacy_count},
+    ]
+
+    # Sort files by peak_ccn descending to get Top 10 complex files
+    sorted_by_peak = sorted(file_metrics, key=lambda x: x["peak_ccn"], reverse=True)
+    top_complex_files = [
+        {
+            "name": f["name"],
+            "peak_ccn": f["peak_ccn"],
+            "avg_ccn": round(f["ccn"], 2)
+        }
+        for f in sorted_by_peak[:10]
+    ]
+
     print(
         Fore.CYAN
         + f"Datos procesados: {len(file_metrics)} archivos, {len(data_by_language)} lenguajes."
@@ -389,6 +489,9 @@ def _process_metrics(
         total_nloc,
         total_ccn,
         language_counts,
+        file_ownership,
+        age_distribution,
+        top_complex_files,
     )
 
 
@@ -451,6 +554,9 @@ def run_analysis(url: str, max_commits: int = 150, session_id: int = None) -> di
             total_nloc,
             total_ccn,
             language_counts,
+            file_ownership,
+            age_distribution,
+            top_complex_files,
         ) = _process_metrics(analysis, evolution_raw, target_dir)
 
         main_language = next(iter(language_counts), "unknown")
@@ -486,6 +592,9 @@ def run_analysis(url: str, max_commits: int = 150, session_id: int = None) -> di
             "repo_name": repo_name,
             "last_commit_id": last_commit_id,
             "main_language": main_language,
+            "file_ownership": file_ownership,
+            "age_distribution": age_distribution,
+            "top_complex_files": top_complex_files,
         }
 
     except RuntimeError as e:
