@@ -34,6 +34,9 @@
   const dataByLanguage = parseJson("vizo-language-json");
   const evolutionData = parseJson("vizo-evolution-json");
   const authorActivity = parseJson("vizo-activity-json");
+  const fileOwnership = parseJson("vizo-ownership-json");
+  const ageDistribution = parseJson("vizo-age-json");
+  const topComplexFiles = parseJson("vizo-complex-json");
 
   // Redondear CCN a un máximo de 2 decimales para leyendas y visualización limpia
   if (fileMetrics) {
@@ -67,6 +70,18 @@
   console.log(
     "ViZo // [DEBUG] authorActivity:",
     authorActivity ? authorActivity.length + " items" : "NULL",
+  );
+  console.log(
+    "ViZo // [DEBUG] fileOwnership:",
+    fileOwnership ? fileOwnership.length + " items" : "NULL",
+  );
+  console.log(
+    "ViZo // [DEBUG] ageDistribution:",
+    ageDistribution ? ageDistribution.length + " items" : "NULL",
+  );
+  console.log(
+    "ViZo // [DEBUG] topComplexFiles:",
+    topComplexFiles ? topComplexFiles.length + " items" : "NULL",
   );
   if (authorActivity && authorActivity.length > 0) {
     console.log(
@@ -126,6 +141,9 @@
     data_by_language: dataByLanguage,
     evolution_data: evolutionData,
     author_activity: authorActivity,
+    file_ownership: fileOwnership,
+    age_distribution: ageDistribution,
+    top_complex_files: topComplexFiles,
   };
 
   // Pregenerar Blob URLs
@@ -332,11 +350,17 @@
             textEl.setAttribute("emissive", "#4af7a0");
           }
           
-          const baseEl = btnEl.querySelector("a-box, a-cylinder");
+          const baseEl = btnEl.querySelector(".vizo-btn-base");
           if (baseEl) {
-            baseEl.setAttribute("color", "#003d1c"); // Cambiar a verde oscuro
+            baseEl.setAttribute("color", "#003b21");
             baseEl.setAttribute("emissive", "#4af7a0");
-            baseEl.setAttribute("emissive-intensity", "1.2");
+            baseEl.setAttribute("emissive-intensity", "0.8");
+          }
+          const borderEl = btnEl.querySelector(".vizo-btn-border");
+          if (borderEl) {
+            borderEl.setAttribute("color", "#4af7a0");
+            borderEl.setAttribute("emissive", "#4af7a0");
+            borderEl.setAttribute("emissive-intensity", "2.0");
           }
         }
       }
@@ -372,15 +396,71 @@
     contentEl.innerHTML = "<span class='blink'>[CONECTANDO CON EL NÚCLEO DE LA IA...]</span>";
     modal.classList.add("active");
 
-    // Obtener los datos correctos
+    // Obtener los datos correctos dinámicamente según el cargador asociado
     let dashboardData = null;
-    if (dashboardType === "boats") {
-      dashboardData = fileMetrics;
-    } else if (dashboardType === "cyls" || dashboardType === "doughnut") {
-      dashboardData = dataByLanguage;
-    } else if (dashboardType === "barsmap") {
-      dashboardData = authorActivity;
+    let datasetKey = null;
+
+    if (targetEl) {
+      let fromStr = "";
+      if (targetEl.hasAttribute("babia-boats")) {
+        const boatsAttr = targetEl.getAttribute("babia-boats");
+        let boatsFrom = "";
+        if (typeof boatsAttr === "string") {
+          const treeMatch = boatsAttr.match(/from:\s*([^;]+)/);
+          if (treeMatch) boatsFrom = treeMatch[1].trim();
+        } else if (boatsAttr && typeof boatsAttr === "object" && boatsAttr.from) {
+          boatsFrom = boatsAttr.from;
+        }
+
+        if (boatsFrom) {
+          const treeEl = document.getElementById(boatsFrom);
+          if (treeEl && treeEl.hasAttribute("babia-treebuilder")) {
+            const treeAttr = treeEl.getAttribute("babia-treebuilder");
+            let treeFrom = "";
+            if (typeof treeAttr === "string") {
+              const loaderMatch = treeAttr.match(/from:\s*([^;]+)/);
+              if (loaderMatch) treeFrom = loaderMatch[1].trim();
+            } else if (treeAttr && typeof treeAttr === "object" && treeAttr.from) {
+              treeFrom = treeAttr.from;
+            }
+            if (treeFrom) {
+              fromStr = treeFrom;
+            }
+          }
+        }
+      } else {
+        const componentAttrs = ["babia-cyls", "babia-doughnut", "babia-barsmap"];
+        for (let i = 0; i < componentAttrs.length; i++) {
+          const attrName = componentAttrs[i];
+          if (targetEl.hasAttribute(attrName)) {
+            const attrVal = targetEl.getAttribute(attrName);
+            let valFrom = "";
+            if (typeof attrVal === "string") {
+              const loaderMatch = attrVal.match(/from:\s*([^;]+)/);
+              if (loaderMatch) valFrom = loaderMatch[1].trim();
+            } else if (attrVal && typeof attrVal === "object" && attrVal.from) {
+              valFrom = attrVal.from;
+            }
+            if (valFrom) {
+              fromStr = valFrom;
+              break;
+            }
+          }
+        }
+      }
+
+      if (fromStr && fromStr.startsWith("vizo-loader-")) {
+        datasetKey = fromStr.replace("vizo-loader-", "");
+      }
     }
+
+    if (!datasetKey) {
+      if (dashboardType === "boats") datasetKey = "file_metrics";
+      else if (dashboardType === "cyls" || dashboardType === "doughnut") datasetKey = "data_by_language";
+      else if (dashboardType === "barsmap") datasetKey = "author_activity";
+    }
+
+    dashboardData = dataMap[datasetKey] || {};
 
     // Obtener el nombre del repositorio
     const repoName = statusEl ? statusEl.getAttribute("data-repo") : "LIVE_DATA";
@@ -392,7 +472,7 @@
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        dashboard_type: dashboardType,
+        dashboard_type: datasetKey || dashboardType,
         dashboard_data: dashboardData || {},
         repo_name: repoName,
       }),

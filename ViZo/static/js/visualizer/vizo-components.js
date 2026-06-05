@@ -115,8 +115,10 @@ AFRAME.registerComponent("nav-button", {
       el.querySelectorAll("[data-nav-panel]").forEach(function (child) {
         // Save original on first hover just in case elements are dynamic
         if (!child.dataset.origEmissive) {
-          child.dataset.origEmissive = child.getAttribute("emissive") || "#000000";
-          child.dataset.origEmissiveInt = child.getAttribute("emissive-intensity") || "0";
+          child.dataset.origEmissive =
+            child.getAttribute("emissive") || "#000000";
+          child.dataset.origEmissiveInt =
+            child.getAttribute("emissive-intensity") || "0";
         }
         child.setAttribute("emissive", "#ffffff");
         child.setAttribute("emissive-intensity", "3");
@@ -128,7 +130,10 @@ AFRAME.registerComponent("nav-button", {
       el.querySelectorAll("[data-nav-panel]").forEach(function (child) {
         if (child.dataset.origEmissive) {
           child.setAttribute("emissive", child.dataset.origEmissive);
-          child.setAttribute("emissive-intensity", child.dataset.origEmissiveInt);
+          child.setAttribute(
+            "emissive-intensity",
+            child.dataset.origEmissiveInt,
+          );
         }
       });
       el.setAttribute("scale", "1 1 1");
@@ -143,14 +148,29 @@ AFRAME.registerComponent("nav-button", {
 /* ── vizo-control-btn: interactive 3D buttons for custom dashboard configuration ── */
 AFRAME.registerComponent("vizo-control-btn", {
   schema: {
-    action: { type: "string" },      // "wireframe", "cycle-height", "cycle-area"
-    targetId: { type: "string" },    // ID of the visualizer (e.g., "vizo-viz-boats-complexity")
-    vizType: { type: "string" }      // "boats", "cyls", "doughnut", "barsmap"
+    action: { type: "string" }, // "wireframe", "cycle-height", "cycle-area", "set-height", "set-color"
+    targetId: { type: "string" }, // ID of the visualizer (e.g., "vizo-viz-boats-complexity")
+    vizType: { type: "string" }, // "boats", "cyls", "doughnut", "barsmap"
+    value: { type: "string", default: "" }, // mapping field value (e.g., "nloc", "ccn")
   },
   init: function () {
     var el = this.el;
     var data = this.data;
-    
+
+    // Highlight initial active states after the scene is loaded
+    setTimeout(function () {
+      var targetEl = document.getElementById(data.targetId);
+      if (!targetEl && data.vizType === "boats") {
+        targetEl = document.querySelector("[babia-boats]");
+      }
+      if (targetEl) {
+        var panelEl = el.closest("[id^='vizo-panel-']");
+        if (panelEl) {
+          updateButtonStates(panelEl, targetEl, data.vizType);
+        }
+      }
+    }, 600);
+
     // Hover effects (glowing scaling)
     el.addEventListener("mouseenter", function () {
       el.setAttribute("scale", "1.12 1.12 1.12");
@@ -159,13 +179,19 @@ AFRAME.registerComponent("vizo-control-btn", {
         text.setAttribute("color", "#ffffff");
         text.setAttribute("emissive-intensity", "2");
       }
-      var base = el.querySelector("a-box, a-cylinder");
+      var base = el.querySelector(".vizo-btn-base");
+      var border = el.querySelector(".vizo-btn-border");
       if (base) {
         base.setAttribute("emissive", "#00d4ff");
         base.setAttribute("emissive-intensity", "1.8");
       }
+      if (border) {
+        border.setAttribute("color", "#ffffff");
+        border.setAttribute("emissive", "#00d4ff");
+        border.setAttribute("emissive-intensity", "3.0");
+      }
     });
-    
+
     el.addEventListener("mouseleave", function () {
       el.setAttribute("scale", "1 1 1");
       var text = el.querySelector("a-text");
@@ -173,44 +199,86 @@ AFRAME.registerComponent("vizo-control-btn", {
         text.setAttribute("color", "#00d4ff");
         text.setAttribute("emissive-intensity", "1.5");
       }
-      var base = el.querySelector("a-box, a-cylinder");
+      var base = el.querySelector(".vizo-btn-base");
+      var border = el.querySelector(".vizo-btn-border");
       if (base) {
-        base.setAttribute("emissive", "#002a5a");
-        base.setAttribute("emissive-intensity", "0.5");
+        // Restore standard colors depending on active state
+        var panelEl = el.closest("[id^='vizo-panel-']");
+        var targetEl = document.getElementById(data.targetId);
+        if (!targetEl && data.vizType === "boats") {
+          targetEl = document.querySelector("[babia-boats]");
+        }
+        if (
+          panelEl &&
+          targetEl &&
+          (data.action === "set-height" || data.action === "set-color")
+        ) {
+          updateButtonStates(panelEl, targetEl, data.vizType);
+        } else {
+          // Check if button text color is green (meaning it was highlighted, e.g. cached AI explain)
+          var isGreen =
+            text &&
+            (text.getAttribute("color") === "#4af7a0" ||
+              text.getAttribute("color") === "rgb(74, 247, 160)" ||
+              text.getAttribute("color") === "#00ff66");
+          if (isGreen) {
+            base.setAttribute("color", "#003b21");
+            base.setAttribute("emissive", "#4af7a0");
+            base.setAttribute("emissive-intensity", "0.8");
+            if (border) {
+              border.setAttribute("color", "#4af7a0");
+              border.setAttribute("emissive", "#4af7a0");
+              border.setAttribute("emissive-intensity", "2.0");
+            }
+          } else {
+            base.setAttribute("color", "#002a5a");
+            base.setAttribute("emissive", "#002a5a");
+            base.setAttribute("emissive-intensity", "0.5");
+            if (border) {
+              border.setAttribute("color", "#00d4ff");
+              border.setAttribute("emissive", "#00d4ff");
+              border.setAttribute("emissive-intensity", "1.2");
+            }
+          }
+        }
       }
     });
-    
+
     // Click action
     el.addEventListener("click", function () {
       var targetEl = document.getElementById(data.targetId);
       if (!targetEl) {
         // Búsqueda de soporte para el Menú de Muñeca VR
-        if (data.vizType === "boats") targetEl = document.querySelector("[babia-boats]");
-        else if (data.vizType === "cyls") targetEl = document.querySelector("[babia-cyls]");
-        else if (data.vizType === "doughnut") targetEl = document.querySelector("[babia-doughnut]");
-        else if (data.vizType === "barsmap") targetEl = document.querySelector("[babia-barsmap]");
+        if (data.vizType === "boats")
+          targetEl = document.querySelector("[babia-boats]");
+        else if (data.vizType === "cyls")
+          targetEl = document.querySelector("[babia-cyls]");
+        else if (data.vizType === "doughnut")
+          targetEl = document.querySelector("[babia-doughnut]");
+        else if (data.vizType === "barsmap")
+          targetEl = document.querySelector("[babia-barsmap]");
       }
-      
+
       if (!targetEl) {
         console.error("ViZo // Target visualizer not found: " + data.targetId);
         return;
       }
-      
+
       // Click feedback: change color to a darker/shaded one temporarily
       var base = el.querySelector("a-box, a-cylinder");
       if (base) {
         var origColor = base.getAttribute("color") || "#002a5a";
         var origEmissiveInt = base.getAttribute("emissive-intensity") || "0.5";
-        
+
         base.setAttribute("color", "#001025"); // Darker shaded color
         base.setAttribute("emissive-intensity", "0.1"); // Dim emissive glow
-        
+
         setTimeout(function () {
           base.setAttribute("color", origColor);
           base.setAttribute("emissive-intensity", origEmissiveInt);
         }, 150);
       }
-      
+
       // Execute the requested action
       if (data.action === "wireframe") {
         toggleWireframe(targetEl, data.vizType);
@@ -220,15 +288,33 @@ AFRAME.registerComponent("vizo-control-btn", {
         cycleArea(targetEl, data.vizType);
       } else if (data.action === "swap-mappings") {
         swapMappings(targetEl, data.vizType);
+      } else if (data.action === "set-height") {
+        setHeight(targetEl, data.vizType, data.value);
+        updateButtonStates(
+          el.closest("[id^='vizo-panel-']"),
+          targetEl,
+          data.vizType,
+        );
+      } else if (data.action === "set-color") {
+        setColor(targetEl, data.vizType, data.value);
+        updateButtonStates(
+          el.closest("[id^='vizo-panel-']"),
+          targetEl,
+          data.vizType,
+        );
       } else if (data.action === "explain-ai") {
-        if (window.ViZo && window.ViZo.ui && typeof window.ViZo.ui.showExplanation === "function") {
+        if (
+          window.ViZo &&
+          window.ViZo.ui &&
+          typeof window.ViZo.ui.showExplanation === "function"
+        ) {
           window.ViZo.ui.showExplanation(data.vizType, targetEl);
         } else {
           console.warn("ViZo // Asistente Holográfico de UI no inicializado.");
         }
       }
     });
-  }
+  },
 });
 
 // Helper: Toggle wireframe mode for the boats (city) dashboard
@@ -236,7 +322,7 @@ function toggleWireframe(targetEl, type) {
   if (type === "boats") {
     var config = targetEl.getAttribute("babia-boats") || {};
     var currentVal = config.wireframeByRepeatedField || "";
-    
+
     // Cyclical wireframe logic: "" (off) -> "nloc" -> "ccn" -> "" (off)
     var newVal = "";
     if (currentVal === "") {
@@ -246,11 +332,11 @@ function toggleWireframe(targetEl, type) {
     } else {
       newVal = "";
     }
-    
+
     // Toggle component property
     targetEl.setAttribute("babia-boats", "wireframeByRepeatedField", newVal);
     console.log("ViZo // Toggled wireframeByRepeatedField to: " + newVal);
-    
+
     // Traverse meshes in Three.js and apply real-time wireframe look
     var obj3D = targetEl.object3D;
     obj3D.traverse(function (node) {
@@ -259,13 +345,17 @@ function toggleWireframe(targetEl, type) {
           // Highlight tall buildings with high lines of code
           var isTall = node.scale.y > 1.8;
           node.material.wireframe = isTall;
-          node.material.emissive = isTall ? new THREE.Color("#00d4ff") : new THREE.Color("#000000");
+          node.material.emissive = isTall
+            ? new THREE.Color("#00d4ff")
+            : new THREE.Color("#000000");
           node.material.emissiveIntensity = isTall ? 0.6 : 0;
         } else if (newVal === "ccn") {
           // Highlight complex buildings with high cyclomatic complexity (larger footprints)
-          var isWide = (node.scale.x * node.scale.z) > 1.4;
+          var isWide = node.scale.x * node.scale.z > 1.4;
           node.material.wireframe = isWide;
-          node.material.emissive = isWide ? new THREE.Color("#00ff88") : new THREE.Color("#000000");
+          node.material.emissive = isWide
+            ? new THREE.Color("#00ff88")
+            : new THREE.Color("#000000");
           node.material.emissiveIntensity = isWide ? 0.6 : 0;
         } else {
           // Turn off wireframes
@@ -284,24 +374,33 @@ function swapMappings(targetEl, type) {
     var config = targetEl.getAttribute("babia-boats") || {};
     var currentHeight = config.height || "nloc";
     var currentArea = config.area || "ccn";
-    
+
     var nextHeight = currentArea;
     var nextArea = currentHeight;
-    
+
     // Ensure they always stay alternated (nloc <-> ccn)
     if (nextHeight === nextArea) {
       nextHeight = "ccn";
       nextArea = "nloc";
     }
-    
+
     targetEl.setAttribute("babia-boats", {
       height: nextHeight,
       area: nextArea,
-      color: nextHeight
+      color: nextHeight,
     });
-    
-    targetEl.setAttribute("babia-boats", "legend_text", "{name}\\nNLOC: {nloc} | CCN: {ccn}");
-    console.log("ViZo // Swapped boats mappings: Height=" + nextHeight + ", Area=" + nextArea);
+
+    targetEl.setAttribute(
+      "babia-boats",
+      "legend_text",
+      "{name}\\nNLOC: {nloc} | CCN: {ccn}\\nCommits: {commits} | Funcs: {num_functions}\\nEdad: {age_days}d | Owner: {owner_name} ({ownership}%)",
+    );
+    console.log(
+      "ViZo // Swapped boats mappings: Height=" +
+        nextHeight +
+        ", Area=" +
+        nextArea,
+    );
   }
 }
 
@@ -314,10 +413,14 @@ function cycleHeight(targetEl, type) {
     var fields = ["nloc", "ccn"];
     var nextIdx = (fields.indexOf(current) + 1) % fields.length;
     var nextField = fields[nextIdx];
-    
+
     targetEl.setAttribute("babia-boats", "height", nextField);
     targetEl.setAttribute("babia-boats", "color", nextField);
-    targetEl.setAttribute("babia-boats", "legend_text", "{name}\\nNLOC: {nloc} | CCN: {ccn}");
+    targetEl.setAttribute(
+      "babia-boats",
+      "legend_text",
+      "{name}\\nNLOC: {nloc} | CCN: {ccn}\\nCommits: {commits} | Funcs: {num_functions}\\nEdad: {age_days}d | Owner: {owner_name} ({ownership}%)",
+    );
     console.log("ViZo // Cycled boats height to: " + nextField);
   } else if (type === "cyls") {
     var config = targetEl.getAttribute("babia-cyls") || {};
@@ -325,7 +428,7 @@ function cycleHeight(targetEl, type) {
     var fields = ["nloc", "count", "commits"];
     var nextIdx = (fields.indexOf(current) + 1) % fields.length;
     var nextField = fields[nextIdx];
-    
+
     targetEl.setAttribute("babia-cyls", "height", nextField);
     console.log("ViZo // Cycled cyls height to: " + nextField);
   } else if (type === "barsmap") {
@@ -334,7 +437,7 @@ function cycleHeight(targetEl, type) {
     var fields = ["commits", "insertions"];
     var nextIdx = (fields.indexOf(current) + 1) % fields.length;
     var nextField = fields[nextIdx];
-    
+
     targetEl.setAttribute("babia-barsmap", "height", nextField);
     console.log("ViZo // Cycled barsmap height to: " + nextField);
   }
@@ -349,9 +452,13 @@ function cycleArea(targetEl, type) {
     var fields = ["ccn", "nloc"];
     var nextIdx = (fields.indexOf(current) + 1) % fields.length;
     var nextField = fields[nextIdx];
-    
+
     targetEl.setAttribute("babia-boats", "area", nextField);
-    targetEl.setAttribute("babia-boats", "legend_text", "{name}\\nNLOC: {nloc} | CCN: {ccn}");
+    targetEl.setAttribute(
+      "babia-boats",
+      "legend_text",
+      "{name}\\nNLOC: {nloc} | CCN: {ccn}\\nCommits: {commits} | Funcs: {num_functions}\\nEdad: {age_days}d | Owner: {owner_name} ({ownership}%)",
+    );
     console.log("ViZo // Cycled boats area to: " + nextField);
   } else if (type === "cyls") {
     var config = targetEl.getAttribute("babia-cyls") || {};
@@ -359,10 +466,94 @@ function cycleArea(targetEl, type) {
     var fields = ["count", "nloc", "commits"];
     var nextIdx = (fields.indexOf(current) + 1) % fields.length;
     var nextField = fields[nextIdx];
-    
+
     targetEl.setAttribute("babia-cyls", "radius", nextField);
     console.log("ViZo // Cycled cyls radius to: " + nextField);
   }
 }
 
 // askAIReconfigure helper removed
+
+function setHeight(targetEl, type, field) {
+  if (type === "boats") {
+    targetEl.setAttribute("babia-boats", "height", field);
+    console.log("ViZo // Set boats height to: " + field);
+  }
+}
+
+function setColor(targetEl, type, field) {
+  if (type === "boats") {
+    targetEl.setAttribute("babia-boats", "color", field);
+    console.log("ViZo // Set boats color to: " + field);
+  }
+}
+
+function updateButtonStates(panelEl, targetEl, type) {
+  if (!panelEl || !targetEl) return;
+
+  var currentHeight = "";
+  var currentColor = "";
+
+  if (type === "boats") {
+    var config = targetEl.getAttribute("babia-boats") || {};
+    currentHeight = config.height || "nloc";
+    currentColor = config.color || "nloc";
+  }
+
+  var buttons = panelEl.querySelectorAll("[vizo-control-btn]");
+  buttons.forEach(function (btnEl) {
+    var component = btnEl.components
+      ? btnEl.components["vizo-control-btn"]
+      : null;
+    if (!component) return;
+
+    var action = component.data.action;
+    var value = component.data.value;
+
+    var base = btnEl.querySelector(".vizo-btn-base");
+    var border = btnEl.querySelector(".vizo-btn-border");
+    var text = btnEl.querySelector("a-text");
+    if (!base) return;
+
+    var isActive = false;
+    if (action === "set-height" && value === currentHeight) {
+      isActive = true;
+    } else if (action === "set-color" && value === currentColor) {
+      isActive = true;
+    }
+
+    if (isActive) {
+      // Emerald Green Active State
+      base.setAttribute("color", "#00aa5d");
+      base.setAttribute("emissive", "#00aa5d");
+      base.setAttribute("emissive-intensity", "0.8");
+      if (border) {
+        border.setAttribute("color", "#00ff66");
+        border.setAttribute("emissive", "#00ff66");
+        border.setAttribute("emissive-intensity", "1.5");
+      }
+      if (text) {
+        text.setAttribute("color", "#ffffff");
+        text.setAttribute("emissive", "#ffffff");
+        text.setAttribute("emissive-intensity", "1.5");
+      }
+    } else {
+      // Sleek Inactive Cyber Blue State
+      if (action === "set-height" || action === "set-color") {
+        base.setAttribute("color", "#002a5a");
+        base.setAttribute("emissive", "#002a5a");
+        base.setAttribute("emissive-intensity", "0.5");
+        if (border) {
+          border.setAttribute("color", "#00d4ff");
+          border.setAttribute("emissive", "#00d4ff");
+          border.setAttribute("emissive-intensity", "1.2");
+        }
+        if (text) {
+          text.setAttribute("color", "#00d4ff");
+          text.setAttribute("emissive", "#00d4ff");
+          text.setAttribute("emissive-intensity", "1.5");
+        }
+      }
+    }
+  });
+}
