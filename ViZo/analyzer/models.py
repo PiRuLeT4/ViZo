@@ -57,6 +57,11 @@ class AnalysisSession(models.Model):
     # Actividad agrupada por autor y fecha (author, date, commits, insertions)
     author_activity = models.JSONField(default=list)
 
+    # Datasets agregados avanzados de métricas locales
+    file_ownership = models.JSONField(default=list)
+    age_distribution = models.JSONField(default=list)
+    top_complex_files = models.JSONField(default=list)
+
     class Meta:
         ordering = ["-analysis_date"]
 
@@ -75,6 +80,11 @@ class FileMetric(models.Model):
     nloc = models.IntegerField(default=0)
     ccn = models.FloatField(default=0.0)  # cyclomatic complexity (puede ser decimal)
     commits = models.IntegerField(default=0)
+    num_functions = models.IntegerField(default=0)
+    peak_ccn = models.FloatField(default=0.0)
+    ownership = models.FloatField(default=0.0)
+    owner_name = models.CharField(max_length=255, blank=True, default="")
+    age_days = models.IntegerField(default=0)
 
     def __str__(self):
         return f"{self.file_name} (nloc={self.nloc}, ccn={self.ccn})"
@@ -92,6 +102,11 @@ class FileMetric(models.Model):
             "commits": self.commits,
             "language": self.language,
             "folder": folder,
+            "num_functions": self.num_functions,
+            "peak_ccn": self.peak_ccn,
+            "ownership": self.ownership,
+            "owner_name": self.owner_name or "N/A",
+            "age_days": self.age_days,
         }
 
 
