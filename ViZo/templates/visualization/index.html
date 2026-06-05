@@ -93,6 +93,15 @@
       <div id="vizo-activity-json" style="display: none">
         {{ author_activity | safe }}
       </div>
+      <div id="vizo-ownership-json" style="display: none">
+        {{ file_ownership | safe }}
+      </div>
+      <div id="vizo-age-json" style="display: none">
+        {{ age_distribution | safe }}
+      </div>
+      <div id="vizo-complex-json" style="display: none">
+        {{ top_complex_files | safe }}
+      </div>
       <div id="vizo-ai-config" style="display: none">
         {{ ai_config | safe }}
       </div>
@@ -102,6 +111,8 @@
 
       <!-- Visualización dinámica generada por la IA -->
       <script src="{% static 'js/visualizer/podio.js' %}"></script>
+      <script src="{% static 'js/visualizer/control-panel.js' %}"></script>
+      <script src="{% static 'js/visualizer/vr-menu.js' %}"></script>
       <script src="{% static 'js/visualizer/builders.js' %}"></script>
       <script src="{% static 'js/visualizer/visualization.js' %}"></script>
 
