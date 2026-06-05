@@ -198,6 +198,47 @@
     return loaderId;
   }
 
+  // Helper function to limit dataset to maximum 15 items for barsmap dashboards
+  function ensureLimitedLoader(scene, dash) {
+    const datasetKey = dash.dataset;
+    const originalData = dataMap[datasetKey];
+    if (!originalData) {
+      console.warn("ViZo // Dataset '" + datasetKey + "' no disponible para barsmap.");
+      return null;
+    }
+
+    const loaderId = "vizo-loader-limited-" + dash.id;
+    if (loaders[loaderId]) return loaders[loaderId];
+
+    // Limit dataset to maximum 15 elements based on the mapped height metric
+    const heightField = (dash.mappings && dash.mappings.height) || "commits";
+    let limitedData = Array.isArray(originalData) ? [...originalData] : [];
+
+    // Sort descending by height field
+    limitedData.sort((a, b) => {
+      const valA = parseFloat(a[heightField]) || 0;
+      const valB = parseFloat(b[heightField]) || 0;
+      return valB - valA;
+    });
+
+    // Take top 15 elements
+    limitedData = limitedData.slice(0, 15);
+
+    const blob = new Blob([JSON.stringify(limitedData)], {
+      type: "application/json",
+    });
+    const blobUrl = URL.createObjectURL(blob);
+
+    const loaderEl = document.createElement("a-entity");
+    loaderEl.setAttribute("id", loaderId);
+    loaderEl.setAttribute("babia-queryjson", "url: " + blobUrl);
+    scene.appendChild(loaderEl);
+
+    loaders[loaderId] = loaderId;
+    console.log("ViZo // Cargador limitado creado:", loaderId, "con", limitedData.length, "elementos");
+    return loaderId;
+  }
+
   // ---------------------------------------------------------------------------
   // 7. Montar todos los dashboards
   // ---------------------------------------------------------------------------
@@ -232,10 +273,10 @@
       "mappings:",
       JSON.stringify(dash.mappings),
     );
-    const loaderId = ensureLoader(scene, dash.dataset);
+    const loaderId = dash.component === "babia-barsmap" ? ensureLimitedLoader(scene, dash) : ensureLoader(scene, dash.dataset);
     if (!loaderId) {
       console.error(
-        "ViZo // [DEBUG] ❌ ensureLoader devolvió null para dataset '" +
+        "ViZo // [DEBUG] ❌ ensureLoader/ensureLimitedLoader devolvió null para dataset '" +
           dash.dataset +
           "' → dashboard '" +
           dash.component +
