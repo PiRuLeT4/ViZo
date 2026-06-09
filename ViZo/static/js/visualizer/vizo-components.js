@@ -282,6 +282,10 @@ AFRAME.registerComponent("vizo-control-btn", {
       // Execute the requested action
       if (data.action === "wireframe") {
         toggleWireframe(targetEl, data.vizType);
+      } else if (data.action === "scale-up") {
+        scaleBoats(targetEl, 0.1);
+      } else if (data.action === "scale-down") {
+        scaleBoats(targetEl, -0.1);
       } else if (data.action === "cycle-height") {
         cycleHeight(targetEl, data.vizType);
       } else if (data.action === "cycle-area") {
@@ -556,4 +560,45 @@ function updateButtonStates(panelEl, targetEl, type) {
       }
     }
   });
+}
+
+// Helper: Scale babia-boats up or down by a set delta
+function scaleBoats(targetEl, amount) {
+  var sx = 1,
+    sy = 1,
+    sz = 1;
+  var currentScale = targetEl.getAttribute("scale");
+
+  if (currentScale) {
+    if (typeof currentScale === "object") {
+      sx = currentScale.x;
+      sy = currentScale.y;
+      sz = currentScale.z;
+    } else if (typeof currentScale === "string") {
+      var parts = currentScale.trim().split(/\s+/).map(Number);
+      if (parts.length === 3 && !parts.some(isNaN)) {
+        sx = parts[0];
+        sy = parts[1];
+        sz = parts[2];
+      }
+    }
+  } else if (targetEl.object3D && targetEl.object3D.scale) {
+    sx = targetEl.object3D.scale.x;
+    sy = targetEl.object3D.scale.y;
+    sz = targetEl.object3D.scale.z;
+  }
+
+  var newX = Math.max(0.05, sx + amount);
+  var newY = Math.max(0.05, sy + amount);
+  var newZ = Math.max(0.05, sz + amount);
+
+  // Round to 2 decimal places to avoid float precision errors (e.g. 0.3000000004)
+  // newX = Math.round(newX * 100) / 100;
+  // newY = Math.round(newY * 100) / 100;
+  // newZ = Math.round(newZ * 100) / 100;
+
+  targetEl.setAttribute("scale", `${newX} ${newY} ${newZ}`);
+  console.log(
+    "ViZo // babia-boats scale updated to: " + newX + " " + newY + " " + newZ,
+  );
 }

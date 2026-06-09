@@ -440,4 +440,29 @@ document.addEventListener("DOMContentLoaded", function () {
       }, 300);
     });
   });
+
+  // ── Manejador de modal de inicio de sesión multiproveedor ──
+  const loginModal = document.getElementById("vizoLoginModal");
+  const openLoginModalBtn = document.getElementById("openLoginModalBtn");
+  const closeLoginModalBtn = document.getElementById("closeLoginModalBtn");
+
+  if (loginModal && openLoginModalBtn) {
+    openLoginModalBtn.addEventListener("click", function(e) {
+      e.preventDefault();
+      loginModal.classList.add("active");
+    });
+  }
+
+  if (loginModal && closeLoginModalBtn) {
+    closeLoginModalBtn.addEventListener("click", function() {
+      loginModal.classList.remove("active");
+    });
+
+    // Cerrar al pulsar fuera del contenedor de contenido del modal
+    loginModal.addEventListener("click", function(e) {
+      if (e.target === loginModal) {
+        loginModal.classList.remove("active");
+      }
+    });
+  }
 });

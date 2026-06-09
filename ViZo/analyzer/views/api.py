@@ -29,11 +29,33 @@ def api_analyze(request):
         max_commits = 150
 
     is_private = request.POST.get("isPrivate") in ["true", "on", "1"] or request.POST.get("is_private") in ["true", "on", "1"]
-    if is_private and not request.user.is_authenticated:
-        return JsonResponse(
-            {"error": "Debes iniciar sesión con GitHub para poder analizar repositorios privados."},
-            status=401
-        )
+    if is_private:
+        if not request.user.is_authenticated:
+            return JsonResponse(
+                {"error": "Debes iniciar sesión para poder analizar repositorios privados."},
+                status=401
+            )
+        
+        # Determinar el proveedor basado en el dominio de la URL del repositorio
+        provider = "github" if "github.com" in url else "gitlab" if "gitlab.com" in url else None
+        
+        # Comprobar si el usuario tiene el token correspondiente guardado en su perfil
+        has_token = False
+        try:
+            profile = request.user.profile
+            if provider == "github" and profile.github_token:
+                has_token = True
+            elif provider == "gitlab" and profile.gitlab_token:
+                has_token = True
+        except Exception:
+            pass
+
+        if not has_token:
+            provider_name = "GitLab" if provider == "gitlab" else "GitHub" if provider == "github" else "el proveedor"
+            return JsonResponse(
+                {"error": f"Para analizar este repositorio privado, debes iniciar sesión usando {provider_name}."},
+                status=401
+            )
 
     try:
         # Iniciar flujo asíncrono con control de hilos, usuario, privacidad y caché inteligente

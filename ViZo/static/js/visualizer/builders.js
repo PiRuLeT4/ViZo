@@ -6,44 +6,51 @@ const POSITIONS = [
 ];
 
 /**
- * Calcula dinámicamente la posición y rotación de un pedestal satélite en arco semicircular.
- * @param {number} index - Índice del satélite (0, 1, 2).
+ * Calcula dinámicamente la posición y rotación de un pedestal satélite en cuadrícula por filas.
+ * @param {number} index - Índice del satélite.
  * @param {number} total - Cantidad total de satélites activos.
  */
 function calculateSatellitePosition(index, total) {
   if (total <= 0) return { x: 0, y: 0.1, z: 20, rotY: 0 };
 
-  const R = 13.5; // Radio de la media luna
-  const X_CENTER = 0;
-  const Z_CENTER = 20; // Centro de la ciudad boats
+  const COLUMNS = 3;
+  const X_SPACING = 9;
+  const Z_SPACING = 7.5;
+  const Z_START = 12.0; // Detrás de la ciudad (Z=20)
 
-  let angleDeg;
-  if (total === 1) {
-    angleDeg = 270; // Justo en el fondo (mirando al sur hacia Z=30)
-  } else if (total === 2) {
-    angleDeg = index === 0 ? 230 : 310;
+  const row = Math.floor(index / COLUMNS);
+  const totalRows = Math.ceil(total / COLUMNS);
+
+  // Determinar cuántos elementos hay en esta fila específica para centrado
+  let itemsInRow;
+  if (row < totalRows - 1) {
+    itemsInRow = COLUMNS;
   } else {
-    // Tres satélites
-    const angles = [220, 270, 320];
-    angleDeg = angles[index] || 270;
+    itemsInRow = total % COLUMNS || COLUMNS;
   }
 
-  const angleRad = (angleDeg * Math.PI) / 180;
-  const posX = X_CENTER + R * Math.cos(angleRad);
-  const posZ = Z_CENTER + R * Math.sin(angleRad);
+  const col = index % COLUMNS;
 
-  // Calcular la rotación Y para que el visualizador mire hacia la ciudad
-  const rotY = (360 - angleDeg + 90) % 360;
+  // Calcular la coordenada X centrando el grupo de la fila
+  const startX = -((itemsInRow - 1) * X_SPACING) / 2;
+  const posX = startX + col * X_SPACING;
+  const posZ = Z_START - row * Z_SPACING;
+  const rotY = 0; // Encarando al sur hacia la ciudad/jugador
 
   return { x: posX, y: 0.1, z: posZ, rotY: rotY };
 }
 
 // Local proxy to delegate to the modular control-panel script
 function buildControlPanel(scene, dash, vizId, pos, type) {
-  if (window.ViZoBuilders && typeof window.ViZoBuilders.buildControlPanel === "function") {
+  if (
+    window.ViZoBuilders &&
+    typeof window.ViZoBuilders.buildControlPanel === "function"
+  ) {
     window.ViZoBuilders.buildControlPanel(scene, dash, vizId, pos, type);
   } else {
-    console.error("ViZo // buildControlPanel was called but window.ViZoBuilders.buildControlPanel is not defined.");
+    console.error(
+      "ViZo // buildControlPanel was called but window.ViZoBuilders.buildControlPanel is not defined.",
+    );
   }
 }
 
@@ -99,7 +106,14 @@ function buildCyls(scene, dash, loaderId, pos) {
   const m = dash.mappings;
   const vizEl = document.createElement("a-entity");
   vizEl.setAttribute("id", "vizo-viz-" + dash.id);
-  vizEl.setAttribute("position", pos.x + " 0.1 " + pos.z);
+  let posX = pos.x;
+  if (
+    dash.dataset === "top_complex_files" ||
+    (dash.id && dash.id.includes("complex"))
+  ) {
+    posX -= 2.5;
+  }
+  vizEl.setAttribute("position", posX + " 0.1 " + pos.z);
   vizEl.setAttribute("scale", "0.15 0.15 0.15");
   vizEl.setAttribute("rotation", `0 ${pos.rotY} 0`);
   vizEl.setAttribute(

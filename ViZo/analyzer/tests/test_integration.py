@@ -26,7 +26,7 @@ class APIAnalyzeIntegrationTestCase(TestCase):
         )
         self.assertEqual(response.status_code, 401)
         resp_json = response.json()
-        self.assertIn("Debes iniciar sesión con GitHub", resp_json["error"])
+        self.assertIn("Debes iniciar sesión", resp_json["error"])
         mock_start.assert_not_called()
 
     @patch("analyzer.views.api.start_async_analysis")
@@ -45,6 +45,59 @@ class APIAnalyzeIntegrationTestCase(TestCase):
         self.assertFalse(resp_json["is_cache_hit"])
 
         mock_start.assert_called_once()
+
+    @patch("analyzer.views.api.start_async_analysis")
+    def test_api_analyze_authenticated_gitlab_private_repo_allowed(self, mock_start):
+        gitlab_user = User.objects.create_user(username="gitlabuser", password="password")
+        UserProfile.objects.create(
+            user=gitlab_user,
+            gitlab_token="mock_gitlab_token",
+            gitlab_username="gitlabuser",
+            provider="gitlab"
+        )
+        self.client.force_login(gitlab_user)
+        mock_start.return_value = (43, False)
+
+        response = self.client.post(
+            "/api/analyze/",
+            {"repoUrl": "https://gitlab.com/some/private-repo", "isPrivate": "true"},
+        )
+        self.assertEqual(response.status_code, 200)
+        resp_json = response.json()
+        self.assertEqual(resp_json["status"], "success")
+        self.assertEqual(resp_json["session_id"], 43)
+        mock_start.assert_called_once()
+
+    @patch("analyzer.views.api.start_async_analysis")
+    def test_api_analyze_cross_provider_denied(self, mock_start):
+        # User has github token but tries to analyze gitlab private repo
+        self.client.force_login(self.user)
+        response = self.client.post(
+            "/api/analyze/",
+            {"repoUrl": "https://gitlab.com/some/private-repo", "isPrivate": "true"},
+        )
+        self.assertEqual(response.status_code, 401)
+        resp_json = response.json()
+        self.assertIn("debes iniciar sesión usando GitLab", resp_json["error"])
+        mock_start.assert_not_called()
+
+        # User has gitlab token but tries to analyze github private repo
+        gitlab_user = User.objects.create_user(username="gitlabuser_cross", password="password")
+        UserProfile.objects.create(
+            user=gitlab_user,
+            gitlab_token="mock_gitlab_token",
+            gitlab_username="gitlabuser",
+            provider="gitlab"
+        )
+        self.client.force_login(gitlab_user)
+        response = self.client.post(
+            "/api/analyze/",
+            {"repoUrl": "https://github.com/some/private-repo", "isPrivate": "true"},
+        )
+        self.assertEqual(response.status_code, 401)
+        resp_json = response.json()
+        self.assertIn("debes iniciar sesión usando GitHub", resp_json["error"])
+        mock_start.assert_not_called()
 
     @patch("analyzer.views.api.start_async_analysis")
     def test_api_analyze_private_shield_error_cascade(self, mock_start):
@@ -82,6 +135,138 @@ class APIAnalyzeIntegrationTestCase(TestCase):
         response = self.client.get(f"/api/session/{session.id}/status/")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["status"], "completed")
+
+
+class GitLabOAuthIntegrationTestCase(TestCase):
+    def setUp(self):
+        self.client = Client()
+
+    @patch("analyzer.views.oauth.os.getenv")
+    def test_gitlab_login_redirect_success(self, mock_getenv):
+        def side_effect(key, default=None):
+            if key == "GITLAB_CLIENT_ID":
+                return "dummy_id"
+            if key == "GITLAB_CLIENT_SECRET":
+                return "dummy_secret"
+            return default
+        mock_getenv.side_effect = side_effect
+
+        response = self.client.get("/oauth/gitlab/login/")
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("https://gitlab.com/oauth/authorize", response["Location"])
+        self.assertIn("client_id=dummy_id", response["Location"])
+        self.assertIn("scope=read_user", response["Location"])
+
+    @patch("analyzer.views.oauth.os.getenv")
+    def test_gitlab_login_missing_config(self, mock_getenv):
+        mock_getenv.return_value = None
+
+        response = self.client.get("/oauth/gitlab/login/")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], "/")
+        
+        # Check that an error message is set
+        messages = list(response.wsgi_request._messages)
+        self.assertEqual(len(messages), 1)
+        self.assertIn("GitLab OAuth no está configurado", str(messages[0]))
+
+    def test_gitlab_callback_missing_code(self):
+        response = self.client.get("/oauth/gitlab/callback/")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], "/")
+        messages = list(response.wsgi_request._messages)
+        self.assertEqual(len(messages), 1)
+        self.assertIn("No se recibió código de autorización", str(messages[0]))
+
+    @patch("analyzer.views.oauth.os.getenv")
+    @patch("analyzer.views.oauth.requests.post")
+    @patch("analyzer.views.oauth.requests.get")
+    def test_gitlab_callback_success(self, mock_get, mock_post, mock_getenv):
+        def side_effect(key, default=None):
+            if key == "GITLAB_CLIENT_ID":
+                return "dummy_id"
+            if key == "GITLAB_CLIENT_SECRET":
+                return "dummy_secret"
+            return default
+        mock_getenv.side_effect = side_effect
+
+        # Mock token request response
+        mock_token_resp = mock_post.return_value
+        mock_token_resp.json.return_value = {"access_token": "mock_gitlab_access_token"}
+        mock_token_resp.status_code = 200
+
+        # Mock user API response
+        mock_user_resp = mock_get.return_value
+        mock_user_resp.json.return_value = {
+            "username": "gitlabtestuser",
+            "avatar_url": "https://gitlab.com/avatar.png",
+            "email": "test@gitlab.com",
+        }
+        mock_user_resp.status_code = 200
+
+        response = self.client.get("/oauth/gitlab/callback/?code=testcode")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], "/")
+
+        # User and UserProfile should be created
+        user = User.objects.get(username="gitlabtestuser")
+        profile = user.profile
+        self.assertEqual(profile.provider, "gitlab")
+        self.assertEqual(profile.gitlab_token, "mock_gitlab_access_token")
+        self.assertEqual(profile.gitlab_username, "gitlabtestuser")
+        self.assertEqual(profile.avatar_url, "https://gitlab.com/avatar.png")
+
+        # Session should be authenticated
+        self.assertTrue(response.wsgi_request.user.is_authenticated)
+        self.assertEqual(response.wsgi_request.user, user)
+
+    @patch("analyzer.views.oauth.os.getenv")
+    @patch("analyzer.views.oauth.requests.post")
+    def test_gitlab_callback_token_error(self, mock_post, mock_getenv):
+        def side_effect(key, default=None):
+            if key == "GITLAB_CLIENT_ID":
+                return "dummy_id"
+            if key == "GITLAB_CLIENT_SECRET":
+                return "dummy_secret"
+            return default
+        mock_getenv.side_effect = side_effect
+
+        # Mock token request exception
+        mock_post.side_effect = Exception("Connection refused")
+
+        response = self.client.get("/oauth/gitlab/callback/?code=testcode")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], "/")
+        messages = list(response.wsgi_request._messages)
+        self.assertEqual(len(messages), 1)
+        self.assertIn("Error al conectar con GitLab OAuth", str(messages[0]))
+
+    @patch("analyzer.views.oauth.os.getenv")
+    @patch("analyzer.views.oauth.requests.post")
+    @patch("analyzer.views.oauth.requests.get")
+    def test_gitlab_callback_profile_error(self, mock_get, mock_post, mock_getenv):
+        def side_effect(key, default=None):
+            if key == "GITLAB_CLIENT_ID":
+                return "dummy_id"
+            if key == "GITLAB_CLIENT_SECRET":
+                return "dummy_secret"
+            return default
+        mock_getenv.side_effect = side_effect
+
+        # Mock token request response
+        mock_token_resp = mock_post.return_value
+        mock_token_resp.json.return_value = {"access_token": "mock_gitlab_access_token"}
+        mock_token_resp.status_code = 200
+
+        # Mock user API exception
+        mock_get.side_effect = Exception("User API error")
+
+        response = self.client.get("/oauth/gitlab/callback/?code=testcode")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Location"], "/")
+        messages = list(response.wsgi_request._messages)
+        self.assertEqual(len(messages), 1)
+        self.assertIn("Error al recuperar datos de usuario de GitLab", str(messages[0]))
 
 
 class AsyncOrchestratorIntegrationTestCase(TestCase):

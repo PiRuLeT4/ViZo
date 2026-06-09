@@ -1607,5 +1607,185 @@ body {
   width: 100%;
 }
 
+/* ── Unified Login Button & Provider Modal ── */
+.connect-provider-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(26, 79, 255, 0.05);
+  border: 1px solid var(--border-blue);
+  color: var(--cyan);
+  padding: 0.6rem 1.2rem;
+  border-radius: 4px;
+  font-family: "Outfit", sans-serif;
+  font-weight: 600;
+  font-size: 0.85rem;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  text-shadow: 0 0 5px rgba(0, 212, 255, 0.3);
+  box-shadow: 0 0 10px rgba(26, 79, 255, 0.1);
+}
+
+.connect-provider-btn:hover {
+  background: rgba(0, 212, 255, 0.1);
+  border-color: var(--cyan);
+  color: #ffffff;
+  box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.connect-provider-btn .auth-icon {
+  font-size: 1.1rem;
+  animation: spinGear 8s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spinGear {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Modal Overlay */
+.login-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(5, 10, 18, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.login-modal-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Modal Content Box */
+.login-modal-content {
+  background: rgba(8, 12, 20, 0.95);
+  border: 1px solid var(--border-cyan);
+  width: 90%;
+  max-width: 440px;
+  border-radius: 8px;
+  padding: 1.8rem;
+  box-shadow: 
+    0 0 30px rgba(0, 0, 0, 0.8),
+    0 0 50px rgba(0, 212, 255, 0.08);
+  position: relative;
+  transform: scale(0.9) translateY(20px);
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.login-modal-overlay.active .login-modal-content {
+  transform: scale(1) translateY(0);
+}
+
+/* Header */
+.login-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(0, 212, 255, 0.1);
+  padding-bottom: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.login-modal-header h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--cyan);
+  text-shadow: 0 0 8px rgba(0, 212, 255, 0.3);
+}
+
+.login-modal-close {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: color 0.2s ease;
+  line-height: 1;
+}
+
+.login-modal-close:hover {
+  color: #ff3b30;
+}
+
+/* Description */
+.login-modal-desc {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+  margin-bottom: 1.2rem;
+  font-family: monospace;
+}
+
+/* Provider options buttons list */
+.provider-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.provider-option-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.85rem;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  letter-spacing: 1px;
+  text-decoration: none;
+  transition: all 0.25s ease;
+  border: 1px solid transparent;
+}
+
+/* GitHub provider button styling */
+.github-provider {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.github-provider:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: #ffffff;
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+/* GitLab provider button styling */
+.gitlab-provider {
+  background: rgba(226, 67, 41, 0.05);
+  border-color: rgba(226, 67, 41, 0.15);
+  color: #e24329;
+}
+
+.gitlab-provider:hover {
+  background: rgba(226, 67, 41, 0.12);
+  border-color: #e24329;
+  color: #ffffff;
+  box-shadow: 0 0 15px rgba(226, 67, 41, 0.25);
+  transform: translateY(-1px);
+}
+
+.provider-icon {
+  display: flex;
+  align-items: center;
+}
+
 
 

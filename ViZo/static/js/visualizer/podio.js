@@ -89,6 +89,31 @@ AFRAME.registerComponent("vizo-podio", {
 
         this.light.setAttribute("distance", Math.max(w, d) * 1.5);
         this.light.setAttribute("position", `0 ${height / 2 + 0.5} 0`);
+
+        // Reposicionamiento dinámico del panel de control
+        const dashId = this.el.id.replace("vizo-viz-", "");
+        const panelEl = document.getElementById("vizo-panel-" + dashId);
+        if (panelEl) {
+          const vizType = panelEl.getAttribute("data-viz-type");
+          if (vizType && vizType !== "boats") {
+            const panelX = center.x - w / 2 + 0.3;
+            const panelZ = center.z + d / 2 + 0.6;
+            
+            let panelY = 0.45;
+            const currentPos = panelEl.getAttribute("position");
+            if (currentPos && typeof currentPos === "object" && currentPos.y !== undefined) {
+              panelY = currentPos.y;
+            } else if (currentPos && typeof currentPos === "string") {
+              const parts = currentPos.split(" ");
+              if (parts.length >= 2) {
+                const parsedY = parseFloat(parts[1]);
+                if (!isNaN(parsedY)) panelY = parsedY;
+              }
+            }
+            
+            panelEl.setAttribute("position", `${panelX} ${panelY} ${panelZ}`);
+          }
+        }
       }
     } catch (e) {
       // Ignorar errores en tick para no bloquear el render loop de A-Frame

@@ -3,7 +3,7 @@
 // Configuración de posición, rotación e interactividad (botones) de los paneles de control de cada tipo de dashboard.
 const PANEL_CONFIGS = {
   boats: {
-    y: 0.45,
+    y: 0.4,
     dist: 3.4,
     height: 0.8,
     buttons: [
@@ -87,18 +87,34 @@ const PANEL_CONFIGS = {
       {
         text: "EXPLICAR",
         action: "explain-ai",
-        x: -0.3,
+        x: -0.5,
         y: -0.3,
-        w: 0.5,
-        h: 0.09,
+        w: 0.32,
+        h: 0.07,
+      },
+      {
+        text: "+0.1 ESC",
+        action: "scale-up",
+        x: -0.18,
+        y: -0.3,
+        w: 0.26,
+        h: 0.07,
+      },
+      {
+        text: "-0.1 ESC",
+        action: "scale-down",
+        x: 0.18,
+        y: -0.3,
+        w: 0.26,
+        h: 0.07,
       },
       {
         text: "WIREFRAMES",
         action: "wireframe",
-        x: 0.3,
+        x: 0.5,
         y: -0.3,
-        w: 0.5,
-        h: 0.09,
+        w: 0.32,
+        h: 0.07,
       },
     ],
     headers: [
@@ -108,28 +124,34 @@ const PANEL_CONFIGS = {
     ],
   },
   cyls: {
-    y: 0.9,
-    dist: 3.6,
-    height: 0.7,
+    y: 0.45,
+    dist: 3,
+    height: 0.55,
     buttons: [
-      { text: "EXPLICAR DASHBOARD", action: "explain-ai", x: 0, y: -0.15 },
+      { text: "EXPLICAR", action: "explain-ai", x: 0, y: 0.08, w: 0.6, h: 0.09 },
+      { text: "+0.1 ESC", action: "scale-up", x: -0.28, y: -0.12, w: 0.45, h: 0.09 },
+      { text: "-0.1 ESC", action: "scale-down", x: 0.28, y: -0.12, w: 0.45, h: 0.09 },
     ],
   },
   doughnut: {
-    y: 0.9,
-    dist: 3.2,
-    height: 0.7,
+    y: 0.45,
+    dist: 3,
+    height: 0.55,
     buttons: [
-      { text: "EXPLICAR DASHBOARD", action: "explain-ai", x: 0, y: -0.15 },
+      { text: "EXPLICAR", action: "explain-ai", x: 0, y: 0.08, w: 0.6, h: 0.09 },
+      { text: "+0.1 ESC", action: "scale-up", x: -0.28, y: -0.12, w: 0.45, h: 0.09 },
+      { text: "-0.1 ESC", action: "scale-down", x: 0.28, y: -0.12, w: 0.45, h: 0.09 },
     ],
   },
   barsmap: {
-    y: 0.9,
-    dist: 3.6,
-    height: 0.7,
+    y: 0.45,
+    dist: 3,
+    height: 0.55,
     buttons: [
-      { text: "COMMITS/INS", action: "cycle-height", x: -0.52, y: -0.15 },
-      { text: "EXPLICAR DASHBOARD", action: "explain-ai", x: 0.52, y: -0.15 },
+      { text: "COMMITS/INS", action: "cycle-height", x: -0.38, y: 0.08, w: 0.55, h: 0.09 },
+      { text: "EXPLICAR", action: "explain-ai", x: 0.38, y: 0.08, w: 0.55, h: 0.09 },
+      { text: "+0.1 ESC", action: "scale-up", x: -0.28, y: -0.12, w: 0.45, h: 0.09 },
+      { text: "-0.1 ESC", action: "scale-down", x: 0.28, y: -0.12, w: 0.45, h: 0.09 },
     ],
   },
 };
@@ -148,15 +170,15 @@ function buildControlPanel(scene, dash, vizId, pos, type) {
   if (type === "boats") {
     // Colocar el panel enfrente de la ciudad, centrado y cerca del suelo
     panelX = 0;
-    panelY = 0.45; // cerca del suelo pero levantado para visibilidad completa
+    panelY = cfg.y || 0.4; // cerca del suelo pero levantado para visibilidad completa
     panelZ = 23.2;
     yawDegrees = 0; // Encarando al usuario de frente
   } else {
     var yawRad = (yawDegrees * Math.PI) / 180;
-    var dist = cfg.dist || 3.2;
-    panelX = pos.x - dist * Math.sin(yawRad);
+    var dist = cfg.dist || 3;
+    panelX = pos.x + dist * Math.sin(yawRad); // Desplazado hacia la izquierda (esquina del dashboard)
     panelY = cfg.y;
-    panelZ = pos.z - dist * Math.cos(yawRad);
+    panelZ = pos.z + dist * Math.cos(yawRad);
   }
 
   var panelHeight = cfg.height || 0.7;
@@ -184,12 +206,13 @@ function buildControlPanel(scene, dash, vizId, pos, type) {
 
   var panelEl = document.createElement("a-entity");
   panelEl.setAttribute("id", "vizo-panel-" + dash.id);
+  panelEl.setAttribute("data-viz-type", type);
   panelEl.setAttribute("position", `${panelX} ${panelY} ${panelZ}`);
   panelEl.setAttribute("rotation", `0 ${yawDegrees} 0`);
 
   // Create tilted sub-entity for the screen plate
   var screenEl = document.createElement("a-entity");
-  var tiltAngle = type === "boats" ? "-45 0 0" : "-30 0 0";
+  var tiltAngle = type === "boats" ? "-50 0 0" : "-65 0 0";
   screenEl.setAttribute("rotation", tiltAngle);
 
   // Holographic blue semi-transparent base plate
@@ -291,7 +314,9 @@ function buildControlPanel(scene, dash, vizId, pos, type) {
     );
 
     var btnWidth = btn.w || (btn.action === "explain-ai" ? 0.72 : 0.52);
-    var btnHeight = btn.h || (btn.action === "explain-ai" || btn.action === "wireframe" ? 0.14 : 0.11);
+    var btnHeight =
+      btn.h ||
+      (btn.action === "explain-ai" || btn.action === "wireframe" ? 0.14 : 0.11);
     var btnBorderWidth = btnWidth + 0.02;
     var btnBorderHeight = btnHeight + 0.02;
 
@@ -344,11 +369,11 @@ function buildControlPanel(scene, dash, vizId, pos, type) {
   if (type !== "boats") {
     var standCol = document.createElement("a-cylinder");
     standCol.setAttribute("radius", "0.04");
-    standCol.setAttribute("height", "0.9");
+    standCol.setAttribute("height", panelY.toString());
     standCol.setAttribute("color", "#101828");
     standCol.setAttribute("roughness", "0.5");
     standCol.setAttribute("metalness", "0.8");
-    standCol.setAttribute("position", "0 -0.45 0");
+    standCol.setAttribute("position", `0 ${-panelY / 2} 0`);
     panelEl.appendChild(standCol);
 
     var standBase = document.createElement("a-cylinder");
@@ -357,7 +382,7 @@ function buildControlPanel(scene, dash, vizId, pos, type) {
     standBase.setAttribute("color", "#101828");
     standBase.setAttribute("roughness", "0.4");
     standBase.setAttribute("metalness", "0.9");
-    standBase.setAttribute("position", "0 -0.88 0");
+    standBase.setAttribute("position", `0 ${-(panelY - 0.02)} 0`);
     panelEl.appendChild(standBase);
 
     // Solid box collider for player collision resolution dynamically sized
@@ -366,7 +391,7 @@ function buildControlPanel(scene, dash, vizId, pos, type) {
       "solid-box",
       `cx: ${panelX}; cy: 0.5; cz: ${panelZ}; halfW: ${(panelWidth / 2 + 0.05).toFixed(2)}; halfH: 0.5; halfD: 0.4`,
     );
-    scene.appendChild(solidEl);
+    // scene.appendChild(solidEl);
   }
 
   scene.appendChild(panelEl);

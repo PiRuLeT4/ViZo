@@ -203,23 +203,34 @@ def start_async_analysis(
     Inicia un flujo de análisis asíncrono optimizado mediante caché previa.
     Retorna: (session_id, is_cache_hit)
     """
-    # 1. Recuperar token de GitHub si el usuario está autenticado
+    # 1. Recuperar token y proveedor correspondiente si el usuario está autenticado
     token = None
+    provider = None
     if user and user.is_authenticated:
         try:
-            token = user.profile.github_token
+            profile = user.profile
+            if "github.com" in url:
+                provider = "github"
+                token = profile.github_token
+            elif "gitlab.com" in url:
+                provider = "gitlab"
+                token = profile.gitlab_token
         except Exception:
             pass
 
     # 2. Control de seguridad proactivo: Evitar analizar repos privados como públicos
-    if not is_private and token and "github.com" in url:
+    if not is_private and token and provider:
         # Probamos primero si es públicamente accesible deshabilitando helpers de credenciales locales
         public_head = _get_remote_head(url, disable_helpers=True)
         if public_head is None:
             # Si no es público, probamos con el token para ver si existe de forma privada
-            auth_url = url.replace(
-                "https://github.com/", f"https://{token}@github.com/"
-            )
+            if provider == "github":
+                auth_url = url.replace("https://github.com/", f"https://{token}@github.com/")
+            elif provider == "gitlab":
+                auth_url = url.replace("https://gitlab.com/", f"https://oauth2:{token}@gitlab.com/")
+            else:
+                auth_url = url
+            
             private_head = _get_remote_head(auth_url, disable_helpers=True)
             if private_head is not None:
                 # Es un repositorio privado pero no se marcó la casilla de privacidad
@@ -227,9 +238,11 @@ def start_async_analysis(
 
     # 3. Construir la URL de Git autenticada si corresponde
     clone_url = url
-    if is_private and token and "github.com" in url:
-        # Reemplazar https://github.com/ por https://<token>@github.com/
-        clone_url = url.replace("https://github.com/", f"https://{token}@github.com/")
+    if is_private and token and provider:
+        if provider == "github":
+            clone_url = url.replace("https://github.com/", f"https://{token}@github.com/")
+        elif provider == "gitlab":
+            clone_url = url.replace("https://gitlab.com/", f"https://oauth2:{token}@gitlab.com/")
 
     # ── 3. Chequeo de Caché Inteligente (Cache-First) ──
     latest_commit_id = _get_remote_head(clone_url)
