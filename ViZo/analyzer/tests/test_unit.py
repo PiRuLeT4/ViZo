@@ -289,10 +289,8 @@ class LocalMetricsTestCase(TestCase):
         )
         self.assertEqual(item_a["file"], "file1.py")
         self.assertEqual(item_a["size"], 5.0)
-        self.assertTrue(item_a["color"].startswith("#"))
         self.assertEqual(item_b["file"], "file1.py")
         self.assertEqual(item_b["size"], 1.0)
-        self.assertTrue(item_b["color"].startswith("#"))
 
 
 class ReleasesHistoryTestCase(TestCase):

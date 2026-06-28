@@ -198,17 +198,6 @@ def _process_metrics(
         author = commit.get("author", "Unknown")
         author_commits[author] = author_commits.get(author, 0) + 1
 
-    # Paleta de colores neón cyberpunk para los nodos
-    neon_palette = [
-        "#00d4ff",  # Cyan
-        "#4af7a0",  # Green
-        "#ff007f",  # Pink
-        "#b026ff",  # Purple
-        "#ffdd57",  # Yellow
-        "#ff5733",  # Orange/Red
-        "#33ff57",  # Lime
-    ]
-
     # 2. Obtener los 10 autores principales por número de commits para evitar sobrecargar la red
     top_authors = sorted(author_commits.items(), key=lambda x: x[1], reverse=True)[:10]
     top_authors_set = {auth for auth, _ in top_authors}
@@ -233,13 +222,6 @@ def _process_metrics(
         for author in authors_dict.keys():
             if author not in top_authors_set:
                 continue
-            # Obtener el índice del autor para mantener color consistente
-            author_list = list(author_commits.keys())
-            try:
-                author_idx = author_list.index(author)
-            except ValueError:
-                author_idx = 0
-            color = neon_palette[author_idx % len(neon_palette)]
             
             raw_size = author_commits.get(author, 1)
             normalized_size = round(size_fn(raw_size), 2)
@@ -247,8 +229,7 @@ def _process_metrics(
             file_network.append({
                 "author": author,
                 "file": rel_path,
-                "size": normalized_size,
-                "color": color
+                "size": normalized_size
             })
 
     print(Fore.CYAN + f"ViZo // Red de Colaboración:")
@@ -259,7 +240,7 @@ def _process_metrics(
         for idx, item in enumerate(file_network[:10]):
             print(
                 Fore.YELLOW
-                + f"    [{idx}] Autor: {item['author']} | Archivo: {item['file']} | Tamaño Normalizado: {item['size']} | Color: {item['color']}"
+                + f"    [{idx}] Autor: {item['author']} | Archivo: {item['file']} | Tamaño Normalizado: {item['size']}"
             )
 
     print(

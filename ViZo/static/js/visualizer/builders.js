@@ -14,9 +14,9 @@ function calculateSatellitePosition(index, total) {
   if (total <= 0) return { x: 0, y: 0.1, z: 20, rotY: 0 };
 
   const COLUMNS = 3;
-  const X_SPACING = 9;
-  const Z_SPACING = 7.5;
-  const Z_START = 12.0; // Detrás de la ciudad (Z=20)
+  const X_SPACING = 11.0;
+  const Z_SPACING = 9.0;
+  const Z_START = 10.0; // Detrás de la ciudad (Z=20)
 
   const row = Math.floor(index / COLUMNS);
   const totalRows = Math.ceil(total / COLUMNS);
@@ -59,6 +59,22 @@ function buildControlPanel(scene, dash, vizId, pos, type) {
  * Usa el campo "id" como jerarquía (path del archivo).
  */
 function buildCity(scene, dash, loaderId, pos) {
+  // Calcular escala dinámica basada en cantidad de archivos para evitar edificios delgados en repos grandes
+  const dataEl = document.getElementById("vizo-data-json");
+  let fileCount = 50;
+  if (dataEl && dataEl.textContent.trim()) {
+    try {
+      const data = JSON.parse(dataEl.textContent);
+      if (Array.isArray(data)) {
+        fileCount = data.length;
+      }
+    } catch (e) {}
+  }
+  const dynamicSize = Math.min(
+    12,
+    Math.max(4, Math.ceil(Math.sqrt(fileCount) * 0.6)),
+  );
+
   const treebuilderId = "vizo-tree-" + dash.id;
   const treeEl = document.createElement("a-entity");
   treeEl.setAttribute("id", treebuilderId);
@@ -77,7 +93,6 @@ function buildCity(scene, dash, loaderId, pos) {
       "from: " + treebuilderId,
       "height: " + (m.height || "nloc"),
       "area: " + (m.area || "ccn"),
-      "streets: true",
       "extra: 1.5",
       "split: pivot",
       "base_color: #0d1220",
@@ -88,6 +103,8 @@ function buildCity(scene, dash, loaderId, pos) {
       "legend_text: {name}\nNLOC: {nloc} | CCN: {ccn}\nCommits: {commits} | Funcs: {num_functions}\nEdad: {age_days}d | Owner: {owner_name} ({ownership}%)",
       "color: " + (m.color || m.height || "nloc"),
       "autoscale: true",
+      "autoscaleSizeX: " + dynamicSize,
+      // "autoscaleSizeZ: " + dynamicSize,
       "highlightQuarter: true",
       "highlightQuarterByClick: true",
     ].join("; "),
@@ -198,6 +215,47 @@ function buildBarsmap(scene, dash, loaderId, pos) {
   buildControlPanel(scene, dash, "vizo-viz-" + dash.id, pos, "barsmap");
 }
 
+function buildNetwork(scene, dash, nodesLoaderId, linksLoaderId, pos) {
+  // 1. Crear el contenedor invisible del plinth para definir los límites de espacio
+  const plinthEl = document.createElement("a-entity");
+  plinthEl.setAttribute("id", "vizo-plinth-" + dash.id);
+  plinthEl.setAttribute("position", pos.x + " 0.5 " + pos.z);
+  plinthEl.setAttribute("rotation", `0 ${pos.rotY} 0`);
+  plinthEl.setAttribute("lounge-plinth", "width: 3; depth: 3");
+  plinthEl.setAttribute("lounge-staydown", "");
+
+  // 2. Crear la entidad de babia-network propiamente dicha dentro del plinth
+  const vizEl = document.createElement("a-entity");
+  vizEl.setAttribute("id", "vizo-viz-" + dash.id);
+  vizEl.setAttribute("position", "0 1.2 0");
+  vizEl.setAttribute("rotation", "0 0 -90");
+  vizEl.setAttribute("scale", "0.05 0.05 0.05");
+  vizEl.setAttribute(
+    "babia-network",
+    [
+      "nodesFrom: " + nodesLoaderId,
+      "linksFrom: " + linksLoaderId,
+      "nodeId: id",
+      "nodeLabel: name",
+      "nodeAutoColorBy: name",
+      "nodeResolution: 30",
+      "nodeVal: commits",
+      "nodeRelSize: 1",
+      "linkWidth: 0.1",
+      "nodeLegend: true",
+      "linkLegend: true",
+    ].join("; "),
+  );
+
+  plinthEl.appendChild(vizEl);
+  scene.appendChild(plinthEl);
+  vizEl.setAttribute("vizo-podio", "");
+  console.log(
+    "ViZo // babia-network creado sobre pedestal con límites invisibles",
+  );
+  buildControlPanel(scene, dash, "vizo-viz-" + dash.id, pos, "network");
+}
+
 // Export for global access
 window.ViZoBuilders = window.ViZoBuilders || {};
 window.ViZoBuilders.POSITIONS = POSITIONS;
@@ -206,3 +264,4 @@ window.ViZoBuilders.buildCity = buildCity;
 window.ViZoBuilders.buildCyls = buildCyls;
 window.ViZoBuilders.buildDoughnut = buildDoughnut;
 window.ViZoBuilders.buildBarsmap = buildBarsmap;
+window.ViZoBuilders.buildNetwork = buildNetwork;

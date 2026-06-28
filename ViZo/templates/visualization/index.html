@@ -46,6 +46,7 @@
         <button class="hud-btn" data-hud-btn="cyls" onclick="window.ViZoTrigger('explain-ai', 'cyls')">EXP. CYLS</button>
         <button class="hud-btn" data-hud-btn="doughnut" onclick="window.ViZoTrigger('explain-ai', 'doughnut')">EXP. DONUT</button>
         <button class="hud-btn" data-hud-btn="barsmap" onclick="window.ViZoTrigger('explain-ai', 'barsmap')">EXP. BARS</button>
+        <button class="hud-btn" data-hud-btn="network" onclick="window.ViZoTrigger('explain-ai', 'network')">EXP. RED</button>
         <button class="hud-btn" onclick="window.ViZoTrigger('wireframe', 'boats')">W-FRAME</button>
         <button class="hud-btn" onclick="window.ViZoTrigger('swap-mappings', 'boats')">SWAP EJES</button>
       </div>
@@ -101,6 +102,9 @@
       </div>
       <div id="vizo-complex-json" style="display: none">
         {{ top_complex_files | safe }}
+      </div>
+      <div id="vizo-network-json" style="display: none">
+        {{ file_network | safe }}
       </div>
       <div id="vizo-ai-config" style="display: none">
         {{ ai_config | safe }}
