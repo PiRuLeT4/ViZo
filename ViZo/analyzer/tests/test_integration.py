@@ -115,6 +115,58 @@ class APIAnalyzeIntegrationTestCase(TestCase):
             resp_json["error"],
         )
 
+    @patch("analyzer.views.api.start_async_analysis")
+    def test_api_analyze_releases_mode(self, mock_start):
+        self.client.force_login(self.user)
+        mock_start.return_value = (45, False)
+
+        response = self.client.post(
+            "/api/analyze/",
+            {
+                "repoUrl": "https://github.com/some/public-repo",
+                "analysis_mode": "releases",
+                "depth": "5"
+            }
+        )
+        self.assertEqual(response.status_code, 200)
+        resp_json = response.json()
+        self.assertEqual(resp_json["status"], "success")
+        self.assertEqual(resp_json["session_id"], 45)
+
+        mock_start.assert_called_once_with(
+            "https://github.com/some/public-repo",
+            max_commits=5,
+            analysis_mode="releases",
+            user=self.user,
+            is_private=False
+        )
+
+    @patch("analyzer.views.api.start_async_analysis")
+    def test_api_analyze_releases_mode_all(self, mock_start):
+        self.client.force_login(self.user)
+        mock_start.return_value = (46, False)
+
+        response = self.client.post(
+            "/api/analyze/",
+            {
+                "repoUrl": "https://github.com/some/public-repo",
+                "analysis_mode": "releases",
+                "depth": "all"
+            }
+        )
+        self.assertEqual(response.status_code, 200)
+        resp_json = response.json()
+        self.assertEqual(resp_json["status"], "success")
+        self.assertEqual(resp_json["session_id"], 46)
+
+        mock_start.assert_called_once_with(
+            "https://github.com/some/public-repo",
+            max_commits=0,
+            analysis_mode="releases",
+            user=self.user,
+            is_private=False
+        )
+
     def test_api_session_status_pending_processing_completed(self):
         # Crear un repo y sesiones mock
         repo = Repository.objects.create(

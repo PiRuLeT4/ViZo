@@ -10,7 +10,7 @@ from django.shortcuts import render, get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 
-from analyzer.core.ai import get_ai_explanation
+from analyzer.core.AI.ai import get_ai_explanation
 from analyzer.persistence.queries import build_result_from_session
 from analyzer.models import AnalysisSession
 
@@ -34,6 +34,7 @@ def show_visualization(request, session_id):
             "file_ownership": json.dumps(data.get("file_ownership", [])),
             "age_distribution": json.dumps(data.get("age_distribution", [])),
             "top_complex_files": json.dumps(data.get("top_complex_files", [])),
+            "file_network": json.dumps(data.get("file_network", {})),
             "ai_config": json.dumps(data["ai_config"]),
             "ai_status": data["ai_config"].get("ai_status", "success"),
         },
@@ -60,7 +61,7 @@ def api_explain(request):
             )
 
         # Generar explicación con el LLM
-        from analyzer.core.ai import client, AI_MODEL
+        from analyzer.core.AI.ai import client, AI_MODEL
 
         print(f"Generating explanation for dashboard type: {dashboard_type}")
         print(f"Using AI client base_url: {client.base_url}, model: {AI_MODEL}")

@@ -1,10 +1,11 @@
 from datetime import timedelta
+from unittest.mock import patch
 
 from django.test import TestCase
 from django.utils import timezone
 from django.core.management import call_command, CommandError
 
-from analyzer.core.ai import _extract_summary_and_json, _validate_and_fix_config
+from analyzer.core.AI.helpers import _extract_summary_and_json, _validate_and_fix_config
 from analyzer.models import Repository, AnalysisSession
 from analyzer.persistence.queries import (
     get_latest_active_sessions,
@@ -67,6 +68,18 @@ class AIUtilsTestCase(TestCase):
         )
         self.assertIsNotNone(cyls_dash.get("mappings"))
         self.assertEqual(cyls_dash["mappings"]["x_axis"], "language")
+
+    def test_get_offline_explanation_network(self):
+        from analyzer.core.AI.ai import get_offline_explanation
+
+        explanation = get_offline_explanation("network", "test-repo")
+        self.assertIn("REPORTE DE RED DE COLABORACIÓN DE DESARROLLADORES", explanation)
+        self.assertIn("test-repo", explanation)
+
+        explanation_babia = get_offline_explanation("babia-network", "test-repo")
+        self.assertIn(
+            "REPORTE DE RED DE COLABORACIÓN DE DESARROLLADORES", explanation_babia
+        )
 
 
 class PersistenceQueriesTestCase(TestCase):
@@ -189,12 +202,12 @@ class LocalMetricsTestCase(TestCase):
     def test_process_metrics_calculations(self):
         from unittest.mock import MagicMock
         from datetime import datetime
-        from analyzer.core.engine import _process_metrics
+        from analyzer.core.ENGINE.metrics import _process_metrics
 
         # Create a mock Lizard file
         mock_func = MagicMock()
         mock_func.cyclomatic_complexity = 5
-        
+
         mock_file = MagicMock()
         mock_file.filename = "/tmp/test_dir/file1.py"
         mock_file.nloc = 100
@@ -209,8 +222,12 @@ class LocalMetricsTestCase(TestCase):
             "file_lines_deleted": {"file1.py": 10},
             "file_author_commits": {"file1.py": {"Author A": 2, "Author B": 1}},
             "file_last_modified": {"file1.py": now},
-            "commits": [],
-            "author_activity": []
+            "commits": [
+                {"author": "Author A", "hash": "123", "date": now},
+                {"author": "Author A", "hash": "456", "date": now},
+                {"author": "Author B", "hash": "789", "date": now},
+            ],
+            "author_activity": [],
         }
 
         # Run process_metrics
@@ -224,6 +241,7 @@ class LocalMetricsTestCase(TestCase):
             file_ownership,
             age_distribution,
             top_complex_files,
+            file_network,
         ) = _process_metrics([mock_file], evolution_data, "/tmp/test_dir")
 
         # Verify calculations
@@ -247,7 +265,9 @@ class LocalMetricsTestCase(TestCase):
 
         # Verify age_distribution
         # Since age_days is 0, it should be in "Active"
-        active_cat = next(cat for cat in age_distribution if cat["category"] == "Active")
+        active_cat = next(
+            cat for cat in age_distribution if cat["category"] == "Active"
+        )
         self.assertEqual(active_cat["count"], 1)
         self.assertEqual(active_cat["nloc"], 100)
 
@@ -255,3 +275,169 @@ class LocalMetricsTestCase(TestCase):
         self.assertEqual(len(top_complex_files), 1)
         self.assertEqual(top_complex_files[0]["name"], "file1.py")
         self.assertEqual(top_complex_files[0]["peak_ccn"], 5.0)
+
+        # Verify file_network
+        self.assertIsInstance(file_network, list)
+        self.assertEqual(len(file_network), 2)
+
+        # Verify items properties
+        item_a = next(
+            item for item in file_network if item["author"] == "Author A"
+        )
+        item_b = next(
+            item for item in file_network if item["author"] == "Author B"
+        )
+        self.assertEqual(item_a["file"], "file1.py")
+        self.assertEqual(item_a["size"], 5.0)
+        self.assertTrue(item_a["color"].startswith("#"))
+        self.assertEqual(item_b["file"], "file1.py")
+        self.assertEqual(item_b["size"], 1.0)
+        self.assertTrue(item_b["color"].startswith("#"))
+
+
+class ReleasesHistoryTestCase(TestCase):
+    def test_clean_git_path(self):
+        from analyzer.core.ENGINE.helpers import _clean_git_path
+
+        self.assertEqual(_clean_git_path("src/{old => new}/file.py"), "src/new/file.py")
+        self.assertEqual(_clean_git_path("old_name.py => new_name.py"), "new_name.py")
+        self.assertEqual(
+            _clean_git_path("regular/path/to/file.py"), "regular/path/to/file.py"
+        )
+
+    def test_parse_git_date(self):
+        from analyzer.core.ENGINE.helpers import _parse_git_date
+        from datetime import datetime
+
+        # Valid standard ISO
+        dt = _parse_git_date("2026-06-23T13:33:57+02:00")
+        self.assertEqual(dt.year, 2026)
+        self.assertEqual(dt.month, 6)
+
+        # Git log date format (with space and no colon in tz)
+        dt2 = _parse_git_date("2026-06-23 13:33:57 +0200")
+        self.assertEqual(dt2.year, 2026)
+
+        # Empty / None fallback
+        dt3 = _parse_git_date("")
+        self.assertIsInstance(dt3, datetime)
+
+        # Invalid format fallback
+        dt4 = _parse_git_date("not-a-date")
+        self.assertIsInstance(dt4, datetime)
+
+    @patch("analyzer.core.ENGINE.helpers.subprocess.run")
+    def test_get_tags_info(self, mock_run):
+        from analyzer.core.ENGINE.helpers import _get_tags_info
+        from unittest.mock import MagicMock
+
+        # Mock git for-each-ref
+        mock_each_ref = MagicMock()
+        mock_each_ref.returncode = 0
+        mock_each_ref.stdout = "v1.0.0|hash123|2026-06-20T10:00:00+00:00\nv1.1.0|hash456|2026-06-21T10:00:00+00:00\n"
+
+        mock_run.return_value = mock_each_ref
+
+        tags = _get_tags_info("/fake/dir", max_releases=2)
+        self.assertEqual(len(tags), 2)
+        self.assertEqual(tags[0]["name"], "v1.0.0")
+        self.assertEqual(tags[0]["hash"], "hash123")
+        self.assertEqual(tags[0]["date"], "2026-06-20T10:00:00+00:00")
+        self.assertEqual(tags[1]["name"], "v1.1.0")
+
+    @patch("analyzer.core.ENGINE.helpers.subprocess.run")
+    def test_get_diff_stats(self, mock_run):
+        from analyzer.core.ENGINE.helpers import _get_diff_stats
+        from unittest.mock import MagicMock
+
+        # 1. Both insertions and deletions
+        mock_res1 = MagicMock()
+        mock_res1.returncode = 0
+        mock_res1.stdout = " 3 files changed, 24 insertions(+), 12 deletions(-)\n"
+        mock_run.return_value = mock_res1
+        ins, dels = _get_diff_stats("/fake/dir", "v1.0.0", "v1.1.0")
+        self.assertEqual(ins, 24)
+        self.assertEqual(dels, 12)
+
+        # 2. Only insertions
+        mock_res2 = MagicMock()
+        mock_res2.returncode = 0
+        mock_res2.stdout = " 1 file changed, 5 insertions(+)\n"
+        mock_run.return_value = mock_res2
+        ins, dels = _get_diff_stats("/fake/dir", "v1.0.0", "v1.1.0")
+        self.assertEqual(ins, 5)
+        self.assertEqual(dels, 0)
+
+        # 3. Error code
+        mock_res3 = MagicMock()
+        mock_res3.returncode = 1
+        mock_run.return_value = mock_res3
+        ins, dels = _get_diff_stats("/fake/dir", "v1.0.0", "v1.1.0")
+        self.assertEqual(ins, 0)
+        self.assertEqual(dels, 0)
+
+    @patch("analyzer.core.ENGINE.evolution_analysis._get_diff_stats")
+    @patch("analyzer.core.ENGINE.evolution_analysis.subprocess.run")
+    def test_run_releases_history(self, mock_run, mock_diff_stats):
+        from analyzer.core.ENGINE.evolution_analysis import _run_releases_history
+        from datetime import datetime
+        from unittest.mock import MagicMock
+
+        mock_diff_stats.return_value = (50, 10)
+
+        # Mock git parent check (fails, so fallback to empty tree hash)
+        mock_parent = MagicMock()
+        mock_parent.returncode = 1
+
+        # Mock git log --numstat
+        mock_log = MagicMock()
+        mock_log.returncode = 0
+        mock_log.stdout = (
+            "AUTHOR:Alice|2026-06-20T10:00:00+00:00\n10\t5\tfile1.py\n20\t0\tfile2.py\n"
+        )
+
+        mock_run.side_effect = [mock_parent, mock_log]
+
+        tags = [
+            {
+                "name": "v1.0.0",
+                "hash": "hash123",
+                "date": "2026-06-20T10:00:00+00:00",
+                "date_obj": datetime(2026, 6, 20),
+            }
+        ]
+
+        res = _run_releases_history("/fake/dir", tags)
+        self.assertEqual(res["total_commits"], 1)
+        self.assertEqual(res["timeline"], {"2026-06-20": 1})
+        self.assertIn("Alice", res["authors"])
+        self.assertEqual(res["file_churn"]["file1.py"], 1)
+        self.assertEqual(res["file_lines_added"]["file1.py"], 10)
+        self.assertEqual(res["file_lines_deleted"]["file1.py"], 5)
+        self.assertEqual(res["file_author_commits"]["file1.py"]["Alice"], 1)
+
+        # Verify commit mock representation
+        commit = res["commits"][0]
+        self.assertEqual(commit["hash"], "hash123")
+        self.assertEqual(commit["author"], "Release")
+        self.assertEqual(commit["message"], "Release v1.0.0 (1 commits)")
+        self.assertEqual(commit["insertions"], 50)
+        self.assertEqual(commit["deletions"], 10)
+
+
+class LizardOptimizationTestCase(TestCase):
+    @patch("analyzer.core.ENGINE.lizard_analysis.lizard.analyze")
+    def test_run_lizard_options(self, mock_analyze):
+        from analyzer.core.ENGINE.lizard_analysis import _run_lizard
+
+        mock_analyze.return_value = []
+
+        res = _run_lizard("/fake/dir")
+        self.assertEqual(res, [])
+
+        mock_analyze.assert_called_once()
+        args, kwargs = mock_analyze.call_args
+        self.assertEqual(args[0], ["/fake/dir"])
+        self.assertIn("exclude_pattern", kwargs)
+        self.assertIn("threads", kwargs)
+        self.assertIn("*/node_modules/*", kwargs["exclude_pattern"])

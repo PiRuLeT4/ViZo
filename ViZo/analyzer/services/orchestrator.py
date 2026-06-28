@@ -1,160 +1,31 @@
-"""
-orchestrator.py
-───────────────
-Orquestador principal del flujo de análisis de ViZo.
-Controla el flujo Cache-First, la concurrencia de hilos (ThreadPoolExecutor) y llamadas a la IA.
-"""
+# orchestrator.py
+# ───────────────
+# Orquestador principal del flujo de análisis de ViZo.
+# Controla la ejecución Cache-First, la concurrencia de hilos y llamadas al core de análisis e IA.
 
 import json
-import os
-import subprocess
 from concurrent.futures import ThreadPoolExecutor
-
 from colorama import Fore, init
 
-from analyzer.core.ai import get_ai_config
-from analyzer.core.engine import run_analysis
-from analyzer.persistence.queries import build_result_from_session, save_session
+from analyzer.core.AI.ai import get_ai_config
+from analyzer.core.ENGINE.analysis import run_analysis
+from analyzer.persistence.queries import save_session
+
 from analyzer.models import Repository, AnalysisSession
+from .git_remote import _get_remote_head, _get_remote_tags_hash
+from .cache import _check_cache, _persist_results
+from .security import verify_and_build_clone_url
 
 init(autoreset=True)
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Helpers privados
-# ─────────────────────────────────────────────────────────────────────────────
-
-
-def _get_clean_git_env() -> dict:
-    """
-    Retorna un diccionario de variables de entorno limpio, de forma que se
-    desactiven AskPass de VS Code y otros promnpts interactivos de Git.
-    """
-    env = os.environ.copy()
-    # Eliminar cualquier variable de AskPass para evitar que VS Code o Git abran popups
-    for key in list(env.keys()):
-        if "ASKPASS" in key or key.startswith("VSCODE_GIT"):
-            env.pop(key)
-    # Forzar no interactivo
-    env["GIT_TERMINAL_PROMPT"] = "0"
-    env["GIT_ASKPASS"] = "true"  # Evita prompts interactivos
-    return env
-
-
-def _get_remote_head(url: str, disable_helpers: bool = False) -> str | None:
-    """
-    Obtiene el hash del commit HEAD del repo remoto usando git ls-remote,
-    sin necesidad de clonar. Devuelve None si falla.
-    """
-    try:
-        args = ["git"]
-        if disable_helpers:
-            args.extend(["-c", "credential.helper="])
-        args.extend(["ls-remote", "--quiet", "--exit-code", url, "HEAD"])
-
-        result = subprocess.run(
-            args,
-            capture_output=True,
-            text=True,
-            timeout=15,
-            env=_get_clean_git_env(),
-        )
-        if result.returncode == 0 and result.stdout:
-            # Formato de salida: "<hash>\tHEAD"
-            return result.stdout.split()[0]
-    except Exception as e:
-        print(Fore.YELLOW + f"[Git ls-remote] No disponible: {e}")
-    return None
-
-
-def _check_cache(url: str, latest_commit_id: str) -> dict | None:
-    """
-    Comprueba si existe en BD una sesión para `url` con el commit `latest_commit_id`.
-    Devuelve el resultado cacheado o None si no hay caché válida.
-    """
-    try:
-        repo_obj = Repository.objects.get(url=url)
-        latest_session = repo_obj.sessions.first()  # ordering=[-analysis_date]
-        if latest_session and latest_session.last_commit_id == latest_commit_id:
-            print(
-                Fore.GREEN
-                + f"[Cache HIT] Repo '{repo_obj.name}' sin cambios. Usando datos de BD."
-            )
-            return build_result_from_session(latest_session)
-        else:
-            print(
-                Fore.YELLOW
-                + f"[Cache MISS] Repo '{repo_obj.name}' tiene nuevos commits. Re-analizando..."
-            )
-    except Repository.DoesNotExist:
-        print(
-            Fore.YELLOW
-            + f"[Cache MISS] Repo nuevo: {url}. Analizando por primera vez..."
-        )
-    return None
-
-
-def _persist_results(
-    url: str,
-    analysis_result: dict,
-    ai_config: dict,
-) -> None:
-    """
-    Crea o actualiza el objeto Repository y persiste la nueva AnalysisSession en BD.
-    """
-    repo_name = analysis_result["repo_name"]
-    main_language = analysis_result["main_language"]
-    last_commit_id = analysis_result["last_commit_id"]
-
-    repo_obj, created = Repository.objects.get_or_create(
-        url=url,
-        defaults={"name": repo_name, "main_language": main_language},
-    )
-    if not created and repo_obj.main_language != main_language:
-        repo_obj.main_language = main_language
-        repo_obj.save(update_fields=["main_language"])
-
-    save_session(
-        repo_obj,
-        last_commit_id,
-        analysis_result["file_metrics"],
-        analysis_result["data_by_language"],
-        analysis_result["evolution_data"],
-        ai_config,
-        analysis_result["repo_summary"],
-        analysis_result["author_activity"],
-        file_ownership=analysis_result.get("file_ownership", []),
-        age_distribution=analysis_result.get("age_distribution", []),
-        top_complex_files=analysis_result.get("top_complex_files", []),
-    )
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Función pública principal (Legacy / Sync)
-# ─────────────────────────────────────────────────────────────────────────────
+# Pool de hilos acotado global para limitar tareas concurrentes y proteger el procesador
+_ANALYSIS_EXECUTOR = ThreadPoolExecutor(max_workers=3, thread_name_prefix="vizo-task")
 
 
 def analyze_repository(url: str, max_commits: int = 150) -> dict | None:
     """
-    Punto de entrada principal que la vista llama directamente.
-
-    Flujo:
-      1. Obtiene el HEAD remoto (sin clonar) para determinar el commit actual.
-      2. Si el commit coincide con la sesión más reciente en BD → caché HIT.
-      3. Si no → análisis completo (clonado, Lizard, GitPython, IA) + guardado en BD.
-
-    Devuelve un dict con:
-        - file_metrics      : métricas por archivo (para BabiaXR)
-        - data_by_language  : métricas por lenguaje (para BabiaXR)
-        - ai_config         : configuración visual elegida por la IA
-        - metrics           : lista raw de Lizard
-        - evolution_data    : historial de commits
-        - author_activity    : actividad agrupada por autor
-        - from_cache        : bool
-
-    O None si ocurre un error irrecuperable.
+    Punto de entrada principal síncrono (Legacy / Fallback).
     """
-    # ── Paso 1: Intentar obtener HEAD sin clonar ──────────────────────────────
     latest_commit_id = _get_remote_head(url)
 
     if latest_commit_id:
@@ -167,19 +38,15 @@ def analyze_repository(url: str, max_commits: int = 150) -> dict | None:
             + "[Git] No se pudo obtener HEAD remoto. Se procederá con análisis completo."
         )
 
-    # ── Paso 2: Análisis completo ─────────────────────────────────────────────
     analysis_result = run_analysis(url, max_commits=max_commits)
     if analysis_result is None:
         return None
 
-    # ── Paso 3: Obtener configuración de la IA ─────────────────────────────────
     print(Fore.MAGENTA + "Enviando resumen a la IA (LM Studio)...")
     ai_config = get_ai_config(json.dumps(analysis_result["repo_summary"]))
 
-    # ── Paso 4: Persistir en BD ───────────────────────────────────────────────
     _persist_results(url, analysis_result, ai_config)
 
-    # ── Paso 5: Componer y devolver resultado ─────────────────────────────────
     return {
         "repo_name": analysis_result["repo_name"],
         "metrics": analysis_result["metrics"],
@@ -192,62 +59,28 @@ def analyze_repository(url: str, max_commits: int = 150) -> dict | None:
     }
 
 
-# Pool de hilos acotado global para limitar tareas concurrentes y proteger el procesador
-_ANALYSIS_EXECUTOR = ThreadPoolExecutor(max_workers=3, thread_name_prefix="vizo-task")
-
-
 def start_async_analysis(
-    url: str, max_commits: int = 150, user=None, is_private=False
+    url: str, max_commits: int = 150, analysis_mode: str = "commits", user=None, is_private=False
 ) -> tuple:
     """
     Inicia un flujo de análisis asíncrono optimizado mediante caché previa.
     Retorna: (session_id, is_cache_hit)
     """
-    # 1. Recuperar token y proveedor correspondiente si el usuario está autenticado
-    token = None
-    provider = None
-    if user and user.is_authenticated:
-        try:
-            profile = user.profile
-            if "github.com" in url:
-                provider = "github"
-                token = profile.github_token
-            elif "gitlab.com" in url:
-                provider = "gitlab"
-                token = profile.gitlab_token
-        except Exception:
-            pass
+    # 1. Resolver token, proveedor y URL de clonado autenticada de forma segura
+    clone_url, token, provider = verify_and_build_clone_url(url, is_private, user)
 
-    # 2. Control de seguridad proactivo: Evitar analizar repos privados como públicos
-    if not is_private and token and provider:
-        # Probamos primero si es públicamente accesible deshabilitando helpers de credenciales locales
-        public_head = _get_remote_head(url, disable_helpers=True)
-        if public_head is None:
-            # Si no es público, probamos con el token para ver si existe de forma privada
-            if provider == "github":
-                auth_url = url.replace("https://github.com/", f"https://{token}@github.com/")
-            elif provider == "gitlab":
-                auth_url = url.replace("https://gitlab.com/", f"https://oauth2:{token}@gitlab.com/")
-            else:
-                auth_url = url
-            
-            private_head = _get_remote_head(auth_url, disable_helpers=True)
-            if private_head is not None:
-                # Es un repositorio privado pero no se marcó la casilla de privacidad
-                raise PermissionError("PRIVATE_REPO_WITHOUT_SHIELD")
+    # 2. Chequeo de Caché Inteligente (Cache-First)
+    if analysis_mode == "releases":
+        latest_commit_id = _get_remote_tags_hash(clone_url)
+        if not latest_commit_id:
+            print(Fore.YELLOW + "[Releases Mode] No se encontraron tags remotos. Bajando a modo commits.")
+            analysis_mode = "commits"
+            latest_commit_id = _get_remote_head(clone_url)
+    else:
+        latest_commit_id = _get_remote_head(clone_url)
 
-    # 3. Construir la URL de Git autenticada si corresponde
-    clone_url = url
-    if is_private and token and provider:
-        if provider == "github":
-            clone_url = url.replace("https://github.com/", f"https://{token}@github.com/")
-        elif provider == "gitlab":
-            clone_url = url.replace("https://gitlab.com/", f"https://oauth2:{token}@gitlab.com/")
-
-    # ── 3. Chequeo de Caché Inteligente (Cache-First) ──
-    latest_commit_id = _get_remote_head(clone_url)
     if latest_commit_id:
-        cached_data = _check_cache(url, latest_commit_id)
+        cached_data = _check_cache(url, latest_commit_id, analysis_mode)
         if cached_data:
             # Obtener el id de la sesión cacheada de forma limpia y sincronizar privacidad si cambió
             try:
@@ -268,19 +101,19 @@ def start_async_analysis(
                 if has_changed:
                     repo_obj.save(update_fields=["is_private", "user"])
 
-                latest_session = repo_obj.sessions.filter(status="completed").first()
+                latest_session = repo_obj.sessions.filter(status="completed", analysis_mode=analysis_mode).first()
                 if latest_session:
                     return latest_session.id, True
             except Repository.DoesNotExist:
                 pass
 
-    # ── 4. Cache MISS: Registrar sesión y disparar tarea asíncrona ──
+    # 3. Cache MISS: Registrar sesión y disparar tarea asíncrona
     repo_name = url.strip("/").split("/")[-1].replace(".git", "")
     url_parts = url.strip("/").split("/")
     if len(url_parts) > 1:
         repo_name = "/".join(url_parts[-2:]).replace(".git", "")
 
-    repo_obj, _ = Repository.objects.get_or_create(
+    repo_obj, created = Repository.objects.get_or_create(
         url=url,
         defaults={
             "name": repo_name,
@@ -290,7 +123,7 @@ def start_async_analysis(
         },
     )
     # Sincronizar estado de privacidad si ya existía pero cambió
-    if not _:
+    if not created:
         has_changed = False
         if repo_obj.is_private != is_private:
             repo_obj.is_private = is_private
@@ -305,21 +138,22 @@ def start_async_analysis(
         repo=repo_obj,
         last_commit_id="",
         status="pending",
+        analysis_mode=analysis_mode,
         ai_config={},
         repo_summary={},
         evolution_data=[],
         author_activity=[],
     )
 
-    # Enviamos la tarea al ThreadPoolExecutor controlado pasándole la URL de clonado autenticada
-    _ANALYSIS_EXECUTOR.submit(async_analysis_worker, session.id, clone_url, max_commits)
+    # Enviamos la tarea al ThreadPoolExecutor controlado
+    _ANALYSIS_EXECUTOR.submit(async_analysis_worker, session.id, clone_url, max_commits, analysis_mode)
 
     return session.id, False
 
 
-def async_analysis_worker(session_id: int, url: str, max_commits: int):
+def async_analysis_worker(session_id: int, url: str, max_commits: int, analysis_mode: str = "commits"):
     """
-    Worker asíncrono que procesa el análisis y utiliza SSOT para guardar en BD.
+    Worker asíncrono que procesa el análisis y utiliza la persistencia de Django.
     """
     import traceback
     from django.db import connection
@@ -329,9 +163,9 @@ def async_analysis_worker(session_id: int, url: str, max_commits: int):
         session.status = "processing"
         session.save(update_fields=["status"])
 
-        # Pasar session_id para aislar el directorio temporal
+        # Analizar
         analysis_result = run_analysis(
-            url, max_commits=max_commits, session_id=session_id
+            url, max_commits=max_commits, analysis_mode=analysis_mode, session_id=session_id
         )
         if not analysis_result:
             raise Exception("El análisis del motor analyzer_core ha fallado.")
@@ -350,7 +184,7 @@ def async_analysis_worker(session_id: int, url: str, max_commits: int):
             repo_obj.main_language = main_lang
             repo_obj.save(update_fields=["main_language"])
 
-        # SSOT: Invocar a la capa de persistencia única
+        # Persistir resultados utilizandoqueries.save_session
         save_session(
             repo_obj=session.repo,
             last_commit_id=analysis_result["last_commit_id"],
@@ -363,6 +197,8 @@ def async_analysis_worker(session_id: int, url: str, max_commits: int):
             file_ownership=analysis_result.get("file_ownership", []),
             age_distribution=analysis_result.get("age_distribution", []),
             top_complex_files=analysis_result.get("top_complex_files", []),
+            file_network=analysis_result.get("file_network", []),
+            analysis_mode=analysis_mode,
             session_obj=session,
         )
         print(f"[Async Worker Success] Sesión {session_id} completada exitosamente.")

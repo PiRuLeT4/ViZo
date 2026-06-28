@@ -65,6 +65,8 @@ def build_result_from_session(session: AnalysisSession) -> dict:
         "file_ownership": session.file_ownership or [],
         "age_distribution": session.age_distribution or [],
         "top_complex_files": session.top_complex_files or [],
+        "file_network": session.file_network or [],
+        "analysis_mode": getattr(session, "analysis_mode", "commits"),
         "from_cache": True,
     }
 
@@ -122,6 +124,8 @@ def save_session(
     file_ownership: list = None,
     age_distribution: list = None,
     top_complex_files: list = None,
+    file_network: list = None,
+    analysis_mode: str = "commits",
     session_obj: AnalysisSession = None,
 ) -> AnalysisSession:
     """
@@ -136,12 +140,15 @@ def save_session(
         session.repo_summary = repo_summary
         session.evolution_data = evolution_data
         session.author_activity = author_activity
+        session.analysis_mode = analysis_mode
         if file_ownership is not None:
             session.file_ownership = file_ownership
         if age_distribution is not None:
             session.age_distribution = age_distribution
         if top_complex_files is not None:
             session.top_complex_files = top_complex_files
+        if file_network is not None:
+            session.file_network = file_network
         session.status = "completed"
         session.save()
     else:
@@ -149,6 +156,7 @@ def save_session(
         session = AnalysisSession.objects.create(
             repo=repo_obj,
             last_commit_id=last_commit_id,
+            analysis_mode=analysis_mode,
             ai_config=ai_config,
             repo_summary=repo_summary,
             evolution_data=evolution_data,
@@ -156,6 +164,7 @@ def save_session(
             file_ownership=file_ownership or [],
             age_distribution=age_distribution or [],
             top_complex_files=top_complex_files or [],
+            file_network=file_network or [],
             status="completed",
         )
 

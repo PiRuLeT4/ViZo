@@ -46,6 +46,7 @@ class AnalysisSession(models.Model):
     
     # Seguimiento de estado asíncrono
     status = models.CharField(max_length=20, default="completed")
+    analysis_mode = models.CharField(max_length=20, default="commits")
     error_message = models.TextField(null=True, blank=True)
 
     # Configuración que la IA eligió para representar este análisis
@@ -64,6 +65,7 @@ class AnalysisSession(models.Model):
     file_ownership = models.JSONField(default=list)
     age_distribution = models.JSONField(default=list)
     top_complex_files = models.JSONField(default=list)
+    file_network = models.JSONField(default=dict, blank=True, null=True)
 
     class Meta:
         ordering = ["-analysis_date"]

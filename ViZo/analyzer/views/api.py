@@ -19,14 +19,20 @@ def api_analyze(request):
 
     url = request.POST.get("repoUrl")
     depth = request.POST.get("depth")
+    analysis_mode = request.POST.get("analysis_mode", "commits")
+    if analysis_mode not in ["commits", "releases"]:
+        analysis_mode = "commits"
 
     if not url:
         return JsonResponse({"error": "La URL del repositorio es obligatoria."}, status=400)
 
-    try:
-        max_commits = int(depth) if depth else 150
-    except ValueError:
-        max_commits = 150
+    if depth == "all":
+        max_commits = 0
+    else:
+        try:
+            max_commits = int(depth) if depth else (150 if analysis_mode == "commits" else 10)
+        except ValueError:
+            max_commits = 150 if analysis_mode == "commits" else 10
 
     is_private = request.POST.get("isPrivate") in ["true", "on", "1"] or request.POST.get("is_private") in ["true", "on", "1"]
     if is_private:
@@ -62,6 +68,7 @@ def api_analyze(request):
         session_id, is_cache_hit = start_async_analysis(
             url,
             max_commits=max_commits,
+            analysis_mode=analysis_mode,
             user=request.user,
             is_private=is_private
         )
