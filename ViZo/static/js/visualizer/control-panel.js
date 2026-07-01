@@ -126,7 +126,7 @@ const PANEL_CONFIGS = {
   cyls: {
     y: 0.45,
     dist: 3,
-    height: 0.55,
+    height: 0.75,
     buttons: [
       { text: "EXPLICAR", action: "explain-ai", x: 0, y: 0.08, w: 0.6, h: 0.09 },
       { text: "+0.1 ESC", action: "scale-up", x: -0.28, y: -0.12, w: 0.45, h: 0.09 },
@@ -136,7 +136,7 @@ const PANEL_CONFIGS = {
   doughnut: {
     y: 0.45,
     dist: 3,
-    height: 0.55,
+    height: 0.75,
     buttons: [
       { text: "EXPLICAR", action: "explain-ai", x: 0, y: 0.08, w: 0.6, h: 0.09 },
       { text: "+0.1 ESC", action: "scale-up", x: -0.28, y: -0.12, w: 0.45, h: 0.09 },
@@ -146,10 +146,20 @@ const PANEL_CONFIGS = {
   barsmap: {
     y: 0.45,
     dist: 3,
-    height: 0.55,
+    height: 0.75,
     buttons: [
       { text: "COMMITS/INS", action: "cycle-height", x: -0.38, y: 0.08, w: 0.55, h: 0.09 },
       { text: "EXPLICAR", action: "explain-ai", x: 0.38, y: 0.08, w: 0.55, h: 0.09 },
+      { text: "+0.1 ESC", action: "scale-up", x: -0.28, y: -0.12, w: 0.45, h: 0.09 },
+      { text: "-0.1 ESC", action: "scale-down", x: 0.28, y: -0.12, w: 0.45, h: 0.09 },
+    ],
+  },
+  network: {
+    y: 0.45,
+    dist: 3,
+    height: 0.75,
+    buttons: [
+      { text: "EXPLICAR", action: "explain-ai", x: 0, y: 0.08, w: 0.6, h: 0.09 },
       { text: "+0.1 ESC", action: "scale-up", x: -0.28, y: -0.12, w: 0.45, h: 0.09 },
       { text: "-0.1 ESC", action: "scale-down", x: 0.28, y: -0.12, w: 0.45, h: 0.09 },
     ],
@@ -275,7 +285,7 @@ function buildControlPanel(scene, dash, vizId, pos, type) {
   // Title text - Uses custom dashboard title
   var titleText = document.createElement("a-text");
   titleText.setAttribute("value", titleTextValue);
-  var titleY = type === "boats" ? halfHeight - 0.07 : halfHeight - 0.13;
+  var titleY = type === "boats" ? halfHeight - 0.07 : halfHeight - 0.08;
   var titleWrap =
     type === "boats" ? Math.max(26, titleLen + 4) : Math.max(24, titleLen + 3);
   titleText.setAttribute("position", `0 ${titleY} 0.02`);

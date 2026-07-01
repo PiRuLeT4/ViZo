@@ -13,12 +13,12 @@ window.SOLID_BOXES = [];
 /* ── room-bounds: keeps player inside the room walls ── */
 AFRAME.registerComponent("room-bounds", {
   schema: {
-    minX: { default: -19 },
-    maxX: { default: 19 },
-    minY: { default: 1 },
-    maxY: { default: 8.5 },
-    minZ: { default: -19 },
-    maxZ: { default: 19 },
+    minX: { type: "number", default: -19 },
+    maxX: { type: "number", default: 19 },
+    minY: { type: "number", default: 1 },
+    maxY: { type: "number", default: 8.5 },
+    minZ: { type: "number", default: -19 },
+    maxZ: { type: "number", default: 39 },
   },
   tick: function () {
     var p = this.el.object3D.position;
@@ -63,7 +63,7 @@ AFRAME.registerComponent("solid-box", {
 /* ── object-collide: on the camera rig — pushes player out of solids ── */
 AFRAME.registerComponent("object-collide", {
   /* Player body is approximated as a vertical capsule with this radius */
-  schema: { radius: { default: 0.35 } },
+  schema: { radius: { type: "number", default: 0.35 } },
 
   init: function () {
     this._prev = new THREE.Vector3();
@@ -288,8 +288,6 @@ AFRAME.registerComponent("vizo-control-btn", {
         scaleBoats(targetEl, -0.1);
       } else if (data.action === "cycle-height") {
         cycleHeight(targetEl, data.vizType);
-      } else if (data.action === "cycle-area") {
-        cycleArea(targetEl, data.vizType);
       } else if (data.action === "swap-mappings") {
         swapMappings(targetEl, data.vizType);
       } else if (data.action === "set-height") {
@@ -447,35 +445,6 @@ function cycleHeight(targetEl, type) {
   }
 }
 
-// Helper: Cycle area/radius field
-function cycleArea(targetEl, type) {
-  if (type === "boats") {
-    var config = targetEl.getAttribute("babia-boats") || {};
-    var current = config.area || "ccn";
-    // Cycle strictly between ccn and nloc (without commits)
-    var fields = ["ccn", "nloc"];
-    var nextIdx = (fields.indexOf(current) + 1) % fields.length;
-    var nextField = fields[nextIdx];
-
-    targetEl.setAttribute("babia-boats", "area", nextField);
-    targetEl.setAttribute(
-      "babia-boats",
-      "legend_text",
-      "{name}\\nNLOC: {nloc} | CCN: {ccn}\\nCommits: {commits} | Funcs: {num_functions}\\nEdad: {age_days}d | Owner: {owner_name} ({ownership}%)",
-    );
-    console.log("ViZo // Cycled boats area to: " + nextField);
-  } else if (type === "cyls") {
-    var config = targetEl.getAttribute("babia-cyls") || {};
-    var current = config.radius || "count";
-    var fields = ["count", "nloc", "commits"];
-    var nextIdx = (fields.indexOf(current) + 1) % fields.length;
-    var nextField = fields[nextIdx];
-
-    targetEl.setAttribute("babia-cyls", "radius", nextField);
-    console.log("ViZo // Cycled cyls radius to: " + nextField);
-  }
-}
-
 // askAIReconfigure helper removed
 
 function setHeight(targetEl, type, field) {
@@ -588,9 +557,9 @@ function scaleBoats(targetEl, amount) {
     sz = targetEl.object3D.scale.z;
   }
 
-  var newX = Math.max(0.05, sx + amount);
-  var newY = Math.max(0.05, sy + amount);
-  var newZ = Math.max(0.05, sz + amount);
+  var newX = Math.min(1.5, Math.max(0.05, sx + amount));
+  var newY = Math.min(1.5, Math.max(0.05, sy + amount));
+  var newZ = Math.min(1.5, Math.max(0.05, sz + amount));
 
   // Round to 2 decimal places to avoid float precision errors (e.g. 0.3000000004)
   // newX = Math.round(newX * 100) / 100;

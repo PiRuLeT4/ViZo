@@ -201,15 +201,19 @@
     const linksSet = new Set();
     const filesMap = {};
 
-    fileNetworkData.forEach((item) => {
+    const dataArray = Array.isArray(fileNetworkData) ? fileNetworkData : [];
+
+    dataArray.forEach((item) => {
       const author = item.author;
       const file = item.file;
 
       if (!nodesMap[author]) {
+        const realCommits = item.commits || item.size || 1;
         nodesMap[author] = {
           id: author,
-          name: author,
-          commits: item.size || 1,
+          name: author + " (" + realCommits + " commits)",
+          val: realCommits,
+          commits: realCommits,
         };
       }
 
@@ -238,7 +242,17 @@
       return { source: parts[0], target: parts[1] };
     });
 
-    return { nodes, links };
+    // Filtrar nodos huérfanos (sin conexiones) para mantener el grafo compacto
+    const connectedNodeIds = new Set();
+    links.forEach((link) => {
+      connectedNodeIds.add(link.source);
+      connectedNodeIds.add(link.target);
+    });
+
+    const filteredNodes = nodes.filter((node) => connectedNodeIds.has(node.id));
+    const finalNodes = filteredNodes.length > 0 ? filteredNodes : nodes;
+
+    return { nodes: finalNodes, links: links };
   }
 
   function ensureNetworkLoaders(scene, fileNetworkData) {

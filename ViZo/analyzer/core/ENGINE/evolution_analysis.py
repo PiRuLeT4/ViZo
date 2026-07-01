@@ -173,8 +173,10 @@ def _run_git_history(target_dir: str, max_commits: int = 150) -> dict:
 
 def _run_releases_history(target_dir: str, tags: list) -> dict:
     """Recorre el historial de versiones por tags, simulando la evolución del repositorio."""
+    total_commits = _get_total_commits(target_dir)
     evolution_data = {
-        "total_commits": len(tags),
+        "total_commits": total_commits,
+        "num_releases": len(tags),
         "authors": set(),
         "timeline": {},
         "file_churn": {},

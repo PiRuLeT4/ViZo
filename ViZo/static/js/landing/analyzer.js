@@ -58,6 +58,8 @@ const hudBar = document.getElementById("hudBar");
 const hudTerminal = document.getElementById("hudTerminal");
 const hudActions = document.getElementById("hudActions");
 const enterRoomBtn = document.getElementById("enterRoomBtn");
+const hudCancelContainer = document.getElementById("hudCancelContainer");
+const cancelAnalysisBtn = document.getElementById("cancelAnalysisBtn");
 
 // Botón flotante para reabrir el HUD
 const reopenHudBtn = document.getElementById("vizo-reopen-hud-btn");
@@ -117,6 +119,56 @@ if (reopenHudBtn) {
   reopenHudBtn.addEventListener("click", () => {
     reopenHudBtn.classList.remove("active");
     hud.classList.add("active");
+  });
+}
+
+if (cancelAnalysisBtn) {
+  cancelAnalysisBtn.addEventListener("click", () => {
+    if (!currentSessionId) return;
+
+    appendTerminalLog("SOLICITANDO CANCELACIÓN DEL PROCESO...");
+    cancelAnalysisBtn.disabled = true;
+    cancelAnalysisBtn.textContent = "CANCELANDO...";
+
+    fetch(`/api/session/${currentSessionId}/cancel/`, {
+      method: "POST",
+      headers: {
+        "X-Requested-With": "XMLHttpRequest"
+      }
+    })
+      .then(res => {
+        if (!res.ok) throw new Error("Cancel API returned HTTP " + res.status);
+        return res.json();
+      })
+      .then(data => {
+        if (data.status === "success") {
+          appendTerminalLog("ESTADO: ABORTADO POR EL USUARIO.");
+          hudStatusText.textContent = "Análisis Cancelado";
+          hud.className = "vizo-progress-hud active status-failed";
+          hudBar.style.width = "100%";
+
+          if (pollingInterval) {
+            clearInterval(pollingInterval);
+            pollingInterval = null;
+          }
+          if (messageTimer) {
+            clearInterval(messageTimer);
+            messageTimer = null;
+          }
+          clearActiveSessionStorage();
+          resetReopenBtn();
+          if (hudCancelContainer) hudCancelContainer.style.display = "none";
+        } else {
+          throw new Error(data.error || "No se pudo cancelar el análisis.");
+        }
+      })
+      .catch(err => {
+        appendTerminalLog(`ERROR AL CANCELAR: ${err.message}`);
+      })
+      .finally(() => {
+        cancelAnalysisBtn.disabled = false;
+        cancelAnalysisBtn.textContent = "CANCELAR_ANÁLISIS [ABORT_PROCESS]";
+      });
   });
 }
 
@@ -190,6 +242,7 @@ function pollSessionStatus(sessionId) {
             hud.className = "vizo-progress-hud status-pending";
           }
           hudBar.style.width = "15%";
+          if (hudCancelContainer) hudCancelContainer.style.display = "block";
         } else if (data.status === "processing") {
           hudStatusText.textContent = "Procesando código fuente...";
           if (!reopenHudBtn.classList.contains("active")) {
@@ -198,14 +251,16 @@ function pollSessionStatus(sessionId) {
             hud.className = "vizo-progress-hud status-processing";
           }
           hudBar.style.width = "50%";
+          if (hudCancelContainer) hudCancelContainer.style.display = "block";
         } else if (data.status === "completed") {
           clearInterval(pollingInterval);
           clearInterval(messageTimer);
           pollingInterval = null;
           messageTimer = null;
-          
+
           clearActiveSessionStorage(); // Limpiar el almacenamiento local asíncrono
-          
+          if (hudCancelContainer) hudCancelContainer.style.display = "none";
+
           hudStatusText.textContent = "¡Análisis Completado!";
           hud.className = "vizo-progress-hud active status-completed";
           hudBar.style.width = "100%";
@@ -239,9 +294,10 @@ function pollSessionStatus(sessionId) {
           clearInterval(messageTimer);
           pollingInterval = null;
           messageTimer = null;
-          
+
           clearActiveSessionStorage(); // Limpiar el almacenamiento local
-          
+          if (hudCancelContainer) hudCancelContainer.style.display = "none";
+
           const errMsg = data.error_message || "Error desconocido durante el escaneo.";
           hudStatusText.textContent = "Fallo en el Análisis";
           hud.className = "vizo-progress-hud active status-failed";
@@ -299,6 +355,7 @@ form.addEventListener("submit", function (e) {
   hudBar.style.width = "5%";
   hudTerminal.innerHTML = "";
   hudActions.style.display = "none";
+  if (hudCancelContainer) hudCancelContainer.style.display = "block";
   
   // Limpiar estados CSS previos e iniciar HUD activo
   hud.className = "vizo-progress-hud active";
@@ -374,7 +431,83 @@ form.addEventListener("submit", function (e) {
 // ── Feature Selector logic & Session Recovery on Page Load ──
 document.addEventListener("DOMContentLoaded", function () {
   const depthInput = document.getElementById("depthInput");
+  const analysisModeInput = document.getElementById("analysisModeInput");
+  const depthLabel = document.getElementById("depthLabel");
+  const modeTabs = document.querySelectorAll(".mode-tab");
   const features = document.querySelectorAll(".features .feature");
+
+  // Feature cards data definition
+  const featureConfigs = {
+    commits: [
+      { depth: "50", desc: "50 COMMITS" },
+      { depth: "150", desc: "150 COMMITS" },
+      { depth: "300", desc: "300 COMMITS" },
+      { depth: "all", desc: "TODOS LOS COMMITS" }
+    ],
+    releases: [
+      { depth: "5", desc: "5 RELEASES" },
+      { depth: "10", desc: "10 RELEASES" },
+      { depth: "20", desc: "20 RELEASES" },
+      { depth: "all", desc: "TODOS LOS RELEASES" }
+    ]
+  };
+
+  // Tabs click handler
+  modeTabs.forEach((tab) => {
+    tab.addEventListener("click", function () {
+      modeTabs.forEach(t => t.classList.remove("active"));
+      this.classList.add("active");
+
+      const mode = this.getAttribute("data-mode");
+      if (analysisModeInput) {
+        analysisModeInput.value = mode;
+      }
+
+      if (depthLabel) {
+        depthLabel.textContent = mode === "releases" 
+          ? "Profundidad de Análisis (Últimas Releases)" 
+          : "Profundidad de Análisis (Historial de Commits)";
+      }
+
+      // Update features content dynamically based on selected mode
+      const configs = featureConfigs[mode];
+      const cardIds = ["featureFast", "featureBalanced", "featureDeep", "featureAll"];
+      const descIds = ["descFast", "descBalanced", "descDeep", "descAll"];
+
+      cardIds.forEach((id, index) => {
+        const card = document.getElementById(id);
+        const desc = document.getElementById(descIds[index]);
+        if (card && configs[index]) {
+          card.setAttribute("data-depth", configs[index].depth);
+          if (desc) {
+            desc.textContent = configs[index].desc;
+          }
+        }
+      });
+
+      // Force select the middle card (Balanced) by default when switching modes
+      features.forEach((f) => {
+        f.classList.remove("active");
+        const desc = f.querySelector(".feature-desc");
+        if (desc) {
+          desc.style.color = "var(--text-dim)";
+        }
+      });
+
+      const defaultBalancedCard = document.getElementById("featureBalanced");
+      if (defaultBalancedCard) {
+        defaultBalancedCard.classList.add("active");
+        const desc = defaultBalancedCard.querySelector(".feature-desc");
+        if (desc) {
+          desc.style.color = "var(--cyan)";
+        }
+        if (depthInput) {
+          depthInput.value = defaultBalancedCard.getAttribute("data-depth");
+        }
+      }
+      console.log("Switched analysis mode to:", mode, "Default depth:", depthInput ? depthInput.value : "");
+    });
+  });
 
   features.forEach((feature) => {
     feature.addEventListener("click", function () {
@@ -413,6 +546,7 @@ document.addEventListener("DOMContentLoaded", function () {
     hudTerminal.innerHTML = "";
     hudActions.style.display = "none";
     hud.className = "vizo-progress-hud active status-processing";
+    if (hudCancelContainer) hudCancelContainer.style.display = "block";
     
     appendTerminalLog("RECUPERANDO FLUJO DE MONITOREO DE LA SESIÓN...");
     appendTerminalLog(`RECONECTANDO A SESIÓN ID: ${cachedSessionId}`);

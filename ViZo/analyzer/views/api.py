@@ -5,6 +5,7 @@ Endpoints de la API para registrar, arrancar asíncronamente y sondear estados d
 """
 from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 
 from analyzer.services.orchestrator import start_async_analysis
 from analyzer.models import AnalysisSession
@@ -96,3 +97,21 @@ def api_session_status(request, session_id):
         "status": session.status,
         "error_message": session.error_message
     })
+
+
+@csrf_exempt
+def api_cancel_analysis(request, session_id):
+    """
+    Endpoint POST para cancelar una sesión de análisis activa o en cola.
+    """
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    session = get_object_or_404(AnalysisSession, pk=session_id)
+    if session.status in ["pending", "processing"]:
+        session.status = "failed"
+        session.error_message = "Análisis cancelado por el usuario."
+        session.save(update_fields=["status", "error_message"])
+        return JsonResponse({"status": "success", "message": "Análisis cancelado con éxito."})
+
+    return JsonResponse({"error": "No se puede cancelar un análisis que no está activo."}, status=400)

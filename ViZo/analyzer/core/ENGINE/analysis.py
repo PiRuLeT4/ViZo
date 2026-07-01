@@ -22,6 +22,15 @@ from .evolution_analysis import _run_releases_history, _run_git_history
 from .metrics import _process_metrics, _build_repo_summary
 
 
+def _check_cancelled(session_id: int):
+    """Verifica si la sesión de análisis fue cancelada por el usuario en base de datos."""
+    if session_id is not None:
+        from analyzer.models import AnalysisSession
+        session = AnalysisSession.objects.filter(pk=session_id).first()
+        if session and session.status == "failed" and "cancelado" in str(session.error_message).lower():
+            raise RuntimeError("CANCELLED_BY_USER")
+
+
 def run_analysis(url: str, max_commits: int = 150, analysis_mode: str = "commits", session_id: int = None) -> dict | None:
     """
     Clona el repositorio indicado por `url`, ejecuta el análisis completo
@@ -33,9 +42,22 @@ def run_analysis(url: str, max_commits: int = 150, analysis_mode: str = "commits
     if os.path.exists(target_dir):
         shutil.rmtree(target_dir, onerror=_remove_readonly)
 
+    _check_cancelled(session_id)
+
     try:
-        _clone_repo(url, target_dir)
+        # Optimización para repositorios grandes: usamos shallow clone para descargar
+        # únicamente el historial necesario para el análisis en modo 'commits'.
+        # En modo 'releases', desactivamos el clonado superficial (depth=None) para
+        # garantizar la correcta descarga de todos los tags históricos del repositorio.
+        if analysis_mode == "commits":
+            depth = max_commits
+        else:
+            depth = None
+
+        _clone_repo(url, target_dir, depth=depth)
         repo_name = url.rstrip("/").split("/")[-1].removesuffix(".git")
+
+        _check_cancelled(session_id)
 
         if analysis_mode == "releases":
             tags = _get_tags_info(target_dir, max_releases=max_commits)
@@ -52,17 +74,23 @@ def run_analysis(url: str, max_commits: int = 150, analysis_mode: str = "commits
                     errors="replace",
                     env=_get_clean_git_env()
                 )
+                _check_cancelled(session_id)
                 analysis = _run_lizard(target_dir)
+                _check_cancelled(session_id)
             else:
                 print(Fore.YELLOW + "[Releases Mode] No se encontraron tags locales. Fallback a commits.")
                 analysis_mode = "commits"
 
         if analysis_mode == "commits":
             last_commit_id = _get_head_commit(target_dir)
+            _check_cancelled(session_id)
             analysis = _run_lizard(target_dir)
+            _check_cancelled(session_id)
             evolution_raw = _run_git_history(target_dir, max_commits=max_commits)
+            _check_cancelled(session_id)
 
         # PASADA ÚNICA: Procesar métricas y lenguajes
+        _check_cancelled(session_id)
         (
             file_metrics,
             data_by_language,
@@ -79,6 +107,7 @@ def run_analysis(url: str, max_commits: int = 150, analysis_mode: str = "commits
         main_language = next(iter(language_counts), "unknown")
         print(Fore.CYAN + f"Lenguaje principal: {main_language}")
 
+        _check_cancelled(session_id)
         repo_summary = _build_repo_summary(
             analysis,
             evolution_raw,
@@ -86,6 +115,7 @@ def run_analysis(url: str, max_commits: int = 150, analysis_mode: str = "commits
             language_counts,
             total_nloc,
             total_ccn,
+            analysis_mode=analysis_mode,
         )
 
         # Lista raw de Lizard (compatibilidad legacy)

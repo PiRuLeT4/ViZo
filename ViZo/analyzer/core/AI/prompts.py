@@ -48,10 +48,13 @@ El análisis puede correr en dos modos según el criterio elegido por el usuario
   Mappings: {"x_axis": "name", "height": "peak_ccn", "radius": "avg_ccn"}
   * Elígelo si quieres resaltar los archivos de mayor complejidad ciclomática máxima.
 
-- babia-cyls / babia-doughnut (Distribución Estándar) [Dataset: data_by_language]
-  Úsalos para mostrar la distribución general de lenguajes.
-  Mappings para babia-cyls: {"x_axis": "language", "height": "nloc", "radius": "count"}
-  Mappings para babia-doughnut: {"key": "language", "size": "count"}
+- babia-cyls (Distribución de Lenguajes) [Dataset: data_by_language]
+  Úsalo para mostrar la distribución general de lenguajes mediante cilindros comparativos.
+  Mappings: {"x_axis": "language", "height": "nloc", "radius": "count"}
+
+- babia-doughnut (Distribución de Lenguajes en Tarta/Donut) [Dataset: data_by_language]
+  Úsalo para mostrar la proporción porcentual y peso relativo de los lenguajes si hay muchos lenguajes diferentes mediante un gráfico de tarta 3D (doughnut).
+  Mappings: {"key": "language", "size": "count"}
 
 - babia-network (Red de Colaboración de Desarrolladores) [Dataset: file_network]
   Mapea la red social y el co-trabajo. Nodos = Desarrolladores (tamaño = commits totales, color = neón único), Enlaces = Archivos compartidos en los que han colaborado.

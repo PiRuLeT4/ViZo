@@ -152,7 +152,8 @@ function buildCyls(scene, dash, loaderId, pos) {
   scene.appendChild(vizEl);
   vizEl.setAttribute("vizo-podio", "");
   console.log("ViZo // babia-cyls creado sobre pedestal");
-  buildControlPanel(scene, dash, "vizo-viz-" + dash.id, pos, "cyls");
+  const actualPos = { x: posX, y: pos.y, z: pos.z, rotY: pos.rotY };
+  buildControlPanel(scene, dash, "vizo-viz-" + dash.id, actualPos, "cyls");
 }
 
 /**
@@ -229,7 +230,7 @@ function buildNetwork(scene, dash, nodesLoaderId, linksLoaderId, pos) {
   vizEl.setAttribute("id", "vizo-viz-" + dash.id);
   vizEl.setAttribute("position", "0 1.2 0");
   vizEl.setAttribute("rotation", "0 0 -90");
-  vizEl.setAttribute("scale", "0.05 0.05 0.05");
+  vizEl.setAttribute("scale", "0.03 0.03 0.03");
   vizEl.setAttribute(
     "babia-network",
     [
@@ -237,13 +238,14 @@ function buildNetwork(scene, dash, nodesLoaderId, linksLoaderId, pos) {
       "linksFrom: " + linksLoaderId,
       "nodeId: id",
       "nodeLabel: name",
-      "nodeAutoColorBy: name",
+      "nodeAutoColorBy: id",
       "nodeResolution: 30",
       "nodeVal: commits",
       "nodeRelSize: 1",
       "linkWidth: 0.1",
       "nodeLegend: true",
       "linkLegend: true",
+      "legend_scale: 2",
     ].join("; "),
   );
 

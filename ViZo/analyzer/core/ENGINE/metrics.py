@@ -193,27 +193,22 @@ def _process_metrics(
     # -------------------------------------------------------------------------
     author_commits = {}
 
-    # 1. Contar commits por autor en la evolución analizada
-    for commit in evolution_data.get("commits", []):
-        author = commit.get("author", "Unknown")
-        author_commits[author] = author_commits.get(author, 0) + 1
+    # 1. Contar commits por autor basados en las modificaciones reales por archivo (escala a modo releases y commits)
+    for rel_path, authors_dict in evolution_data.get("file_author_commits", {}).items():
+        for author, count in authors_dict.items():
+            if author != "Release":
+                author_commits[author] = author_commits.get(author, 0) + count
+
+    # Fallback si no hay información detallada en file_author_commits
+    if not author_commits:
+        for commit in evolution_data.get("commits", []):
+            author = commit.get("author", "Unknown")
+            if author != "Release":
+                author_commits[author] = author_commits.get(author, 0) + 1
 
     # 2. Obtener los 10 autores principales por número de commits para evitar sobrecargar la red
     top_authors = sorted(author_commits.items(), key=lambda x: x[1], reverse=True)[:10]
     top_authors_set = {auth for auth, _ in top_authors}
-
-    # Normalizar el tamaño de los nodos (size) a un rango manejable entre 1.0 y 5.0
-    if top_authors:
-        max_commits = max(auth[1] for auth in top_authors)
-        min_commits = min(auth[1] for auth in top_authors)
-    else:
-        max_commits = 1
-        min_commits = 1
-
-    if max_commits == min_commits:
-        size_fn = lambda raw: 3.0
-    else:
-        size_fn = lambda raw: 1.0 + (float(raw - min_commits) / (max_commits - min_commits)) * 4.0
 
     file_network = []
     # Generar red basada en autor y archivo (linkId)
@@ -224,12 +219,12 @@ def _process_metrics(
                 continue
             
             raw_size = author_commits.get(author, 1)
-            normalized_size = round(size_fn(raw_size), 2)
             
             file_network.append({
                 "author": author,
                 "file": rel_path,
-                "size": normalized_size
+                "size": raw_size,
+                "commits": raw_size
             })
 
     print(Fore.CYAN + f"ViZo // Red de Colaboración:")
@@ -268,6 +263,7 @@ def _build_repo_summary(
     language_counts: dict,
     total_nloc: float,
     total_ccn: float,
+    analysis_mode: str = "commits",
 ) -> dict:
     """Construye el resumen estadístico del repositorio que se envía a la IA."""
     n = len(analysis)
@@ -284,4 +280,6 @@ def _build_repo_summary(
         "num_languages": len(language_counts),
         "total_lines_added": sum(c["insertions"] for c in evolution_data["commits"]),
         "total_lines_deleted": sum(c["deletions"] for c in evolution_data["commits"]),
+        "analysis_mode": analysis_mode,
+        "num_releases": evolution_data.get("num_releases", 0) if analysis_mode == "releases" else 0,
     }

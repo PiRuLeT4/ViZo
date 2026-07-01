@@ -207,12 +207,15 @@ def async_analysis_worker(session_id: int, url: str, max_commits: int, analysis_
         traceback.print_exc()
         try:
             session = AnalysisSession.objects.get(pk=session_id)
-            session.status = "failed"
-            session.error_message = str(e)
-            session.save(update_fields=["status", "error_message"])
-            print(
-                f"[Async Worker Failed] Sesión {session_id} marcada como fallida. Motivo: {e}"
-            )
+            if "cancelado" not in str(session.error_message).lower():
+                session.status = "failed"
+                session.error_message = str(e)
+                session.save(update_fields=["status", "error_message"])
+                print(
+                    f"[Async Worker Failed] Sesión {session_id} marcada como fallida. Motivo: {e}"
+                )
+            else:
+                print(f"[Async Worker Cancelled] Sesión {session_id} fue cancelada por el usuario.")
         except Exception as inner_ex:
             print(
                 f"[Async Worker Inner Error] Error al marcar sesión fallida: {inner_ex}"

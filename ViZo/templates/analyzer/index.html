@@ -11,9 +11,9 @@
       href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="{% static 'css/landing/analyzer.css' %}?v=3" />
+    <link rel="stylesheet" href="{% static 'css/landing/analyzer.css' %}?v=5" />
     <link rel="icon" type="image/x-icon" href="{% static 'favicon1.png' %}" />
-    <script src="{% static 'js/landing/analyzer.js' %}?v=3" defer></script>
+    <script src="{% static 'js/landing/analyzer.js' %}?v=5" defer></script>
   </head>
   <body>
     <!-- Background Design Elements -->
@@ -89,6 +89,15 @@
                         </div>
                       </div>
                       <div class="repo-actions">
+                        {% if "gitlab.com" in session.repo.url %}
+                          <a href="{{ session.repo.url }}" target="_blank" class="view-repo-btn gitlab-btn" title="Ver en GitLab">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M23.95 12.14l-1.32-4.06a.71.71 0 0 0-.25-.37.75.75 0 0 0-.44-.14.74.74 0 0 0-.44.14.71.71 0 0 0-.25.37l-1.33 4.06H4.07L2.74 8.08a.71.71 0 0 0-.25-.37.76.76 0 0 0-.88 0 .71.71 0 0 0-.25.37L.04 12.14a.82.82 0 0 0 .09.64.84.84 0 0 0 .43.39l10.94 4.09 10.94-4.09a.84.84 0 0 0 .43-.39.82.82 0 0 0 .08-.64z"/></svg>
+                          </a>
+                        {% else %}
+                          <a href="{{ session.repo.url }}" target="_blank" class="view-repo-btn github-btn" title="Ver en GitHub">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+                          </a>
+                        {% endif %}
                         <a href="{% url 'show_visualization' session.id %}" class="enter-room-btn">
                           SALA 3D <span>[ENTER]</span>
                         </a>
@@ -132,6 +141,15 @@
                         </div>
                       </div>
                       <div class="repo-actions">
+                        {% if "gitlab.com" in session.repo.url %}
+                          <a href="{{ session.repo.url }}" target="_blank" class="view-repo-btn gitlab-btn" title="Ver en GitLab">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M23.95 12.14l-1.32-4.06a.71.71 0 0 0-.25-.37.75.75 0 0 0-.44-.14.74.74 0 0 0-.44.14.71.71 0 0 0-.25.37l-1.33 4.06H4.07L2.74 8.08a.71.71 0 0 0-.25-.37.76.76 0 0 0-.88 0 .71.71 0 0 0-.25.37L.04 12.14a.82.82 0 0 0 .09.64.84.84 0 0 0 .43.39l10.94 4.09 10.94-4.09a.84.84 0 0 0 .43-.39.82.82 0 0 0 .08-.64z"/></svg>
+                          </a>
+                        {% else %}
+                          <a href="{{ session.repo.url }}" target="_blank" class="view-repo-btn github-btn" title="Ver en GitHub">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+                          </a>
+                        {% endif %}
                         <a href="{% url 'show_visualization' session.id %}" class="enter-room-btn private-btn">
                           SALA 3D <span>[ENTER]</span>
                         </a>
@@ -220,23 +238,36 @@
             </div>
 
             <div class="form-group">
-              <label>Profundidad de Análisis (Historial de Commits)</label>
+              <label id="depthLabel">Profundidad de Análisis (Historial de Commits)</label>
+              
+              <!-- Mode Tabs -->
+              <div class="mode-tabs">
+                <button type="button" class="mode-tab active" data-mode="commits">ANALIZAR POR COMMITS</button>
+                <button type="button" class="mode-tab" data-mode="releases">ANALIZAR POR RELEASES</button>
+              </div>
+              <input type="hidden" id="analysisModeInput" name="analysis_mode" value="commits" />
               <input type="hidden" id="depthInput" name="depth" value="150" />
-              <div class="features">
-                <div class="feature" data-depth="50">
-                  <div class="feature-icon">⚡</div>
-                  <div class="feature-title">FAST FLOW</div>
-                  <div class="feature-desc" style="font-size: 0.65rem; color: var(--text-dim); opacity: 0.8; margin-top: 6px;">50 COMMITS</div>
+              
+              <div class="features" id="depthFeatures">
+                <div class="feature" data-depth="50" id="featureFast">
+                  <div class="feature-icon" id="iconFast">⚡</div>
+                  <div class="feature-title" id="titleFast">FAST FLOW</div>
+                  <div class="feature-desc" id="descFast" style="font-size: 0.65rem; color: var(--text-dim); opacity: 0.8; margin-top: 6px;">50 COMMITS</div>
                 </div>
-                <div class="feature active" data-depth="150">
-                  <div class="feature-icon">📊</div>
-                  <div class="feature-title">BALANCED FLOW</div>
-                  <div class="feature-desc" style="font-size: 0.65rem; color: var(--cyan); opacity: 0.8; margin-top: 6px;">150 COMMITS</div>
+                <div class="feature active" data-depth="150" id="featureBalanced">
+                  <div class="feature-icon" id="iconBalanced">📊</div>
+                  <div class="feature-title" id="titleBalanced">BALANCED FLOW</div>
+                  <div class="feature-desc" id="descBalanced" style="font-size: 0.65rem; color: var(--cyan); opacity: 0.8; margin-top: 6px;">150 COMMITS</div>
                 </div>
-                <div class="feature" data-depth="300">
-                  <div class="feature-icon">🔍</div>
-                  <div class="feature-title">DEEP FLOW</div>
-                  <div class="feature-desc" style="font-size: 0.65rem; color: var(--text-dim); opacity: 0.8; margin-top: 6px;">300 COMMITS</div>
+                <div class="feature" data-depth="300" id="featureDeep">
+                  <div class="feature-icon" id="iconDeep">🔍</div>
+                  <div class="feature-title" id="titleDeep">DEEP FLOW</div>
+                  <div class="feature-desc" id="descDeep" style="font-size: 0.65rem; color: var(--text-dim); opacity: 0.8; margin-top: 6px;">300 COMMITS</div>
+                </div>
+                <div class="feature" data-depth="all" id="featureAll">
+                  <div class="feature-icon" id="iconAll">🪐</div>
+                  <div class="feature-title" id="titleAll">ALL FLOW</div>
+                  <div class="feature-desc" id="descAll" style="font-size: 0.65rem; color: var(--text-dim); opacity: 0.8; margin-top: 6px;">TODOS LOS COMMITS</div>
                 </div>
               </div>
             </div>
@@ -270,6 +301,13 @@
         <div class="hud-terminal" id="hudTerminal">
           <div class="terminal-line">&gt; INICIANDO SISTEMA VIZO_MONITOR_01...</div>
           <div class="terminal-line">&gt; ESCUCHANDO FLUJO DE DATOS...</div>
+        </div>
+
+        <!-- Botón de cancelar análisis en curso -->
+        <div class="hud-cancel-container" id="hudCancelContainer" style="margin-top: 10px; display: none;">
+          <button id="cancelAnalysisBtn" class="hud-cancel-btn" style="width: 100%; padding: 8px; background: rgba(255, 107, 107, 0.15); border: 1px solid #ff6b6b; color: #ff6b6b; font-family: monospace; font-size: 0.75rem; cursor: pointer; transition: all 0.2s ease;">
+            CANCELAR_ANÁLISIS [ABORT_PROCESS]
+          </button>
         </div>
 
         <div class="hud-actions" id="hudActions" style="display: none;">

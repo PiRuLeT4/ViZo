@@ -63,14 +63,20 @@ def _get_clean_git_env() -> dict:
     return env
 
 
-def _clone_repo(url: str, target_dir: str) -> str:
+def _clone_repo(url: str, target_dir: str, depth: int = None) -> str:
     """
     Clona el repositorio remoto en target_dir mediante git clone (subprocess).
+    Soporta shallow clone pasándole depth para optimizar repositorios grandes.
     Devuelve target_dir si el clon fue exitoso; lanza RuntimeError si falla.
     """
-    print(Fore.GREEN + f"Clonando repositorio para análisis: {url}")
+    print(Fore.GREEN + f"Clonando repositorio para análisis: {url} (depth={depth if depth else 'full'})")
+    cmd = ["git", "clone"]
+    if depth and depth > 0:
+        cmd += ["--depth", str(depth)]
+    cmd += [url, target_dir]
+
     result = subprocess.run(
-        ["git", "clone", url, target_dir],
+        cmd,
         capture_output=True,
         text=True,
         encoding="utf-8",

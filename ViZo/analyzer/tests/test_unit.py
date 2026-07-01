@@ -288,9 +288,11 @@ class LocalMetricsTestCase(TestCase):
             item for item in file_network if item["author"] == "Author B"
         )
         self.assertEqual(item_a["file"], "file1.py")
-        self.assertEqual(item_a["size"], 5.0)
+        self.assertEqual(item_a["size"], 2)
+        self.assertEqual(item_a["commits"], 2)
         self.assertEqual(item_b["file"], "file1.py")
-        self.assertEqual(item_b["size"], 1.0)
+        self.assertEqual(item_b["size"], 1)
+        self.assertEqual(item_b["commits"], 1)
 
 
 class ReleasesHistoryTestCase(TestCase):
@@ -383,6 +385,11 @@ class ReleasesHistoryTestCase(TestCase):
 
         mock_diff_stats.return_value = (50, 10)
 
+        # Mock git rev-list --count
+        mock_count = MagicMock()
+        mock_count.returncode = 0
+        mock_count.stdout = "1\n"
+
         # Mock git parent check (fails, so fallback to empty tree hash)
         mock_parent = MagicMock()
         mock_parent.returncode = 1
@@ -394,7 +401,7 @@ class ReleasesHistoryTestCase(TestCase):
             "AUTHOR:Alice|2026-06-20T10:00:00+00:00\n10\t5\tfile1.py\n20\t0\tfile2.py\n"
         )
 
-        mock_run.side_effect = [mock_parent, mock_log]
+        mock_run.side_effect = [mock_count, mock_parent, mock_log]
 
         tags = [
             {
