@@ -20,25 +20,39 @@ def show_visualization(request, session_id):
     Vista permanente (GET) para mostrar la escena 3D de una sesión de análisis previa.
     """
     session = get_object_or_404(AnalysisSession, pk=session_id)
+    # Solo recuperamos metadatos mínimos para renderizar el cascarón de la UI
     data = build_result_from_session(session)
 
     return render(
         request,
         "visualization/index.html",
         {
+            "session_id": session.id,
             "repo_name": data["repo_name"],
-            "data_to_display": json.dumps(data["file_metrics"]),
-            "data_by_language": json.dumps(data["data_by_language"]),
-            "evolution_data": json.dumps(data.get("evolution_data", [])),
-            "author_activity": json.dumps(data.get("author_activity", [])),
-            "file_ownership": json.dumps(data.get("file_ownership", [])),
-            "age_distribution": json.dumps(data.get("age_distribution", [])),
-            "top_complex_files": json.dumps(data.get("top_complex_files", [])),
-            "file_network": json.dumps(data.get("file_network", {})),
-            "ai_config": json.dumps(data["ai_config"]),
             "ai_status": data["ai_config"].get("ai_status", "success"),
         },
     )
+
+
+def api_session_data(request, session_id):
+    """
+    Endpoint REST que retorna en JSON todos los datasets requeridos
+    para inicializar los visualizadores 3D en la página.
+    """
+    session = get_object_or_404(AnalysisSession, pk=session_id)
+    data = build_result_from_session(session)
+    return JsonResponse({
+        "repo_name": data["repo_name"],
+        "file_metrics": data["file_metrics"],
+        "data_by_language": data["data_by_language"],
+        "evolution_data": data.get("evolution_data", []),
+        "author_activity": data.get("author_activity", []),
+        "file_ownership": data.get("file_ownership", []),
+        "age_distribution": data.get("age_distribution", []),
+        "top_complex_files": data.get("top_complex_files", []),
+        "file_network": data.get("file_network", []),
+        "ai_config": data["ai_config"],
+    })
 
 
 @csrf_exempt

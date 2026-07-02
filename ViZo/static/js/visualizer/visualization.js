@@ -17,163 +17,185 @@
   // =============================================================================
 
   // ---------------------------------------------------------------------------
-  // 1. Parsear datasets desde el HTML
+  // 1. Declaración de variables y carga asíncrona por API (fetch)
   // ---------------------------------------------------------------------------
-  function parseJson(elementId) {
-    const el = document.getElementById(elementId);
-    if (!el || !el.textContent.trim()) return null;
-    try {
-      return JSON.parse(el.textContent);
-    } catch (e) {
-      console.error("ViZo // Error parsing #" + elementId + ":", e);
-      return null;
-    }
-  }
-
-  const fileMetrics = parseJson("vizo-data-json");
-  const dataByLanguage = parseJson("vizo-language-json");
-  const evolutionData = parseJson("vizo-evolution-json");
-  const authorActivity = parseJson("vizo-activity-json");
-  const fileOwnership = parseJson("vizo-ownership-json");
-  const ageDistribution = parseJson("vizo-age-json");
-  const topComplexFiles = parseJson("vizo-complex-json");
-  const fileNetwork = parseJson("vizo-network-json");
-
-  // Redondear CCN a un máximo de 2 decimales para leyendas y visualización limpia
-  if (fileMetrics) {
-    fileMetrics.forEach(function (fm) {
-      if (typeof fm.ccn === "number") {
-        fm.ccn = Math.round(fm.ccn * 100) / 100;
-      }
-    });
-  }
-  if (dataByLanguage) {
-    dataByLanguage.forEach(function (lm) {
-      if (typeof lm.ccn === "number") {
-        lm.ccn = Math.round(lm.ccn * 100) / 100;
-      }
-    });
-  }
-
-  // DEBUG: estado de cada dataset parseado
-  console.log(
-    "ViZo // [DEBUG] fileMetrics:",
-    fileMetrics ? fileMetrics.length + " items" : "NULL",
-  );
-  console.log(
-    "ViZo // [DEBUG] dataByLanguage:",
-    dataByLanguage ? dataByLanguage.length + " items" : "NULL",
-  );
-  console.log(
-    "ViZo // [DEBUG] evolutionData:",
-    evolutionData ? evolutionData.length + " items" : "NULL",
-  );
-  console.log(
-    "ViZo // [DEBUG] authorActivity:",
-    authorActivity ? authorActivity.length + " items" : "NULL",
-  );
-  console.log(
-    "ViZo // [DEBUG] fileOwnership:",
-    fileOwnership ? fileOwnership.length + " items" : "NULL",
-  );
-  console.log(
-    "ViZo // [DEBUG] ageDistribution:",
-    ageDistribution ? ageDistribution.length + " items" : "NULL",
-  );
-  console.log(
-    "ViZo // [DEBUG] topComplexFiles:",
-    topComplexFiles ? topComplexFiles.length + " items" : "NULL",
-  );
-  console.log(
-    "ViZo // [DEBUG] fileNetwork:",
-    fileNetwork
-      ? Array.isArray(fileNetwork)
-        ? fileNetwork.length + " rows"
-        : "invalid"
-      : "NULL",
-  );
-  if (authorActivity && authorActivity.length > 0) {
-    console.log(
-      "ViZo // [DEBUG] authorActivity[0]:",
-      JSON.stringify(authorActivity[0]),
-    );
-  }
-
-  if (!fileMetrics) {
-    console.error("ViZo // No se encontró file_metrics en #vizo-data-json");
-    return;
-  }
-
-  // ---------------------------------------------------------------------------
-  // 2. Parsear la configuración de dashboards de la IA
-  // ---------------------------------------------------------------------------
-  const rawAIConfig = document.getElementById("vizo-ai-config").textContent;
+  let fileMetrics = null;
+  let dataByLanguage = null;
+  let evolutionData = null;
+  let authorActivity = null;
+  let fileOwnership = null;
+  let ageDistribution = null;
+  let topComplexFiles = null;
+  let fileNetwork = null;
   let aiConfig = null;
+  let dataMap = {};
+  let blobUrls = {};
+  const loaders = {}; // { dataset_key: element_id }
 
-  try {
-    aiConfig =
-      rawAIConfig && rawAIConfig.trim() ? JSON.parse(rawAIConfig) : null;
-  } catch (e) {
-    console.error("ViZo // Error parsing AI config:", e);
-  }
-
-  // Fallback: sólo babia-boats si la IA falla
-  if (
-    !aiConfig ||
-    !Array.isArray(aiConfig.dashboards) ||
-    aiConfig.dashboards.length === 0
-  ) {
-    console.warn("ViZo // Usando configuración de dashboards por defecto.");
-    aiConfig = {
-      dashboards: [
-        {
-          id: "boats-complexity",
-          component: "babia-boats",
-          dataset: "file_metrics",
-          title: "Code Complexity Boats",
-          mappings: { key: "id", height: "nloc", area: "ccn" },
-        },
-      ],
-    };
-  }
-
-  console.log(
-    "ViZo // Dashboards a renderizar:",
-    aiConfig.dashboards.map((d) => d.component),
-  );
-
-  // ---------------------------------------------------------------------------
-  // 3. Mapa de datasets → Blob URLs (se crean una sola vez y se reutilizan)
-  // ---------------------------------------------------------------------------
-  const dataMap = {
-    file_metrics: fileMetrics,
-    data_by_language: dataByLanguage,
-    evolution_data: evolutionData,
-    author_activity: authorActivity,
-    file_ownership: fileOwnership,
-    age_distribution: ageDistribution,
-    top_complex_files: topComplexFiles,
-    file_network: fileNetwork,
-  };
-
-  // Pregenerar Blob URLs
-  const blobUrls = {};
-  for (const [key, data] of Object.entries(dataMap)) {
-    if (data) {
-      const blob = new Blob([JSON.stringify(data)], {
-        type: "application/json",
-      });
-      blobUrls[key] = URL.createObjectURL(blob);
-      console.log("ViZo // Blob creado para '" + key + "':", blobUrls[key]);
-    } else {
-      console.warn(
-        "ViZo // [DEBUG] Dataset '" +
-          key +
-          "' es null/undefined, NO se creó blob.",
-      );
+  document.addEventListener("DOMContentLoaded", function () {
+    const sessionId = window.ViZoSessionId;
+    if (!sessionId) {
+      console.error("ViZo // No session ID found in window.ViZoSessionId");
+      return;
     }
+
+    const statusEl = document.querySelector(".vizo-status");
+    if (statusEl) {
+      statusEl.textContent = "CONECTANDO CON LA BASE DE DATOS...";
+    }
+
+    fetch(`/visualization/${sessionId}/api/data/`)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error("HTTP error " + response.status);
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (statusEl) {
+          statusEl.textContent = (data.repo_name || "LIVE_DATA").toUpperCase() + " // CONSTRUYENDO ESCENA 3D...";
+        }
+        initVisualizer(data);
+        if (statusEl) {
+          statusEl.textContent = (data.repo_name || "LIVE_DATA").toUpperCase() + " // LABORATORIO ONLINE";
+        }
+      })
+      .catch(err => {
+        console.error("ViZo // Error fetching visualization data:", err);
+        if (statusEl) {
+          statusEl.textContent = "ERROR AL CARGAR DATOS DEL REPOSITORIO";
+        }
+      });
+  });
+
+  function initVisualizer(apiData) {
+    fileMetrics = apiData.file_metrics;
+    dataByLanguage = apiData.data_by_language;
+    evolutionData = apiData.evolution_data;
+    authorActivity = apiData.author_activity;
+    fileOwnership = apiData.file_ownership;
+    ageDistribution = apiData.age_distribution;
+    topComplexFiles = apiData.top_complex_files;
+    fileNetwork = apiData.file_network;
+    aiConfig = apiData.ai_config;
+
+    // Redondear CCN a un máximo de 2 decimales para leyendas y visualización limpia
+    if (fileMetrics) {
+      fileMetrics.forEach(function (fm) {
+        if (typeof fm.ccn === "number") {
+          fm.ccn = Math.round(fm.ccn * 100) / 100;
+        }
+      });
+    }
+    if (dataByLanguage) {
+      dataByLanguage.forEach(function (lm) {
+        if (typeof lm.ccn === "number") {
+          lm.ccn = Math.round(lm.ccn * 100) / 100;
+        }
+      });
+    }
+
+    // DEBUG: estado de cada dataset parseado
+    console.log(
+      "ViZo // [DEBUG] fileMetrics:",
+      fileMetrics ? fileMetrics.length + " items" : "NULL",
+    );
+    console.log(
+      "ViZo // [DEBUG] dataByLanguage:",
+      dataByLanguage ? dataByLanguage.length + " items" : "NULL",
+    );
+    console.log(
+      "ViZo // [DEBUG] evolutionData:",
+      evolutionData ? evolutionData.length + " items" : "NULL",
+    );
+    console.log(
+      "ViZo // [DEBUG] authorActivity:",
+      authorActivity ? authorActivity.length + " items" : "NULL",
+    );
+    console.log(
+      "ViZo // [DEBUG] fileOwnership:",
+      fileOwnership ? fileOwnership.length + " items" : "NULL",
+    );
+    console.log(
+      "ViZo // [DEBUG] ageDistribution:",
+      ageDistribution ? ageDistribution.length + " items" : "NULL",
+    );
+    console.log(
+      "ViZo // [DEBUG] topComplexFiles:",
+      topComplexFiles ? topComplexFiles.length + " items" : "NULL",
+    );
+    console.log(
+      "ViZo // [DEBUG] fileNetwork:",
+      fileNetwork
+        ? Array.isArray(fileNetwork)
+          ? fileNetwork.length + " rows"
+          : "invalid"
+        : "NULL",
+    );
+
+    if (!fileMetrics) {
+      console.error("ViZo // No se encontró file_metrics en la respuesta de la API");
+      return;
+    }
+
+    // Fallback: sólo babia-boats si la IA falla
+    if (
+      !aiConfig ||
+      !Array.isArray(aiConfig.dashboards) ||
+      aiConfig.dashboards.length === 0
+    ) {
+      console.warn("ViZo // Usando configuración de dashboards por defecto.");
+      aiConfig = {
+        dashboards: [
+          {
+            id: "boats-complexity",
+            component: "babia-boats",
+            dataset: "file_metrics",
+            title: "Code Complexity Boats",
+            mappings: { key: "id", height: "nloc", area: "ccn" },
+          },
+        ],
+      };
+    }
+
+    console.log(
+      "ViZo // Dashboards a renderizar:",
+      aiConfig.dashboards.map((d) => d.component),
+    );
+
+    // Mapa de datasets
+    dataMap = {
+      file_metrics: fileMetrics,
+      data_by_language: dataByLanguage,
+      evolution_data: evolutionData,
+      author_activity: authorActivity,
+      file_ownership: fileOwnership,
+      age_distribution: ageDistribution,
+      top_complex_files: topComplexFiles,
+      file_network: fileNetwork,
+    };
+
+    // Pregenerar Blob URLs
+    for (const [key, data] of Object.entries(dataMap)) {
+      if (data) {
+        const blob = new Blob([JSON.stringify(data)], {
+          type: "application/json",
+        });
+        blobUrls[key] = URL.createObjectURL(blob);
+        console.log("ViZo // Blob creado para '" + key + "':", blobUrls[key]);
+      } else {
+        console.warn(
+          "ViZo // [DEBUG] Dataset '" +
+            key +
+            "' es null/undefined, NO se creó blob.",
+        );
+      }
+    }
+    console.log("ViZo // [DEBUG] Blob URLs disponibles:", Object.keys(blobUrls));
+
+    // Lanzar el renderizado
+    buildVisualization();
   }
-  console.log("ViZo // [DEBUG] Blob URLs disponibles:", Object.keys(blobUrls));
 
   // ---------------------------------------------------------------------------
   // 4. Importar constructores y posiciones desde builders.js
@@ -191,7 +213,6 @@
   // ---------------------------------------------------------------------------
   // 5. Función que crea un cargador (babia-queryjson) compartido por dataset
   // ---------------------------------------------------------------------------
-  const loaders = {}; // { dataset_key: element_id }
 
   // ---------------------------------------------------------------------------
   // Helper to split flat fileNetwork into nodes and links for babia-network
@@ -374,117 +395,119 @@
   // ---------------------------------------------------------------------------
   // 7. Montar todos los dashboards
   // ---------------------------------------------------------------------------
-  const scene = document.querySelector("a-scene");
-  if (!scene) {
-    console.error("ViZo // No se encontró a-scene en el DOM.");
-    return;
-  }
-
-  const dashboards = aiConfig.dashboards;
-
-  // Ordenar para asegurar que babia-boats sea siempre el primero (Hero)
-  dashboards.sort((a, b) => {
-    if (a.component === "babia-boats") return -1;
-    if (b.component === "babia-boats") return 1;
-    return 0;
-  });
-
-  console.log("ViZo // Dashboards ordenados (Hero primero):", dashboards);
-
-  // Calcular satélites (todos los que no son babia-boats)
-  const satellites = dashboards.filter((d) => d.component !== "babia-boats");
-  const totalSatellites = satellites.length;
-  let satelliteIdx = 0;
-
-  dashboards.forEach(function (dash, idx) {
-    console.log(
-      "ViZo // [DEBUG] Procesando dashboard[" + idx + "]:",
-      dash.component,
-      "dataset:",
-      dash.dataset,
-      "mappings:",
-      JSON.stringify(dash.mappings),
-    );
-    let loaderId = null;
-    if (dash.component === "babia-barsmap") {
-      loaderId = ensureLimitedLoader(scene, dash);
-    } else if (dash.component === "babia-network") {
-      loaderId = "network-special-flag";
-    } else {
-      loaderId = ensureLoader(scene, dash.dataset);
-    }
-    if (!loaderId) {
-      console.error(
-        "ViZo // [DEBUG] ❌ ensureLoader/ensureLimitedLoader devolvió null para dataset '" +
-          dash.dataset +
-          "' → dashboard '" +
-          dash.component +
-          "' SALTADO",
-      );
+  function buildVisualization() {
+    const scene = document.querySelector("a-scene");
+    if (!scene) {
+      console.error("ViZo // No se encontró a-scene en el DOM.");
       return;
     }
-    console.log(
-      "ViZo // [DEBUG] ✅ Loader OK para '" + dash.dataset + "':",
-      loaderId,
-    );
 
-    let pos;
-    if (dash.component === "babia-boats") {
-      // El visualizador Hero (Boats) siempre se coloca en el centro
-      pos = POSITIONS[0] || { x: 0, y: 0.1, z: 20 };
-      pos.rotY = 0; // Mirando al norte
-    } else {
-      // Los satélites se calculan en un arco semicircular dinámico
-      pos = calculateSatellitePosition(satelliteIdx, totalSatellites);
-      satelliteIdx++;
-    }
+    const dashboards = aiConfig.dashboards;
 
-    // Crear el componente visual
-    switch (dash.component) {
-      case "babia-boats":
-        buildCity(scene, dash, loaderId, pos);
-        break;
-      case "babia-cyls":
-        buildCyls(scene, dash, loaderId, pos);
-        break;
-      case "babia-doughnut":
-        buildDoughnut(scene, dash, loaderId, pos);
-        break;
-      case "babia-barsmap":
-        console.log(
-          "ViZo // [DEBUG] → Entrando en buildBarsmap con loaderId:",
-          loaderId,
-        );
-        buildBarsmap(scene, dash, loaderId, pos);
-        break;
-      case "babia-network":
-        const loadersObj = ensureNetworkLoaders(scene, fileNetwork);
-        buildNetwork(
-          scene,
-          dash,
-          loadersObj.nodesLoaderId,
-          loadersObj.linksLoaderId,
-          pos,
-        );
-        break;
-      default:
-        console.warn("ViZo // Componente desconocido:", dash.component);
-    }
-  });
+    // Ordenar para asegurar que babia-boats sea siempre el primero (Hero)
+    dashboards.sort((a, b) => {
+      if (a.component === "babia-boats") return -1;
+      if (b.component === "babia-boats") return 1;
+      return 0;
+    });
 
-  // ---------------------------------------------------------------------------
-  // 8. Actualizar HUD
-  // ---------------------------------------------------------------------------
-  const statusEl = document.querySelector(".vizo-status");
-  if (statusEl) {
-    const repoName = statusEl.getAttribute("data-repo");
-    if (repoName && repoName !== "LIVE_DATA") {
-      statusEl.textContent = repoName.toUpperCase();
-    } else {
-      const names = dashboards.map((d) =>
-        d.component.replace("babia-", "").toUpperCase(),
+    console.log("ViZo // Dashboards ordenados (Hero primero):", dashboards);
+
+    // Calcular satélites (todos los que no son babia-boats)
+    const satellites = dashboards.filter((d) => d.component !== "babia-boats");
+    const totalSatellites = satellites.length;
+    let satelliteIdx = 0;
+
+    dashboards.forEach(function (dash, idx) {
+      console.log(
+        "ViZo // [DEBUG] Procesando dashboard[" + idx + "]:",
+        dash.component,
+        "dataset:",
+        dash.dataset,
+        "mappings:",
+        JSON.stringify(dash.mappings),
       );
-      statusEl.textContent = "LIVE_DATA // " + names.join(" + ");
+      let loaderId = null;
+      if (dash.component === "babia-barsmap") {
+        loaderId = ensureLimitedLoader(scene, dash);
+      } else if (dash.component === "babia-network") {
+        loaderId = "network-special-flag";
+      } else {
+        loaderId = ensureLoader(scene, dash.dataset);
+      }
+      if (!loaderId) {
+        console.error(
+          "ViZo // [DEBUG] ❌ ensureLoader/ensureLimitedLoader devolvió null para dataset '" +
+            dash.dataset +
+            "' → dashboard '" +
+            dash.component +
+            "' SALTADO",
+        );
+        return;
+      }
+      console.log(
+        "ViZo // [DEBUG] ✅ Loader OK para '" + dash.dataset + "':",
+        loaderId,
+      );
+
+      let pos;
+      if (dash.component === "babia-boats") {
+        // El visualizador Hero (Boats) siempre se coloca en el centro
+        pos = POSITIONS[0] || { x: 0, y: 0.1, z: 20 };
+        pos.rotY = 0; // Mirando al norte
+      } else {
+        // Los satélites se calculan en un arco semicircular dinámico
+        pos = calculateSatellitePosition(satelliteIdx, totalSatellites);
+        satelliteIdx++;
+      }
+
+      // Crear el componente visual
+      switch (dash.component) {
+        case "babia-boats":
+          buildCity(scene, dash, loaderId, pos);
+          break;
+        case "babia-cyls":
+          buildCyls(scene, dash, loaderId, pos);
+          break;
+        case "babia-doughnut":
+          buildDoughnut(scene, dash, loaderId, pos);
+          break;
+        case "babia-barsmap":
+          console.log(
+            "ViZo // [DEBUG] → Entrando en buildBarsmap con loaderId:",
+            loaderId,
+          );
+          buildBarsmap(scene, dash, loaderId, pos);
+          break;
+        case "babia-network":
+          const loadersObj = ensureNetworkLoaders(scene, fileNetwork);
+          buildNetwork(
+            scene,
+            dash,
+            loadersObj.nodesLoaderId,
+            loadersObj.linksLoaderId,
+            pos,
+          );
+          break;
+        default:
+          console.warn("ViZo // Componente desconocido:", dash.component);
+      }
+    });
+
+    // ---------------------------------------------------------------------------
+    // 8. Actualizar HUD
+    // ---------------------------------------------------------------------------
+    const statusEl = document.querySelector(".vizo-status");
+    if (statusEl) {
+      const repoName = statusEl.getAttribute("data-repo");
+      if (repoName && repoName !== "LIVE_DATA") {
+        statusEl.textContent = repoName.toUpperCase();
+      } else {
+        const names = dashboards.map((d) =>
+          d.component.replace("babia-", "").toUpperCase(),
+        );
+        statusEl.textContent = "LIVE_DATA // " + names.join(" + ");
+      }
     }
   }
 

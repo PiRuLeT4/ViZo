@@ -79,36 +79,10 @@
       {% include 'visualization/includes/environment.html' %} 
       {% include 'visualization/includes/nav_button.html' %}
 
-      <!-- ════════════════════════════════════════
-           DJANGO DATA (JSON)
-           ════════════════════════════════════════ -->
-      <div id="vizo-data-json" style="display: none">
-        {{ data_to_display | safe }}
-      </div>
-      <div id="vizo-language-json" style="display: none">
-        {{ data_by_language | safe }}
-      </div>
-      <div id="vizo-evolution-json" style="display: none">
-        {{ evolution_data | safe }}
-      </div>
-      <div id="vizo-activity-json" style="display: none">
-        {{ author_activity | safe }}
-      </div>
-      <div id="vizo-ownership-json" style="display: none">
-        {{ file_ownership | safe }}
-      </div>
-      <div id="vizo-age-json" style="display: none">
-        {{ age_distribution | safe }}
-      </div>
-      <div id="vizo-complex-json" style="display: none">
-        {{ top_complex_files | safe }}
-      </div>
-      <div id="vizo-network-json" style="display: none">
-        {{ file_network | safe }}
-      </div>
-      <div id="vizo-ai-config" style="display: none">
-        {{ ai_config | safe }}
-      </div>
+      <!-- Guardar el ID de sesión para la carga asíncrona -->
+      <script>
+        window.ViZoSessionId = "{{ session_id }}";
+      </script>
 
       <!-- Cargador de datos BabiaXR -->
       <a-entity id="cargador"></a-entity>
