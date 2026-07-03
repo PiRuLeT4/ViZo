@@ -67,6 +67,10 @@ class AnalysisSession(models.Model):
     top_complex_files = models.JSONField(default=list)
     file_network = models.JSONField(default=dict, blank=True, null=True)
 
+    # Metadatos extraídos de APIs públicas (PRs e Issues)
+    pull_requests = models.JSONField(default=list, blank=True)
+    issues = models.JSONField(default=list, blank=True)
+
     class Meta:
         ordering = ["-analysis_date"]
 

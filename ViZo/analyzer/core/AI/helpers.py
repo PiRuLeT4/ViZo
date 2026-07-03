@@ -20,7 +20,7 @@ DEFAULT_AI_CONFIG = {
 }
 
 # Componentes y datasets válidos para validación
-_VALID_COMPONENTS = {"babia-boats", "babia-cyls", "babia-doughnut", "babia-barsmap", "babia-network"}
+_VALID_COMPONENTS = {"babia-boats", "babia-cyls", "babia-doughnut", "babia-barsmap", "babia-network", "babia-bars"}
 _VALID_DATASETS = {
     "file_metrics",
     "data_by_language",
@@ -30,6 +30,8 @@ _VALID_DATASETS = {
     "age_distribution",
     "top_complex_files",
     "file_network",
+    "issues",
+    "pull_requests",
 }
 
 # Mappings por defecto para cada componente
@@ -46,6 +48,7 @@ _DEFAULT_MAPPINGS = {
         "linkSource": "source",
         "linkTarget": "target",
     },
+    "babia-bars": {"x_axis": "title", "height": "comments"},
 }
 
 _DEFAULT_MAPPINGS_BY_DATASET = {
@@ -66,6 +69,7 @@ _DEFAULT_MAPPINGS_BY_DATASET = {
         "radius": "avg_ccn",
     },
     ("babia-doughnut", "data_by_language"): {"key": "language", "size": "count"},
+    ("babia-doughnut", "issues"): {"key": "state", "size": "count"},
     ("babia-barsmap", "author_activity"): {
         "x_axis": "author",
         "z_axis": "date",
@@ -88,6 +92,7 @@ _DEFAULT_MAPPINGS_BY_DATASET = {
         "nodeVal": "size",
         "nodeColor": "color",
     },
+    ("babia-bars", "pull_requests"): {"x_axis": "title", "height": "comments"},
 }
 
 _DEFAULT_DATASETS = {
@@ -96,6 +101,7 @@ _DEFAULT_DATASETS = {
     "babia-doughnut": "data_by_language",
     "babia-barsmap": "author_activity",
     "babia-network": "file_network",
+    "babia-bars": "pull_requests",
 }
 
 
@@ -219,5 +225,5 @@ def _validate_and_fix_config(config: dict) -> dict:
     if not has_city:
         validated.insert(0, DEFAULT_AI_CONFIG["dashboards"][0])
 
-    config["dashboards"] = validated[:4]
+    config["dashboards"] = validated[:8]
     return config

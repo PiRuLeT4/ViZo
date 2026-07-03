@@ -34,33 +34,34 @@ def get_ai_config(repo_summary: str) -> dict:
     Envía el resumen del análisis a LM Studio/OpenAI y devuelve la configuración de dashboards.
     """
     try:
-        response = client.chat.completions.create(
-            model=AI_MODEL,
-            messages=[
-                {"role": "system", "content": _SYSTEM_PROMPT},
-                {"role": "user", "content": f"Resumen del repo: {repo_summary}"},
-            ],
-            temperature=0.3,
-        )
+      print(Fore.YELLOW + "\n[AI] Generando configuración de dashboards con Qwen3-Coder...")
+      response = client.chat.completions.create(
+         model=AI_MODEL,
+         messages=[
+               {"role": "system", "content": _SYSTEM_PROMPT},
+               {"role": "user", "content": f"Resumen del repo: {repo_summary}"},
+         ],
+         temperature=0.3,
+      )
 
-        raw_content = response.choices[0].message.content.strip()
-        summary, json_str = _extract_summary_and_json(raw_content)
+      raw_content = response.choices[0].message.content.strip()
+      summary, json_str = _extract_summary_and_json(raw_content)
 
-        # Imprimir resumen de la IA con estilo
-        print("\n" + Fore.MAGENTA + "=" * 60)
-        print(Fore.CYAN + "ESTRATEGIA DE LA IA:")
-        print(Fore.WHITE + summary)
-        print(Fore.MAGENTA + "=" * 60 + "\n")
+      # Imprimir resumen de la IA con estilo
+      print("\n" + Fore.MAGENTA + "=" * 60)
+      print(Fore.CYAN + "ESTRATEGIA DE LA IA:")
+      print(Fore.WHITE + summary)
+      print(Fore.MAGENTA + "=" * 60 + "\n")
 
-        config = json.loads(json_str)
-        config = _validate_and_fix_config(config)
-        config["ai_status"] = "success"
+      config = json.loads(json_str)
+      config = _validate_and_fix_config(config)
+      config["ai_status"] = "success"
 
-        print(
-            Fore.GREEN
-            + f"[AI] Dashboards configurados: {[d['component'] for d in config['dashboards']]}"
-        )
-        return config
+      print(
+         Fore.GREEN
+         + f"[AI] Dashboards configurados: {[d['component'] for d in config['dashboards']]}"
+      )
+      return config
 
     except APIConnectionError:
         print(
@@ -228,13 +229,32 @@ def get_ai_explanation(dashboard_type: str, dashboard_data: str, repo_name: str)
     Envía los datos de un dashboard de visualización específico a la IA para
     obtener una explicación técnica de la salud y calidad del código.
     """
+    # Intentar resumir el JSON de datos si es una lista muy larga para evitar exceder el contexto del LLM local
+    try:
+        data_obj = json.loads(dashboard_data)
+        if isinstance(data_obj, list) and len(data_obj) > 15:
+            # Ordenar por el campo más relevante si existe
+            first_item = data_obj[0]
+            if "nloc" in first_item:
+                data_obj.sort(key=lambda x: float(x.get("nloc") or 0), reverse=True)
+            elif "commits" in first_item:
+                data_obj.sort(key=lambda x: float(x.get("commits") or 0), reverse=True)
+            elif "ownership" in first_item:
+                data_obj.sort(key=lambda x: float(x.get("ownership") or 0), reverse=True)
+            
+            data_obj = data_obj[:15]
+            dashboard_data = json.dumps(data_obj)
+    except Exception:
+        pass
+
     prompt_user = f"""
     Repositorio: {repo_name}
     Tipo de Dashboard: {dashboard_type}
     Datos del Dashboard (JSON):
-    {dashboard_data[:8000]}
+    {dashboard_data[:3000]}
     """
     try:
+        print(Fore.YELLOW + "[AI] Generando explicación de dashboard con Qwen3-Coder...")
         response = client.chat.completions.create(
             model=AI_MODEL,
             messages=[

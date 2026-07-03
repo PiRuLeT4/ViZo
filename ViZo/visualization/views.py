@@ -51,6 +51,8 @@ def api_session_data(request, session_id):
         "age_distribution": data.get("age_distribution", []),
         "top_complex_files": data.get("top_complex_files", []),
         "file_network": data.get("file_network", []),
+        "pull_requests": data.get("pull_requests", []),
+        "issues": data.get("issues", []),
         "ai_config": data["ai_config"],
     })
 

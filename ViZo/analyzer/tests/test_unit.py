@@ -446,3 +446,98 @@ class LizardOptimizationTestCase(TestCase):
         self.assertIn("exclude_pattern", kwargs)
         self.assertIn("threads", kwargs)
         self.assertIn("*/node_modules/*", kwargs["exclude_pattern"])
+
+
+class PublicProviderTestCase(TestCase):
+    def test_parse_repo_url(self):
+        from analyzer.core.ENGINE.public_provider import parse_repo_url
+        
+        # Test GitHub url parsing
+        plat, owner, name = parse_repo_url("https://github.com/hydralauncher/hydra")
+        self.assertEqual(plat, "github")
+        self.assertEqual(owner, "hydralauncher")
+        self.assertEqual(name, "hydra")
+
+        plat, owner, name = parse_repo_url("https://github.com/hydralauncher/hydra.git")
+        self.assertEqual(plat, "github")
+        self.assertEqual(owner, "hydralauncher")
+        self.assertEqual(name, "hydra")
+
+        # Test GitLab url parsing
+        plat, owner, name = parse_repo_url("https://gitlab.com/owner/some-repo/")
+        self.assertEqual(plat, "gitlab")
+        self.assertEqual(owner, "owner")
+        self.assertEqual(name, "some-repo")
+
+        # Test invalid url
+        plat, owner, name = parse_repo_url("https://example.com/owner/repo")
+        self.assertIsNone(plat)
+        self.assertIsNone(owner)
+        self.assertIsNone(name)
+
+    @patch("urllib.request.urlopen")
+    def test_fetch_public_metadata_github(self, mock_urlopen):
+        from analyzer.core.ENGINE.public_provider import fetch_public_metadata
+        import json
+
+        # Mock responses
+        mock_pr_data = [
+            {
+                "number": 42,
+                "title": "Fix bug in parser",
+                "state": "open",
+                "created_at": "2026-07-02T12:00:00Z",
+                "user": {"login": "coder123"},
+                "comments": 3,
+                "review_comments": 2
+            }
+        ]
+        mock_issue_data = [
+            {
+                "number": 10,
+                "title": "Crash on startup",
+                "state": "closed",
+                "created_at": "2026-07-01T12:00:00Z",
+                "user": {"login": "user55"},
+                "comments": 5,
+                "labels": [{"name": "bug"}, {"name": "high"}]
+            },
+            {
+                "number": 42,
+                "title": "Fix bug in parser",
+                "state": "open",
+                "created_at": "2026-07-02T12:00:00Z",
+                "user": {"login": "coder123"},
+                "pull_request": {} # Debería ignorarse en issues
+            }
+        ]
+
+        class MockResponse:
+            def __init__(self, data):
+                self.data = data
+                self.status = 200
+            def read(self):
+                return self.data
+            def decode(self, encoding="utf-8"):
+                return self.data.decode(encoding)
+            def __enter__(self):
+                return self
+            def __exit__(self, exc_type, exc_val, exc_tb):
+                pass
+
+        # Configurar mock_urlopen para devolver PRs en la primera llamada e Issues en la segunda
+        mock_urlopen.side_effect = [
+            MockResponse(json.dumps(mock_pr_data).encode("utf-8")),
+            MockResponse(json.dumps(mock_issue_data).encode("utf-8"))
+        ]
+
+        meta = fetch_public_metadata("https://github.com/hydralauncher/hydra")
+        self.assertEqual(len(meta["pull_requests"]), 1)
+        self.assertEqual(meta["pull_requests"][0]["id"], 42)
+        self.assertEqual(meta["pull_requests"][0]["comments"], 5) # comments + review_comments
+
+        self.assertEqual(len(meta["issues"]), 1)
+        self.assertEqual(meta["issues"][0]["id"], 10)
+        self.assertEqual(meta["issues"][0]["state"], "closed")
+        self.assertEqual(meta["issues"][0]["labels"], ["bug", "high"])
+

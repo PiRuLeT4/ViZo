@@ -44,7 +44,36 @@ def _run_lizard(target_dir: str) -> list:
         threads_count = 4
 
     # Filtrar para analizar solo carpetas de código fuente comunes si existen (estrategia de inclusión)
-    include_folders = ["src", "lib", "app", "source", "core", "components", "pkg", "cmd", "include"]
+    include_folders = [
+        # --- Genéricos y ya existentes ---
+        "src", "lib", "app", "source", "core", "components", "pkg", "cmd", "include", "apps", "sources",
+        
+        # --- Django / Python / Backends Web ---
+        "api",          # Muy común para microservicios y endpoints separados
+        "modules",      # Arquitecturas modulares
+        "services",     # Capas de lógica de negocio aisladas
+        "controllers",  # Patrón MVC tradicional (Node/Express, PHP, C#)
+        "routes",       # Definición de endpoints en arquitecturas web
+        "models",       # Modelos de bases de datos u ORM
+        "views",        # Vistas de backend (Django o controladores MVC)
+        "backend",      # Proyectos monorepo que dividen backend/frontend
+        "server",       # Común en entornos JavaScript/Node
+        
+        # --- Frontend / Web Apps ---
+        "frontend",     # Proyectos monorepo que dividen backend/frontend
+        "client",       # Entornos JS/TS fullstack (MERN, MEAN)
+        "pages",        # Next.js (antiguo), Nuxt, Gatsby
+        "public/js",    # Solo la subcarpeta de scripts si existe en el entorno público
+        "assets/js",    # Assets tradicionales que contienen scripts legibles
+        "scripts",      # Scripts de automatización, utilidades o builds del proyecto
+        
+        # --- Lenguajes de Sistemas (Rust, Go, C++, C#) ---
+        "internal",     # Estándar estricto en Go (código que no se expone externamente)
+        "common",       # Utilidades y código compartido entre subproyectos
+        "utils",        # Funciones auxiliares genéricas que suelen acumular mucha lógica
+        "plugins",      # Extensiones o módulos inyectables
+        "handlers",     # Procesadores de eventos o peticiones (Go, AWS Lambda, Serverless)
+    ]
     paths_to_analyze = []
     for folder in include_folders:
         folder_path = os.path.join(target_dir, folder)
@@ -65,7 +94,17 @@ def _run_lizard(target_dir: str) -> list:
             has_resolved = True
         elif os.path.isdir(p):
             has_resolved = True
-            for root, _, filenames in os.walk(p):
+            for root, dirs, filenames in os.walk(p):
+                # Filtrar dirs IN-PLACE para evitar que os.walk descienda a carpetas excluidas
+                dirs[:] = [
+                    d for d in dirs 
+                    if d not in {
+                        "node_modules", "vendor", "3rdparty", "third_party", 
+                        "bin", "build", "dist", "target", ".git", "venv", 
+                        "env", ".venv", ".env", "htmlcov", "out", ".github", 
+                        ".gitlab", "cmake"
+                    }
+                ]
                 for f in filenames:
                     files_to_analyze.append(os.path.join(root, f))
 

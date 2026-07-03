@@ -200,6 +200,8 @@ def async_analysis_worker(session_id: int, url: str, max_commits: int, analysis_
             file_network=analysis_result.get("file_network", []),
             analysis_mode=analysis_mode,
             session_obj=session,
+            pull_requests=analysis_result.get("pull_requests", []),
+            issues=analysis_result.get("issues", []),
         )
         print(f"[Async Worker Success] Sesión {session_id} completada exitosamente.")
 

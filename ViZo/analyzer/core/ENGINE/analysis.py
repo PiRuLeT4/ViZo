@@ -129,6 +129,27 @@ def run_analysis(url: str, max_commits: int = 150, analysis_mode: str = "commits
             for f in analysis
         ]
 
+        # Descarga de Pull Requests e Issues públicos de GitHub/GitLab (solo si el repo es público)
+        pull_requests = []
+        issues = []
+        is_private = False
+        if session_id is not None:
+            from analyzer.models import AnalysisSession
+            session = AnalysisSession.objects.filter(pk=session_id).first()
+            if session:
+                is_private = session.repo.is_private
+
+        if not is_private:
+            from .public_provider import fetch_public_metadata
+            meta = fetch_public_metadata(url)
+            pull_requests = meta.get("pull_requests", [])
+            issues = meta.get("issues", [])
+
+        # Enriquecer el resumen con los contadores de PRs e Issues
+        # para que la IA pueda decidir si instanciar los dashboards de comunidad
+        repo_summary["num_pull_requests"] = len(pull_requests)
+        repo_summary["num_issues"] = len(issues)
+
         return {
             "metrics": metrics_list,
             "evolution_data": evolution_raw["commits"],
@@ -143,6 +164,8 @@ def run_analysis(url: str, max_commits: int = 150, analysis_mode: str = "commits
             "age_distribution": age_distribution,
             "top_complex_files": top_complex_files,
             "file_network": file_network,
+            "pull_requests": pull_requests,
+            "issues": issues,
         }
 
     except RuntimeError as e:

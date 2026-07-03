@@ -67,6 +67,8 @@ def build_result_from_session(session: AnalysisSession) -> dict:
         "top_complex_files": session.top_complex_files or [],
         "file_network": session.file_network or [],
         "analysis_mode": getattr(session, "analysis_mode", "commits"),
+        "pull_requests": getattr(session, "pull_requests", []),
+        "issues": getattr(session, "issues", []),
         "from_cache": True,
     }
 
@@ -127,6 +129,8 @@ def save_session(
     file_network: list = None,
     analysis_mode: str = "commits",
     session_obj: AnalysisSession = None,
+    pull_requests: list = None,
+    issues: list = None,
 ) -> AnalysisSession:
     """
     Persiste o actualiza una AnalysisSession con todas sus métricas asociadas.
@@ -149,6 +153,10 @@ def save_session(
             session.top_complex_files = top_complex_files
         if file_network is not None:
             session.file_network = file_network
+        if pull_requests is not None:
+            session.pull_requests = pull_requests
+        if issues is not None:
+            session.issues = issues
         session.status = "completed"
         session.save()
     else:
@@ -165,6 +173,8 @@ def save_session(
             age_distribution=age_distribution or [],
             top_complex_files=top_complex_files or [],
             file_network=file_network or [],
+            pull_requests=pull_requests or [],
+            issues=issues or [],
             status="completed",
         )
 
