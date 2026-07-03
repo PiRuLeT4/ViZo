@@ -166,7 +166,7 @@ AFRAME.registerComponent("vizo-control-btn", {
       if (targetEl) {
         var panelEl = el.closest("[id^='vizo-panel-']");
         if (panelEl) {
-          updateButtonStates(panelEl, targetEl, data.vizType);
+          window.ViZoHelpers.updateButtonStates(panelEl, targetEl, data.vizType);
         }
       }
     }, 600);
@@ -213,7 +213,7 @@ AFRAME.registerComponent("vizo-control-btn", {
           targetEl &&
           (data.action === "set-height" || data.action === "set-color")
         ) {
-          updateButtonStates(panelEl, targetEl, data.vizType);
+          window.ViZoHelpers.updateButtonStates(panelEl, targetEl, data.vizType);
         } else {
           // Check if button text color is green (meaning it was highlighted, e.g. cached AI explain)
           var isGreen =
@@ -281,25 +281,21 @@ AFRAME.registerComponent("vizo-control-btn", {
 
       // Execute the requested action
       if (data.action === "wireframe") {
-        toggleWireframe(targetEl, data.vizType);
-      } else if (data.action === "scale-up") {
-        scaleBoats(targetEl, 0.1);
-      } else if (data.action === "scale-down") {
-        scaleBoats(targetEl, -0.1);
+        window.ViZoHelpers.toggleWireframe(targetEl, data.vizType);
       } else if (data.action === "cycle-height") {
-        cycleHeight(targetEl, data.vizType);
+        window.ViZoHelpers.cycleHeight(targetEl, data.vizType);
       } else if (data.action === "swap-mappings") {
-        swapMappings(targetEl, data.vizType);
+        window.ViZoHelpers.swapMappings(targetEl, data.vizType);
       } else if (data.action === "set-height") {
-        setHeight(targetEl, data.vizType, data.value);
-        updateButtonStates(
+        window.ViZoHelpers.setHeight(targetEl, data.vizType, data.value);
+        window.ViZoHelpers.updateButtonStates(
           el.closest("[id^='vizo-panel-']"),
           targetEl,
           data.vizType,
         );
       } else if (data.action === "set-color") {
-        setColor(targetEl, data.vizType, data.value);
-        updateButtonStates(
+        window.ViZoHelpers.setColor(targetEl, data.vizType, data.value);
+        window.ViZoHelpers.updateButtonStates(
           el.closest("[id^='vizo-panel-']"),
           targetEl,
           data.vizType,
@@ -318,256 +314,3 @@ AFRAME.registerComponent("vizo-control-btn", {
     });
   },
 });
-
-// Helper: Toggle wireframe mode for the boats (city) dashboard
-function toggleWireframe(targetEl, type) {
-  if (type === "boats") {
-    var config = targetEl.getAttribute("babia-boats") || {};
-    var currentVal = config.wireframeByRepeatedField || "";
-
-    // Cyclical wireframe logic: "" (off) -> "nloc" -> "ccn" -> "" (off)
-    var newVal = "";
-    if (currentVal === "") {
-      newVal = "nloc";
-    } else if (currentVal === "nloc") {
-      newVal = "ccn";
-    } else {
-      newVal = "";
-    }
-
-    // Toggle component property
-    targetEl.setAttribute("babia-boats", "wireframeByRepeatedField", newVal);
-    console.log("ViZo // Toggled wireframeByRepeatedField to: " + newVal);
-
-    // Traverse meshes in Three.js and apply real-time wireframe look
-    var obj3D = targetEl.object3D;
-    obj3D.traverse(function (node) {
-      if (node.isMesh && node.name !== "street" && node.name !== "ground") {
-        if (newVal === "nloc") {
-          // Highlight tall buildings with high lines of code
-          var isTall = node.scale.y > 1.8;
-          node.material.wireframe = isTall;
-          node.material.emissive = isTall
-            ? new THREE.Color("#00d4ff")
-            : new THREE.Color("#000000");
-          node.material.emissiveIntensity = isTall ? 0.6 : 0;
-        } else if (newVal === "ccn") {
-          // Highlight complex buildings with high cyclomatic complexity (larger footprints)
-          var isWide = node.scale.x * node.scale.z > 1.4;
-          node.material.wireframe = isWide;
-          node.material.emissive = isWide
-            ? new THREE.Color("#00ff88")
-            : new THREE.Color("#000000");
-          node.material.emissiveIntensity = isWide ? 0.6 : 0;
-        } else {
-          // Turn off wireframes
-          node.material.wireframe = false;
-          node.material.emissive = new THREE.Color("#000000");
-          node.material.emissiveIntensity = 0;
-        }
-      }
-    });
-  }
-}
-
-// Helper: Swap height (nloc) and area (ccn) mappings on the city
-function swapMappings(targetEl, type) {
-  if (type === "boats") {
-    var config = targetEl.getAttribute("babia-boats") || {};
-    var currentHeight = config.height || "nloc";
-    var currentArea = config.area || "ccn";
-
-    var nextHeight = currentArea;
-    var nextArea = currentHeight;
-
-    // Ensure they always stay alternated (nloc <-> ccn)
-    if (nextHeight === nextArea) {
-      nextHeight = "ccn";
-      nextArea = "nloc";
-    }
-
-    targetEl.setAttribute("babia-boats", {
-      height: nextHeight,
-      area: nextArea,
-      color: nextHeight,
-    });
-
-    targetEl.setAttribute(
-      "babia-boats",
-      "legend_text",
-      "{name}\\nNLOC: {nloc} | CCN: {ccn}\\nCommits: {commits} | Funcs: {num_functions}\\nEdad: {age_days}d | Owner: {owner_name} ({ownership}%)",
-    );
-    console.log(
-      "ViZo // Swapped boats mappings: Height=" +
-        nextHeight +
-        ", Area=" +
-        nextArea,
-    );
-  }
-}
-
-// Helper: Cycle height field
-function cycleHeight(targetEl, type) {
-  if (type === "boats") {
-    var config = targetEl.getAttribute("babia-boats") || {};
-    var current = config.height || "nloc";
-    // Cycle strictly between nloc and ccn (without commits)
-    var fields = ["nloc", "ccn"];
-    var nextIdx = (fields.indexOf(current) + 1) % fields.length;
-    var nextField = fields[nextIdx];
-
-    targetEl.setAttribute("babia-boats", "height", nextField);
-    targetEl.setAttribute("babia-boats", "color", nextField);
-    targetEl.setAttribute(
-      "babia-boats",
-      "legend_text",
-      "{name}\\nNLOC: {nloc} | CCN: {ccn}\\nCommits: {commits} | Funcs: {num_functions}\\nEdad: {age_days}d | Owner: {owner_name} ({ownership}%)",
-    );
-    console.log("ViZo // Cycled boats height to: " + nextField);
-  } else if (type === "cyls") {
-    var config = targetEl.getAttribute("babia-cyls") || {};
-    var current = config.height || "nloc";
-    var fields = ["nloc", "count", "commits"];
-    var nextIdx = (fields.indexOf(current) + 1) % fields.length;
-    var nextField = fields[nextIdx];
-
-    targetEl.setAttribute("babia-cyls", "height", nextField);
-    console.log("ViZo // Cycled cyls height to: " + nextField);
-  } else if (type === "barsmap") {
-    var config = targetEl.getAttribute("babia-barsmap") || {};
-    var current = config.height || "commits";
-    var fields = ["commits", "insertions"];
-    var nextIdx = (fields.indexOf(current) + 1) % fields.length;
-    var nextField = fields[nextIdx];
-
-    targetEl.setAttribute("babia-barsmap", "height", nextField);
-    console.log("ViZo // Cycled barsmap height to: " + nextField);
-  }
-}
-
-// askAIReconfigure helper removed
-
-function setHeight(targetEl, type, field) {
-  if (type === "boats") {
-    targetEl.setAttribute("babia-boats", "height", field);
-    console.log("ViZo // Set boats height to: " + field);
-  }
-}
-
-function setColor(targetEl, type, field) {
-  if (type === "boats") {
-    targetEl.setAttribute("babia-boats", "color", field);
-    console.log("ViZo // Set boats color to: " + field);
-  }
-}
-
-function updateButtonStates(panelEl, targetEl, type) {
-  if (!panelEl || !targetEl) return;
-
-  var currentHeight = "";
-  var currentColor = "";
-
-  if (type === "boats") {
-    var config = targetEl.getAttribute("babia-boats") || {};
-    currentHeight = config.height || "nloc";
-    currentColor = config.color || "nloc";
-  }
-
-  var buttons = panelEl.querySelectorAll("[vizo-control-btn]");
-  buttons.forEach(function (btnEl) {
-    var component = btnEl.components
-      ? btnEl.components["vizo-control-btn"]
-      : null;
-    if (!component) return;
-
-    var action = component.data.action;
-    var value = component.data.value;
-
-    var base = btnEl.querySelector(".vizo-btn-base");
-    var border = btnEl.querySelector(".vizo-btn-border");
-    var text = btnEl.querySelector("a-text");
-    if (!base) return;
-
-    var isActive = false;
-    if (action === "set-height" && value === currentHeight) {
-      isActive = true;
-    } else if (action === "set-color" && value === currentColor) {
-      isActive = true;
-    }
-
-    if (isActive) {
-      // Emerald Green Active State
-      base.setAttribute("color", "#00aa5d");
-      base.setAttribute("emissive", "#00aa5d");
-      base.setAttribute("emissive-intensity", "0.8");
-      if (border) {
-        border.setAttribute("color", "#00ff66");
-        border.setAttribute("emissive", "#00ff66");
-        border.setAttribute("emissive-intensity", "1.5");
-      }
-      if (text) {
-        text.setAttribute("color", "#ffffff");
-        text.setAttribute("emissive", "#ffffff");
-        text.setAttribute("emissive-intensity", "1.5");
-      }
-    } else {
-      // Sleek Inactive Cyber Blue State
-      if (action === "set-height" || action === "set-color") {
-        base.setAttribute("color", "#002a5a");
-        base.setAttribute("emissive", "#002a5a");
-        base.setAttribute("emissive-intensity", "0.5");
-        if (border) {
-          border.setAttribute("color", "#00d4ff");
-          border.setAttribute("emissive", "#00d4ff");
-          border.setAttribute("emissive-intensity", "1.2");
-        }
-        if (text) {
-          text.setAttribute("color", "#00d4ff");
-          text.setAttribute("emissive", "#00d4ff");
-          text.setAttribute("emissive-intensity", "1.5");
-        }
-      }
-    }
-  });
-}
-
-// Helper: Scale babia-boats up or down by a set delta
-function scaleBoats(targetEl, amount) {
-  var sx = 1,
-    sy = 1,
-    sz = 1;
-  var currentScale = targetEl.getAttribute("scale");
-
-  if (currentScale) {
-    if (typeof currentScale === "object") {
-      sx = currentScale.x;
-      sy = currentScale.y;
-      sz = currentScale.z;
-    } else if (typeof currentScale === "string") {
-      var parts = currentScale.trim().split(/\s+/).map(Number);
-      if (parts.length === 3 && !parts.some(isNaN)) {
-        sx = parts[0];
-        sy = parts[1];
-        sz = parts[2];
-      }
-    }
-  } else if (targetEl.object3D && targetEl.object3D.scale) {
-    sx = targetEl.object3D.scale.x;
-    sy = targetEl.object3D.scale.y;
-    sz = targetEl.object3D.scale.z;
-  }
-
-  var newX = Math.min(1.5, Math.max(0.05, sx + amount));
-  var newY = Math.min(1.5, Math.max(0.05, sy + amount));
-  var newZ = Math.min(1.5, Math.max(0.05, sz + amount));
-
-  // Round to 2 decimal places to avoid float precision errors (e.g. 0.3000000004)
-  // newX = Math.round(newX * 100) / 100;
-  // newY = Math.round(newY * 100) / 100;
-  // newZ = Math.round(newZ * 100) / 100;
-
-  targetEl.setAttribute("scale", `${newX} ${newY} ${newZ}`);
-  console.log(
-    "ViZo // babia-boats scale updated to: " + newX + " " + newY + " " + newZ,
-  );
-}

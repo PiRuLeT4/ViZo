@@ -1,0 +1,302 @@
+(function () {
+  // =============================================================================
+  // ViZo // ai-assistant.js  —  AI Explanation & Terminal Manager
+  // =============================================================================
+
+  // Caché de explicaciones ya obtenidas para evitar peticiones repetidas
+  const explanationCache = {
+    boats: null,
+    cyls: null,
+    doughnut: null,
+    barsmap: null,
+    network: null,
+    bars: null,
+  };
+
+  /**
+   * Actualiza las etiquetas de los botones HUD 2D y 3D una vez que hay explicación disponible
+   */
+  function updateButtonLabels(dashboardType) {
+    // 1. Actualizar botón del HUD 2D
+    const hudBtn = document.querySelector(`[data-hud-btn="${dashboardType}"]`);
+    if (hudBtn) {
+      const cleanType = dashboardType.toUpperCase();
+      const shortType =
+        cleanType === "BARSMAP"
+          ? "BARS"
+          : cleanType === "DOUGHNUT"
+            ? "DONUT"
+            : cleanType === "BARS"
+              ? "PR"
+              : cleanType;
+      hudBtn.textContent = `VER EXP. ${shortType}`;
+      hudBtn.style.borderColor = "#4af7a0"; // Borde verde neón
+      hudBtn.style.color = "#4af7a0";
+      hudBtn.style.textShadow = "0 0 8px rgba(74, 247, 160, 0.4)";
+    }
+
+    // 2. Actualizar botones 3D de A-Frame (Pedestales y Menú de Muñeca)
+    const scene3dBtns = document.querySelectorAll("[vizo-control-btn]");
+    scene3dBtns.forEach((btnEl) => {
+      const comp = btnEl.getAttribute("vizo-control-btn");
+      if (comp) {
+        let isMatch = false;
+        if (typeof comp === "string") {
+          isMatch =
+            comp.indexOf("action: explain-ai") !== -1 &&
+            comp.indexOf("vizType: " + dashboardType) !== -1;
+        } else if (typeof comp === "object") {
+          isMatch =
+            comp.action === "explain-ai" && comp.vizType === dashboardType;
+        }
+
+        if (isMatch) {
+          const textEl = btnEl.querySelector("a-text");
+          if (textEl) {
+            const isWrist = btnEl.parentNode.id === "vr-wrist-menu";
+            if (isWrist) {
+              const cleanType = dashboardType.toUpperCase();
+              const shortType =
+                cleanType === "BARSMAP"
+                  ? "BARS"
+                  : cleanType === "DOUGHNUT"
+                    ? "DONUT"
+                    : cleanType;
+              textEl.setAttribute("value", `VER ${shortType}`);
+            } else {
+              textEl.setAttribute("value", "VER EXPLICACION");
+            }
+            textEl.setAttribute("color", "#4af7a0");
+            textEl.setAttribute("emissive", "#4af7a0");
+          }
+
+          const baseEl = btnEl.querySelector(".vizo-btn-base");
+          if (baseEl) {
+            baseEl.setAttribute("color", "#003b21");
+            baseEl.setAttribute("emissive", "#4af7a0");
+            baseEl.setAttribute("emissive-intensity", "0.8");
+          }
+          const borderEl = btnEl.querySelector(".vizo-btn-border");
+          if (borderEl) {
+            borderEl.setAttribute("color", "#4af7a0");
+            borderEl.setAttribute("emissive", "#4af7a0");
+            borderEl.setAttribute("emissive-intensity", "2.0");
+          }
+        }
+      }
+    });
+  }
+
+  // Puntero para cancelar el timeout o efecto de máquina de escribir anterior
+  let typewriterInterval = null;
+
+  /**
+   * Solicita y muestra la explicación de la IA en la terminal holográfica
+   */
+  function showExplanation(dashboardType, targetEl) {
+    console.log("ViZo // Solicitando explicación IA para:", dashboardType);
+
+    const modal = document.getElementById("vizo-terminal-modal");
+    const contentEl = document.getElementById("terminal-content");
+
+    if (!modal || !contentEl) {
+      console.error(
+        "ViZo // Modal o terminal content no encontrado en el DOM.",
+      );
+      return;
+    }
+
+    // Limpiar intervalo anterior si existe
+    if (typewriterInterval) {
+      clearInterval(typewriterInterval);
+      typewriterInterval = null;
+    }
+
+    // Si ya existe en caché, mostrar inmediatamente sin fetch
+    if (explanationCache[dashboardType]) {
+      console.log(
+        "ViZo // Obteniendo explicación desde caché para:",
+        dashboardType,
+      );
+      modal.classList.add("active");
+      window.ViZoHelpers.typewriterEffect(contentEl, explanationCache[dashboardType]);
+      return;
+    }
+
+    // Mostrar modal con efecto de carga/transición
+    contentEl.innerHTML =
+      "<span class='blink'>[CONECTANDO CON EL NÚCLEO DE LA IA...]</span>";
+    modal.classList.add("active");
+
+    // Obtener los datos correctos dinámicamente según el cargador asociado
+    let dashboardData = null;
+    let datasetKey = null;
+
+    if (targetEl) {
+      let fromStr = "";
+      if (targetEl.hasAttribute("babia-boats")) {
+        const boatsAttr = targetEl.getAttribute("babia-boats");
+        let boatsFrom = "";
+        if (typeof boatsAttr === "string") {
+          const treeMatch = boatsAttr.match(/from:\s*([^;]+)/);
+          if (treeMatch) boatsFrom = treeMatch[1].trim();
+        } else if (
+          boatsAttr &&
+          typeof boatsAttr === "object" &&
+          boatsAttr.from
+        ) {
+          boatsFrom = boatsAttr.from;
+        }
+
+        if (boatsFrom) {
+          const treeEl = document.getElementById(boatsFrom);
+          if (treeEl && treeEl.hasAttribute("babia-treebuilder")) {
+            const treeAttr = treeEl.getAttribute("babia-treebuilder");
+            let treeFrom = "";
+            if (typeof treeAttr === "string") {
+              const loaderMatch = treeAttr.match(/from:\s*([^;]+)/);
+              if (loaderMatch) treeFrom = loaderMatch[1].trim();
+            } else if (
+              treeAttr &&
+              typeof treeAttr === "object" &&
+              treeAttr.from
+            ) {
+              treeFrom = treeAttr.from;
+            }
+            if (treeFrom) {
+              fromStr = treeFrom;
+            }
+          }
+        }
+      } else {
+        const componentAttrs = [
+          "babia-cyls",
+          "babia-doughnut",
+          "babia-barsmap",
+          "babia-network",
+          "babia-bars",
+        ];
+        for (let i = 0; i < componentAttrs.length; i++) {
+          const attrName = componentAttrs[i];
+          if (targetEl.hasAttribute(attrName)) {
+            const attrVal = targetEl.getAttribute(attrName);
+            let valFrom = "";
+            if (typeof attrVal === "string") {
+              const loaderMatch = attrVal.match(/from:\s*([^;]+)/);
+              if (loaderMatch) valFrom = loaderMatch[1].trim();
+            } else if (attrVal && typeof attrVal === "object" && attrVal.from) {
+              valFrom = attrVal.from;
+            }
+            if (valFrom) {
+              fromStr = valFrom;
+              break;
+            }
+          }
+        }
+      }
+
+      if (fromStr && fromStr.startsWith("vizo-loader-")) {
+        datasetKey = fromStr.replace("vizo-loader-", "");
+      }
+    }
+
+    if (!datasetKey) {
+      if (dashboardType === "boats") datasetKey = "file_metrics";
+      else if (dashboardType === "cyls" || dashboardType === "doughnut")
+        datasetKey = "data_by_language";
+      else if (dashboardType === "barsmap") datasetKey = "author_activity";
+      else if (dashboardType === "network") datasetKey = "file_network";
+      else if (dashboardType === "bars") datasetKey = "pull_requests";
+    }
+
+    const state = window.ViZoState;
+    dashboardData = state.dataMap[datasetKey] || {};
+
+    // Obtener el nombre del repositorio
+    const statusEl = document.querySelector(".vizo-status");
+    const repoName = statusEl
+      ? statusEl.getAttribute("data-repo")
+      : "LIVE_DATA";
+
+    // Petición AJAX al backend
+    fetch("/api/explain/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        dashboard_type: datasetKey || dashboardType,
+        dashboard_data: dashboardData || {},
+        repo_name: repoName,
+      }),
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Server returned status " + res.status);
+        return res.json();
+      })
+      .then((data) => {
+        const text =
+          data.explanation || "No se pudo obtener explicación de la IA.";
+        explanationCache[dashboardType] = text;
+        updateButtonLabels(dashboardType);
+        window.ViZoHelpers.typewriterEffect(contentEl, text);
+      })
+      .catch((err) => {
+        console.error("ViZo // Error al obtener la explicación de la IA:", err);
+        contentEl.textContent =
+          ">>> ERROR: ERROR DE CONEXIÓN CON EL SERVIDOR DE IA.\n" + err.message;
+      });
+  }
+
+  /**
+   * Cierra el modal de la terminal
+   */
+  function closeExplanation() {
+    const modal = document.getElementById("vizo-terminal-modal");
+    if (modal) {
+      modal.classList.remove("active");
+    }
+    if (typewriterInterval) {
+      clearInterval(typewriterInterval);
+      typewriterInterval = null;
+    }
+  }
+
+  // Registrar en el espacio de nombres global
+  window.ViZo = window.ViZo || {};
+  window.ViZo.ui = {
+    showExplanation: showExplanation,
+    closeExplanation: closeExplanation,
+  };
+
+  // Implementar disparador global para clicks desde el HUD 2D
+  window.ViZoTrigger = function (action, vizType) {
+    console.log("ViZoTrigger // Acción:", action, "Visualizador:", vizType);
+    let targetEl = null;
+    if (vizType === "boats") targetEl = document.querySelector("[babia-boats]");
+    else if (vizType === "cyls")
+      targetEl = document.querySelector("[babia-cyls]");
+    else if (vizType === "doughnut")
+      targetEl = document.querySelector("[babia-doughnut]");
+    else if (vizType === "barsmap")
+      targetEl = document.querySelector("[babia-barsmap]");
+
+    if (!targetEl) {
+      console.warn(
+        "ViZoTrigger // No se encontró el componente visualizador de tipo:",
+        vizType,
+      );
+      return;
+    }
+
+    if (action === "wireframe") {
+      window.ViZoHelpers.toggleWireframe(targetEl, vizType);
+    } else if (action === "swap-mappings") {
+      window.ViZoHelpers.swapMappings(targetEl, vizType);
+    } else if (action === "cycle-height") {
+      window.ViZoHelpers.cycleHeight(targetEl, vizType);
+    } else if (action === "explain-ai") {
+      showExplanation(vizType, targetEl);
+    }
+  };
+})();

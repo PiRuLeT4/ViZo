@@ -230,7 +230,7 @@ function buildNetwork(scene, dash, nodesLoaderId, linksLoaderId, pos) {
   vizEl.setAttribute("id", "vizo-viz-" + dash.id);
   vizEl.setAttribute("position", "0 1.2 0");
   vizEl.setAttribute("rotation", "0 0 -90");
-  vizEl.setAttribute("scale", "0.03 0.03 0.03");
+  vizEl.setAttribute("scale", "0.04 0.04 0.04");
   vizEl.setAttribute(
     "babia-network",
     [
@@ -240,9 +240,10 @@ function buildNetwork(scene, dash, nodesLoaderId, linksLoaderId, pos) {
       "nodeLabel: name",
       "nodeAutoColorBy: id",
       "nodeResolution: 30",
-      "nodeVal: commits",
+      "nodeVal: val",
       "nodeRelSize: 1",
-      "linkWidth: 0.1",
+      "linkWidth: 0.2",
+      "linkLabel: fileLabel",
       "nodeLegend: true",
       "linkLegend: true",
       "legend_scale: 2",
@@ -258,6 +259,36 @@ function buildNetwork(scene, dash, nodesLoaderId, linksLoaderId, pos) {
   buildControlPanel(scene, dash, "vizo-viz-" + dash.id, pos, "network");
 }
 
+/**
+ * babia-bars: gráfico de barras 2D.
+ */
+function buildBars(scene, dash, loaderId, pos) {
+  const m = dash.mappings;
+  const vizEl = document.createElement("a-entity");
+  vizEl.setAttribute("id", "vizo-viz-" + dash.id);
+  vizEl.setAttribute("position", pos.x + " 0.1 " + pos.z);
+  vizEl.setAttribute("scale", "0.25 0.25 0.25");
+  vizEl.setAttribute("rotation", `0 ${pos.rotY} 0`);
+  vizEl.setAttribute(
+    "babia-bars",
+    [
+      "from: " + loaderId,
+      "x_axis: " + (m.x_axis || "title"),
+      "height: " + (m.height || m.size || m.comments || "comments"),
+      "legend: true",
+      "palette: pearl",
+      "titlePosition: -5 12 0",
+      "axis_name: true",
+      "animation: true",
+    ].join("; "),
+  );
+
+  scene.appendChild(vizEl);
+  vizEl.setAttribute("vizo-podio", "");
+  console.log("ViZo // babia-bars creado sobre pedestal");
+  buildControlPanel(scene, dash, "vizo-viz-" + dash.id, pos, "bars");
+}
+
 // Export for global access
 window.ViZoBuilders = window.ViZoBuilders || {};
 window.ViZoBuilders.POSITIONS = POSITIONS;
@@ -267,3 +298,4 @@ window.ViZoBuilders.buildCyls = buildCyls;
 window.ViZoBuilders.buildDoughnut = buildDoughnut;
 window.ViZoBuilders.buildBarsmap = buildBarsmap;
 window.ViZoBuilders.buildNetwork = buildNetwork;
+window.ViZoBuilders.buildBars = buildBars;
