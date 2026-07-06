@@ -21,8 +21,9 @@
     />
 
     <!-- A-Frame Components (ViZo Lab Physics & Logic) -->
-    <script src="{% static 'js/visualizer/vizo-components.js' %}"></script>
-    <script src="{% static 'js/visualizer/fame.js' %}"></script>
+    <script src="{% static 'js/visualizer/helpers.js' %}"></script>
+    <script src="{% static 'js/visualizer/components/vizo-components.js' %}"></script>
+    <script src="{% static 'js/visualizer/components/fame.js' %}"></script>
   </head>
   <body>
     <!-- HUD Overlay -->
@@ -88,9 +89,11 @@
       <a-entity id="cargador"></a-entity>
 
       <!-- Visualización dinámica generada por la IA -->
-      <script src="{% static 'js/visualizer/podio.js' %}"></script>
-      <script src="{% static 'js/visualizer/control-panel.js' %}"></script>
-      <script src="{% static 'js/visualizer/vr-menu.js' %}"></script>
+      <script src="{% static 'js/visualizer/components/podio.js' %}"></script>
+      <script src="{% static 'js/visualizer/components/control-panel.js' %}"></script>
+      <script src="{% static 'js/visualizer/vr/vr-menu.js' %}"></script>
+      <script src="{% static 'js/visualizer/vr/vr-interaction.js' %}"></script>
+      <script src="{% static 'js/visualizer/ai-assistant.js' %}"></script>
       <script src="{% static 'js/visualizer/builders.js' %}"></script>
       <script src="{% static 'js/visualizer/visualization.js' %}"></script>
 

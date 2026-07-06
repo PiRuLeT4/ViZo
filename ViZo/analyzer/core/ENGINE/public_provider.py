@@ -25,12 +25,15 @@ def parse_repo_url(url: str) -> tuple:
 
 def fetch_public_metadata(repo_url: str) -> dict:
     """
-    Descarga los últimos 100 Pull Requests e Issues públicos de un repositorio.
+    Descarga los últimos 100 Pull Requests e Issues públicos de un repositorio,
+    así como el número de estrellas (stars) y bifurcaciones (forks).
     No requiere tokens de autenticación.
     """
     result = {
         "pull_requests": [],
-        "issues": []
+        "issues": [],
+        "stars": 0,
+        "forks": 0
     }
     
     platform, owner, repo = parse_repo_url(repo_url)
@@ -41,6 +44,13 @@ def fetch_public_metadata(repo_url: str) -> dict:
     print(Fore.YELLOW + f"ViZo // Consultando API pública de {platform.upper()} para {owner}/{repo}...")
     
     if platform == "github":
+        # 0. Descargar estadísticas generales (stars y forks)
+        repo_details_url = f"https://api.github.com/repos/{owner}/{repo}"
+        repo_details = _http_get_json(repo_details_url)
+        if isinstance(repo_details, dict):
+            result["stars"] = repo_details.get("stargazers_count", 0)
+            result["forks"] = repo_details.get("forks_count", 0)
+
         # 1. Descargar Issues y PRs desde el endpoint de issues para obtener los contadores de comentarios
         issues_url = f"https://api.github.com/repos/{owner}/{repo}/issues?state=all&per_page=100"
         issues = _http_get_json(issues_url)
@@ -81,6 +91,13 @@ def fetch_public_metadata(repo_url: str) -> dict:
                 })
                 
     elif platform == "gitlab":
+        # 0. Descargar estadísticas generales (stars y forks)
+        repo_details_url = f"https://gitlab.com/api/v4/projects/{owner}%2F{repo}"
+        repo_details = _http_get_json(repo_details_url)
+        if isinstance(repo_details, dict):
+            result["stars"] = repo_details.get("star_count", 0)
+            result["forks"] = repo_details.get("forks_count", 0)
+
         # 1. Descargar Merge Requests (GitLab's PRs)
         pulls_url = f"https://gitlab.com/api/v4/projects/{owner}%2F{repo}/merge_requests?per_page=100"
         pulls = _http_get_json(pulls_url)
@@ -110,7 +127,7 @@ def fetch_public_metadata(repo_url: str) -> dict:
                     "labels": issue.get("labels", [])
                 })
                 
-    print(Fore.CYAN + f"ViZo // API Metadata: {len(result['pull_requests'])} PRs, {len(result['issues'])} Issues descargados.")
+    print(Fore.CYAN + f"ViZo // API Metadata: {len(result['pull_requests'])} PRs, {len(result['issues'])} Issues, {result['stars']} Stars, {result['forks']} Forks descargados.")
     return result
 
 def _http_get_json(url: str):

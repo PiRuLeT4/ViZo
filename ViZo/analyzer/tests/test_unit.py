@@ -508,6 +508,7 @@ class PublicProviderTestCase(TestCase):
                 "state": "open",
                 "created_at": "2026-07-02T12:00:00Z",
                 "user": {"login": "coder123"},
+                "comments": 5,
                 "pull_request": {} # Debería ignorarse en issues
             }
         ]
@@ -525,16 +526,25 @@ class PublicProviderTestCase(TestCase):
             def __exit__(self, exc_type, exc_val, exc_tb):
                 pass
 
-        # Configurar mock_urlopen para devolver PRs en la primera llamada e Issues en la segunda
+        mock_repo_details = {
+            "stargazers_count": 50,
+            "forks_count": 10
+        }
+
+        # Configurar mock_urlopen para devolver detalles del repo, issues y pulls
         mock_urlopen.side_effect = [
-            MockResponse(json.dumps(mock_pr_data).encode("utf-8")),
-            MockResponse(json.dumps(mock_issue_data).encode("utf-8"))
+            MockResponse(json.dumps(mock_repo_details).encode("utf-8")),
+            MockResponse(json.dumps(mock_issue_data).encode("utf-8")),
+            MockResponse(json.dumps(mock_pr_data).encode("utf-8"))
         ]
 
         meta = fetch_public_metadata("https://github.com/hydralauncher/hydra")
+        self.assertEqual(meta["stars"], 50)
+        self.assertEqual(meta["forks"], 10)
+
         self.assertEqual(len(meta["pull_requests"]), 1)
         self.assertEqual(meta["pull_requests"][0]["id"], 42)
-        self.assertEqual(meta["pull_requests"][0]["comments"], 5) # comments + review_comments
+        self.assertEqual(meta["pull_requests"][0]["comments"], 5) # comments cruzados desde issues
 
         self.assertEqual(len(meta["issues"]), 1)
         self.assertEqual(meta["issues"][0]["id"], 10)

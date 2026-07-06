@@ -62,6 +62,7 @@ def build_result_from_session(session: AnalysisSession) -> dict:
         "file_metrics": file_metrics,
         "data_by_language": data_by_language,
         "ai_config": session.ai_config,
+        "repo_summary": session.repo_summary or {},
         "file_ownership": session.file_ownership or [],
         "age_distribution": session.age_distribution or [],
         "top_complex_files": session.top_complex_files or [],

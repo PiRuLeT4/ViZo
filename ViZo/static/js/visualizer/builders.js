@@ -228,7 +228,7 @@ function buildNetwork(scene, dash, nodesLoaderId, linksLoaderId, pos) {
   // 2. Crear la entidad de babia-network propiamente dicha dentro del plinth
   const vizEl = document.createElement("a-entity");
   vizEl.setAttribute("id", "vizo-viz-" + dash.id);
-  vizEl.setAttribute("position", "0 1.2 0");
+  vizEl.setAttribute("position", "0 1.5 0");
   vizEl.setAttribute("rotation", "0 0 -90");
   vizEl.setAttribute("scale", "0.04 0.04 0.04");
   vizEl.setAttribute(
@@ -289,6 +289,217 @@ function buildBars(scene, dash, loaderId, pos) {
   buildControlPanel(scene, dash, "vizo-viz-" + dash.id, pos, "bars");
 }
 
+/**
+ * Renderiza los trofeos 3D proporcionales de Stars y Forks a los lados de la ciudad
+ */
+function buildStatsTrophies(scene, summary) {
+  const starsCount = parseInt(summary.stars) || 0;
+  const forksCount = parseInt(summary.forks) || 0;
+
+  // 1. --- TROFEO DE STARS (Derecha de la ciudad) ---
+  const posStars = { x: 10.5, y: 0.1, z: 24 };
+  const starsTrophyEl = document.createElement("a-entity");
+  starsTrophyEl.setAttribute("id", "vizo-stars-trophy");
+  starsTrophyEl.setAttribute(
+    "position",
+    `${posStars.x} ${posStars.y} ${posStars.z}`,
+  );
+  starsTrophyEl.setAttribute("visible", "true");
+
+  const pedStars = document.createElement("a-cylinder");
+  pedStars.setAttribute("radius", "0.6");
+  pedStars.setAttribute("height", "0.6");
+  pedStars.setAttribute("color", "#081329");
+  pedStars.setAttribute("material", "metalness: 0.8; roughness: 0.2");
+  starsTrophyEl.appendChild(pedStars);
+
+  const ringStars = document.createElement("a-ring");
+  ringStars.setAttribute("radius-inner", "0.61");
+  ringStars.setAttribute("radius-outer", "0.66");
+  ringStars.setAttribute("rotation", "-90 0 0");
+  ringStars.setAttribute("position", "0 0.301 0");
+  ringStars.setAttribute("color", "#ffd700");
+  ringStars.setAttribute(
+    "material",
+    "shader: flat; transparent: true; opacity: 0.8",
+  );
+  starsTrophyEl.appendChild(ringStars);
+
+  // Estrella amarilla normal de 5 puntas (Escala fija)
+  const starGeomEl = document.createElement("a-entity");
+  starGeomEl.setAttribute("position", "0 1.2 0");
+  starGeomEl.setAttribute("scale", "0.75 0.75 0.75");
+  starGeomEl.setAttribute(
+    "animation",
+    "property: rotation; to: 0 360 0; loop: true; dur: 8000; easing: linear",
+  );
+
+  // Esfera central
+  const coreStar = document.createElement("a-sphere");
+  coreStar.setAttribute("radius", "0.2");
+  coreStar.setAttribute("color", "#ffd700");
+  coreStar.setAttribute("emissive", "#ffd700");
+  coreStar.setAttribute("emissive-intensity", "1.5");
+  starGeomEl.appendChild(coreStar);
+
+  // 5 conos radiales espaciados a 72 grados
+  for (let i = 0; i < 5; i++) {
+    const angleRad = (i * 72 * Math.PI) / 180;
+    const punta = document.createElement("a-cone");
+    punta.setAttribute("radius-bottom", "0.13");
+    punta.setAttribute("height", "0.45");
+    punta.setAttribute("color", "#ffd700");
+    punta.setAttribute("emissive", "#ffd700");
+    punta.setAttribute("emissive-intensity", "1.2");
+    punta.setAttribute("material", "metalness: 0.5; roughness: 0.2");
+
+    const dist = 0.15;
+    const px = Math.sin(angleRad) * dist;
+    const py = Math.cos(angleRad) * dist;
+    punta.setAttribute("position", `${px} ${py} 0`);
+
+    const rotZ = -i * 72;
+    punta.setAttribute("rotation", `0 0 ${rotZ}`);
+
+    starGeomEl.appendChild(punta);
+  }
+
+  starsTrophyEl.appendChild(starGeomEl);
+
+  const textStars = document.createElement("a-text");
+  textStars.setAttribute("value", `${starsCount}\nSTARS`);
+  textStars.setAttribute("position", "0 2.2 0");
+  textStars.setAttribute("align", "center");
+  textStars.setAttribute("color", "#ffd700");
+  textStars.setAttribute("emissive", "#ffd700");
+  textStars.setAttribute("emissive-intensity", "1.2");
+  textStars.setAttribute("width", "4.0");
+  textStars.setAttribute("side", "double");
+  textStars.setAttribute("font", "https://cdn.aframe.io/fonts/Exo2Bold.fnt");
+  starsTrophyEl.appendChild(textStars);
+
+  scene.appendChild(starsTrophyEl);
+
+  // 2. --- TROFEO DE FORKS (Izquierda de la ciudad) ---
+  const posForks = { x: -10.5, y: 0.1, z: 24 };
+  const forksTrophyEl = document.createElement("a-entity");
+  forksTrophyEl.setAttribute("id", "vizo-forks-trophy");
+  forksTrophyEl.setAttribute(
+    "position",
+    `${posForks.x} ${posForks.y} ${posForks.z}`,
+  );
+  forksTrophyEl.setAttribute("visible", "true");
+
+  const pedForks = document.createElement("a-cylinder");
+  pedForks.setAttribute("radius", "0.6");
+  pedForks.setAttribute("height", "0.6");
+  pedForks.setAttribute("color", "#081329");
+  pedForks.setAttribute("material", "metalness: 0.8; roughness: 0.2");
+  forksTrophyEl.appendChild(pedForks);
+
+  const ringForks = document.createElement("a-ring");
+  ringForks.setAttribute("radius-inner", "0.61");
+  ringForks.setAttribute("radius-outer", "0.66");
+  ringForks.setAttribute("rotation", "-90 0 0");
+  ringForks.setAttribute("position", "0 0.301 0");
+  ringForks.setAttribute("color", "#00d4ff");
+  ringForks.setAttribute(
+    "material",
+    "shader: flat; transparent: true; opacity: 0.8",
+  );
+  forksTrophyEl.appendChild(ringForks);
+
+  // Figura de Fork simple: Bifurcación simétrica en "Y" (Escala fija)
+  const forkGeomEl = document.createElement("a-entity");
+  forkGeomEl.setAttribute("position", "0 1.1 0");
+  forkGeomEl.setAttribute("scale", "1 1 1");
+  forkGeomEl.setAttribute(
+    "animation",
+    "property: rotation; to: 0 -360 0; loop: true; dur: 8000; easing: linear",
+  );
+
+  // Tronco central (abajo)
+  const tronco = document.createElement("a-cylinder");
+  tronco.setAttribute("radius", "0.045");
+  tronco.setAttribute("height", "0.38");
+  tronco.setAttribute("position", "0 -0.18 0");
+  tronco.setAttribute("color", "#00d4ff");
+  tronco.setAttribute("emissive", "#00d4ff");
+  tronco.setAttribute("emissive-intensity", "1.2");
+  tronco.setAttribute("material", "metalness: 0.6; roughness: 0.2");
+  forkGeomEl.appendChild(tronco);
+
+  // Esfera de unión central
+  const unionNode = document.createElement("a-sphere");
+  unionNode.setAttribute("radius", "0.075");
+  unionNode.setAttribute("position", "0 0 0");
+  unionNode.setAttribute("color", "#00d4ff");
+  unionNode.setAttribute("emissive", "#00d4ff");
+  unionNode.setAttribute("emissive-intensity", "1.5");
+  forkGeomEl.appendChild(unionNode);
+
+  // Rama Izquierda (30 grados a la izquierda)
+  const ramaIzq = document.createElement("a-cylinder");
+  ramaIzq.setAttribute("radius", "0.035");
+  ramaIzq.setAttribute("height", "0.4");
+  ramaIzq.setAttribute("position", "-0.11 0.17 0");
+  ramaIzq.setAttribute("rotation", "0 0 30");
+  ramaIzq.setAttribute("color", "#00d4ff");
+  ramaIzq.setAttribute("emissive", "#00d4ff");
+  ramaIzq.setAttribute("emissive-intensity", "1.2");
+  ramaIzq.setAttribute("material", "metalness: 0.6; roughness: 0.2");
+  forkGeomEl.appendChild(ramaIzq);
+
+  // Esfera extrema izquierda
+  const nodeIzq = document.createElement("a-sphere");
+  nodeIzq.setAttribute("radius", "0.08");
+  nodeIzq.setAttribute("position", "-0.21 0.34 0");
+  nodeIzq.setAttribute("color", "#4af7a0"); // Verde neón
+  nodeIzq.setAttribute("emissive", "#4af7a0");
+  nodeIzq.setAttribute("emissive-intensity", "1.6");
+  forkGeomEl.appendChild(nodeIzq);
+
+  // Rama Derecha (30 grados a la derecha)
+  const ramaDer = document.createElement("a-cylinder");
+  ramaDer.setAttribute("radius", "0.035");
+  ramaDer.setAttribute("height", "0.4");
+  ramaDer.setAttribute("position", "0.11 0.17 0");
+  ramaDer.setAttribute("rotation", "0 0 -30");
+  ramaDer.setAttribute("color", "#00d4ff");
+  ramaDer.setAttribute("emissive", "#00d4ff");
+  ramaDer.setAttribute("emissive-intensity", "1.2");
+  ramaDer.setAttribute("material", "metalness: 0.6; roughness: 0.2");
+  forkGeomEl.appendChild(ramaDer);
+
+  // Esfera extrema derecha
+  const nodeDer = document.createElement("a-sphere");
+  nodeDer.setAttribute("radius", "0.08");
+  nodeDer.setAttribute("position", "0.21 0.34 0");
+  nodeDer.setAttribute("color", "#4af7a0"); // Verde neón
+  nodeDer.setAttribute("emissive", "#4af7a0");
+  nodeDer.setAttribute("emissive-intensity", "1.6");
+  forkGeomEl.appendChild(nodeDer);
+
+  forksTrophyEl.appendChild(forkGeomEl);
+
+  const textForks = document.createElement("a-text");
+  textForks.setAttribute("value", `${forksCount}\nFORKS`);
+  textForks.setAttribute("position", "0 2.2 0");
+  textForks.setAttribute("align", "center");
+  textForks.setAttribute("color", "#00d4ff");
+  textForks.setAttribute("emissive", "#00d4ff");
+  textForks.setAttribute("emissive-intensity", "1.2");
+  textForks.setAttribute("width", "4.0");
+  textForks.setAttribute("font", "https://cdn.aframe.io/fonts/Exo2Bold.fnt");
+  textForks.setAttribute("side", "double");
+  forksTrophyEl.appendChild(textForks);
+
+  scene.appendChild(forksTrophyEl);
+  console.log(
+    `ViZo // Trofeos creados: ${starsCount} Stars, ${forksCount} Forks.`,
+  );
+}
+
 // Export for global access
 window.ViZoBuilders = window.ViZoBuilders || {};
 window.ViZoBuilders.POSITIONS = POSITIONS;
@@ -299,3 +510,4 @@ window.ViZoBuilders.buildDoughnut = buildDoughnut;
 window.ViZoBuilders.buildBarsmap = buildBarsmap;
 window.ViZoBuilders.buildNetwork = buildNetwork;
 window.ViZoBuilders.buildBars = buildBars;
+window.ViZoBuilders.buildStatsTrophies = buildStatsTrophies;

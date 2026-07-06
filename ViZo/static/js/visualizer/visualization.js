@@ -140,6 +140,7 @@
     );
 
     // Guardar los datos en el mapa de estado global
+    window.ViZoState.repoSummary = apiData.repo_summary || { stars: 0, forks: 0 };
     window.ViZoState.dataMap = {
       file_metrics: fileMetrics,
       data_by_language: dataByLanguage,
@@ -302,6 +303,10 @@
         );
         statusEl.textContent = "LIVE_DATA // " + names.join(" + ");
       }
+    }
+    // Renderizar trofeos de Stars y Forks si están disponibles
+    if (window.ViZoBuilders.buildStatsTrophies) {
+      window.ViZoBuilders.buildStatsTrophies(scene, window.ViZoState.repoSummary);
     }
   }
 })();

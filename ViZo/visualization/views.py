@@ -43,6 +43,7 @@ def api_session_data(request, session_id):
     data = build_result_from_session(session)
     return JsonResponse({
         "repo_name": data["repo_name"],
+        "repo_summary": data.get("repo_summary", {}),
         "file_metrics": data["file_metrics"],
         "data_by_language": data["data_by_language"],
         "evolution_data": data.get("evolution_data", []),

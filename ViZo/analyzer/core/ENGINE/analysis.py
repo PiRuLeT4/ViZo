@@ -144,6 +144,8 @@ def run_analysis(url: str, max_commits: int = 150, analysis_mode: str = "commits
             meta = fetch_public_metadata(url)
             pull_requests = meta.get("pull_requests", [])
             issues = meta.get("issues", [])
+            repo_summary["stars"] = meta.get("stars", 0)
+            repo_summary["forks"] = meta.get("forks", 0)
 
         # Enriquecer el resumen con los contadores de PRs e Issues
         # para que la IA pueda decidir si instanciar los dashboards de comunidad
