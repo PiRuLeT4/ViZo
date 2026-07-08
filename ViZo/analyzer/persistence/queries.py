@@ -54,6 +54,18 @@ def build_result_from_session(session: AnalysisSession) -> dict:
         session.save(update_fields=["author_activity"])
         print(Fore.GREEN + "[Cache Success] 'author_activity' reconstruido y persistido.")
 
+    top_churn_files = session.repo_summary.get("top_churn_files") if isinstance(session.repo_summary, dict) else None
+    if not top_churn_files and file_metrics:
+        sorted_by_churn = sorted(file_metrics, key=lambda x: x.get("commits", 0), reverse=True)
+        top_churn_files = [
+            {
+                "name": f["name"] if "name" in f else (f["id"].split("/")[-1] if "id" in f else "unknown"),
+                "commits": f["commits"],
+                "nloc": f["nloc"]
+            }
+            for f in sorted_by_churn[:10]
+        ]
+
     return {
         "repo_name": session.repo.name,
         "metrics": file_metrics,
@@ -67,6 +79,7 @@ def build_result_from_session(session: AnalysisSession) -> dict:
         "age_distribution": session.age_distribution or [],
         "top_complex_files": session.top_complex_files or [],
         "file_network": session.file_network or [],
+        "top_churn_files": top_churn_files or [],
         "analysis_mode": getattr(session, "analysis_mode", "commits"),
         "pull_requests": getattr(session, "pull_requests", []),
         "issues": getattr(session, "issues", []),
@@ -132,11 +145,15 @@ def save_session(
     session_obj: AnalysisSession = None,
     pull_requests: list = None,
     issues: list = None,
+    top_churn_files: list = None,
 ) -> AnalysisSession:
     """
     Persiste o actualiza una AnalysisSession con todas sus métricas asociadas.
     SSOT (Single Source of Truth) para la persistencia del análisis.
     """
+    if top_churn_files is not None and isinstance(repo_summary, dict):
+        repo_summary["top_churn_files"] = top_churn_files
+
     if session_obj:
         # Modo actualización (para flujos asíncronos que pre-crearon la sesión en 'pending')
         session = session_obj

@@ -242,9 +242,11 @@ class LocalMetricsTestCase(TestCase):
             age_distribution,
             top_complex_files,
             file_network,
+            top_churn_files,
         ) = _process_metrics([mock_file], evolution_data, "/tmp/test_dir")
 
         # Verify calculations
+        self.assertEqual(len(top_churn_files), 1)
         self.assertEqual(len(file_metrics), 1)
         fm = file_metrics[0]
         self.assertEqual(fm["name"], "file1.py")

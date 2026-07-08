@@ -46,7 +46,7 @@ def _run_lizard(target_dir: str) -> list:
     # Filtrar para analizar solo carpetas de código fuente comunes si existen (estrategia de inclusión)
     include_folders = [
         # --- Genéricos y ya existentes ---
-        "src", "lib", "app", "source", "core", "components", "pkg", "cmd", "include", "apps", "sources",
+        "src", "lib", "app", "source", "core", "components", "pkg", "cmd", "include", "apps", "sources", "build", "tools",
         
         # --- Django / Python / Backends Web ---
         "api",          # Muy común para microservicios y endpoints separados

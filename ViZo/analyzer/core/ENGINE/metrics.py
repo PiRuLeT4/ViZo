@@ -9,7 +9,7 @@ from colorama import Fore
 
 def _process_metrics(
     analysis: list, evolution_data: dict, target_dir: str
-) -> tuple[list, list, list, int, float, dict, list, list, list, list]:
+) -> tuple[list, list, list, int, float, dict, list, list, list, list, list]:
     """
     Procesa los resultados de Lizard y PyDriller en una sola pasada.
     Construye métricas por archivo, agrupaciones por lenguaje, totales y datasets avanzados.
@@ -188,23 +188,33 @@ def _process_metrics(
         for f in sorted_by_peak[:10]
     ]
 
+    # Sort files by commits descending to get Top 10 files with highest churn
+    sorted_by_churn = sorted(file_metrics, key=lambda x: x.get("commits", 0), reverse=True)
+    top_churn_files = [
+        {
+            "name": f["name"],
+            "commits": f["commits"],
+            "nloc": f["nloc"]
+        }
+        for f in sorted_by_churn[:10]
+    ]
+
     # -------------------------------------------------------------------------
     # Cálculo de la Red de Colaboración de Desarrolladores (babia-network)
     # -------------------------------------------------------------------------
     author_commits = {}
+    # 1. Contar commits únicos reales por autor en la ventana analizada
+    for commit in evolution_data.get("commits", []):
+        author = commit.get("author", "Unknown")
+        if author != "Release":
+            author_commits[author] = author_commits.get(author, 0) + 1
 
-    # 1. Contar commits por autor basados en las modificaciones reales por archivo (escala a modo releases y commits)
-    for rel_path, authors_dict in evolution_data.get("file_author_commits", {}).items():
-        for author, count in authors_dict.items():
-            if author != "Release":
-                author_commits[author] = author_commits.get(author, 0) + count
-
-    # Fallback si no hay información detallada en file_author_commits
+    # Fallback si evolution_data["commits"] no estuviera disponible
     if not author_commits:
-        for commit in evolution_data.get("commits", []):
-            author = commit.get("author", "Unknown")
-            if author != "Release":
-                author_commits[author] = author_commits.get(author, 0) + 1
+        for rel_path, authors_dict in evolution_data.get("file_author_commits", {}).items():
+            for author, count in authors_dict.items():
+                if author != "Release":
+                    author_commits[author] = author_commits.get(author, 0) + count
 
     # 2. Obtener los 10 autores principales por número de commits para evitar sobrecargar la red
     top_authors = sorted(author_commits.items(), key=lambda x: x[1], reverse=True)[:10]
@@ -253,6 +263,7 @@ def _process_metrics(
         age_distribution,
         top_complex_files,
         file_network,
+        top_churn_files,
     )
 
 

@@ -84,9 +84,9 @@ def run_analysis(url: str, max_commits: int = 150, analysis_mode: str = "commits
         if analysis_mode == "commits":
             last_commit_id = _get_head_commit(target_dir)
             _check_cancelled(session_id)
-            analysis = _run_lizard(target_dir)
-            _check_cancelled(session_id)
             evolution_raw = _run_git_history(target_dir, max_commits=max_commits)
+            _check_cancelled(session_id)
+            analysis = _run_lizard(target_dir)
             _check_cancelled(session_id)
 
         # PASADA ÚNICA: Procesar métricas y lenguajes
@@ -102,6 +102,7 @@ def run_analysis(url: str, max_commits: int = 150, analysis_mode: str = "commits
             age_distribution,
             top_complex_files,
             file_network,
+            top_churn_files,
         ) = _process_metrics(analysis, evolution_raw, target_dir)
 
         main_language = next(iter(language_counts), "unknown")
@@ -129,23 +130,64 @@ def run_analysis(url: str, max_commits: int = 150, analysis_mode: str = "commits
             for f in analysis
         ]
 
-        # Descarga de Pull Requests e Issues públicos de GitHub/GitLab (solo si el repo es público)
+        # Descarga de Pull Requests e Issues (públicos o privados con token)
         pull_requests = []
         issues = []
         is_private = False
+        token = None
+        repo_user = None
+
         if session_id is not None:
             from analyzer.models import AnalysisSession
             session = AnalysisSession.objects.filter(pk=session_id).first()
             if session:
                 is_private = session.repo.is_private
+                repo_user = session.repo.user
+                if repo_user and hasattr(repo_user, "profile"):
+                    if "gitlab" in url.lower():
+                        token = repo_user.profile.gitlab_token
+                    else:
+                        token = repo_user.profile.github_token
 
-        if not is_private:
-            from .public_provider import fetch_public_metadata
-            meta = fetch_public_metadata(url)
-            pull_requests = meta.get("pull_requests", [])
-            issues = meta.get("issues", [])
-            repo_summary["stars"] = meta.get("stars", 0)
-            repo_summary["forks"] = meta.get("forks", 0)
+        # Inicializar métricas vacías por defecto
+        repo_summary["stars"] = 0
+        repo_summary["forks"] = 0
+        repo_summary["code_reviews"] = {"nodes": [], "links": []}
+        repo_summary["issues_health"] = []
+        repo_summary["releases_health"] = []
+
+        # Intentar extracción enriquecida si hay token
+        extracted = False
+        if token:
+            try:
+                from .private_provider import fetch_private_metadata
+                meta = fetch_private_metadata(url, token)
+                if meta:
+                    pull_requests = meta.get("pull_requests", [])
+                    issues = meta.get("issues", [])
+                    repo_summary["stars"] = meta.get("stars", 0)
+                    repo_summary["forks"] = meta.get("forks", 0)
+                    repo_summary["code_reviews"] = meta.get("code_reviews", {"nodes": [], "links": []})
+                    repo_summary["issues_health"] = meta.get("issues_health", [])
+                    repo_summary["releases_health"] = meta.get("releases_health", [])
+                    extracted = True
+                    print(Fore.GREEN + "ViZo // Extracción enriquecida OAuth completada exitosamente.")
+            except Exception as e:
+                print(Fore.RED + f"ViZo // Error en extracción OAuth privada: {e}. Degradando...")
+
+        # Degradación elegante a pública (solo si no es privado el repo)
+        if not extracted and not is_private:
+            try:
+                from .public_provider import fetch_public_metadata
+                meta = fetch_public_metadata(url)
+                if meta:
+                    pull_requests = meta.get("pull_requests", [])
+                    issues = meta.get("issues", [])
+                    repo_summary["stars"] = meta.get("stars", 0)
+                    repo_summary["forks"] = meta.get("forks", 0)
+                    print(Fore.YELLOW + "ViZo // Extracción pública sin token completada (degradada).")
+            except Exception as e:
+                print(Fore.RED + f"ViZo // Error en extracción pública: {e}")
 
         # Enriquecer el resumen con los contadores de PRs e Issues
         # para que la IA pueda decidir si instanciar los dashboards de comunidad
@@ -166,6 +208,7 @@ def run_analysis(url: str, max_commits: int = 150, analysis_mode: str = "commits
             "age_distribution": age_distribution,
             "top_complex_files": top_complex_files,
             "file_network": file_network,
+            "top_churn_files": top_churn_files,
             "pull_requests": pull_requests,
             "issues": issues,
         }

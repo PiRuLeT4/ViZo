@@ -61,18 +61,28 @@ def _run_git_history(target_dir: str, max_commits: int = 150) -> dict:
                 author_name = commit.author.name if commit.author else "Unknown"
                 date_str = commit.author_date.strftime("%Y-%m-%d")
 
-                # Extraemos lo que necesitamos mientras el objeto commit es válido
+                # Extraemos lo que necesitamos controlando fallos individuales de diff en shallow clones
+                try:
+                    insertions = commit.insertions
+                    deletions = commit.deletions
+                    modified_files_list = list(commit.modified_files)
+                except Exception as e:
+                    print(Fore.YELLOW + f"ViZo // Omitiendo estadísticas de diff para commit límite {commit.hash[:8]}: {e}")
+                    insertions = 0
+                    deletions = 0
+                    modified_files_list = []
+
                 info = {
                     "hash": commit.hash,
                     "author": author_name,
                     "date": date_str,
                     "message": commit.msg,
-                    "insertions": commit.insertions,
-                    "deletions": commit.deletions,
+                    "insertions": insertions,
+                    "deletions": deletions,
                     "modified_files": [],
                 }
 
-                for mf in commit.modified_files:
+                for mf in modified_files_list:
                     path = mf.new_path or mf.old_path
                     if path:
                         rel_path = path.replace("\\", "/")
