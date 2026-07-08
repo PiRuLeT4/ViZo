@@ -500,6 +500,35 @@ function buildStatsTrophies(scene, summary) {
   );
 }
 
+/**
+ * babia-pie: gráfico de sectores/tarta 3D.
+ */
+function buildPie(scene, dash, loaderId, pos) {
+  const m = dash.mappings || {};
+  const vizEl = document.createElement("a-entity");
+  vizEl.setAttribute("id", "vizo-viz-" + dash.id);
+  vizEl.setAttribute("position", pos.x + " 1.2 " + pos.z);
+  vizEl.setAttribute("rotation", `90 ${pos.rotY} 0`);
+  vizEl.setAttribute("scale", "0.6 0.6 0.6");
+  vizEl.setAttribute(
+    "babia-pie",
+    [
+      "from: " + loaderId,
+      "key: " + (m.key || "key"),
+      "size: " + (m.size || "size"),
+      "legend: true",
+      "animation: true",
+      "titlePosition: 2 0 -3",
+      "palette: pearl",
+    ].join("; "),
+  );
+
+  scene.appendChild(vizEl);
+  vizEl.setAttribute("vizo-podio", "");
+  console.log("ViZo // babia-pie creado sobre pedestal");
+  buildControlPanel(scene, dash, "vizo-viz-" + dash.id, pos, "doughnut");
+}
+
 // Export for global access
 window.ViZoBuilders = window.ViZoBuilders || {};
 window.ViZoBuilders.POSITIONS = POSITIONS;
@@ -507,6 +536,7 @@ window.ViZoBuilders.calculateSatellitePosition = calculateSatellitePosition;
 window.ViZoBuilders.buildCity = buildCity;
 window.ViZoBuilders.buildCyls = buildCyls;
 window.ViZoBuilders.buildDoughnut = buildDoughnut;
+window.ViZoBuilders.buildPie = buildPie;
 window.ViZoBuilders.buildBarsmap = buildBarsmap;
 window.ViZoBuilders.buildNetwork = buildNetwork;
 window.ViZoBuilders.buildBars = buildBars;

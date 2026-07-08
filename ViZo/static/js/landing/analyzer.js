@@ -137,6 +137,23 @@ if (cancelAnalysisBtn) {
       }
     })
       .then(res => {
+        if (res.status === 404) {
+          if (pollingInterval) {
+            clearInterval(pollingInterval);
+            pollingInterval = null;
+          }
+          if (messageTimer) {
+            clearInterval(messageTimer);
+            messageTimer = null;
+          }
+          clearActiveSessionStorage();
+          resetReopenBtn();
+          hud.className = "vizo-progress-hud active status-failed";
+          hudStatusText.textContent = "Sesión no encontrada";
+          appendTerminalLog("ERROR: No se pudo cancelar porque la sesión no existe en el servidor.");
+          if (hudCancelContainer) hudCancelContainer.style.display = "none";
+          throw new Error("Session not found (HTTP 404)");
+        }
         if (!res.ok) throw new Error("Cancel API returned HTTP " + res.status);
         return res.json();
       })
@@ -228,6 +245,23 @@ function pollSessionStatus(sessionId) {
   pollingInterval = setInterval(() => {
     fetch(`/api/session/${sessionId}/status/`)
       .then(res => {
+        if (res.status === 404) {
+          if (pollingInterval) {
+            clearInterval(pollingInterval);
+            pollingInterval = null;
+          }
+          if (messageTimer) {
+            clearInterval(messageTimer);
+            messageTimer = null;
+          }
+          clearActiveSessionStorage();
+          resetReopenBtn();
+          hud.className = "vizo-progress-hud active status-failed";
+          hudStatusText.textContent = "Sesión no encontrada";
+          appendTerminalLog("ESTADO: ERROR CRÍTICO. La sesión de análisis especificada no existe en el servidor.");
+          if (hudCancelContainer) hudCancelContainer.style.display = "none";
+          throw new Error("Session not found (HTTP 404)");
+        }
         if (!res.ok) throw new Error("Status API returned HTTP " + res.status);
         return res.json();
       })

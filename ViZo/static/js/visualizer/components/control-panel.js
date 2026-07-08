@@ -87,18 +87,10 @@ const PANEL_CONFIGS = {
       {
         text: "EXPLICAR",
         action: "explain-ai",
-        x: -0.3,
+        x: 0,
         y: -0.3,
-        w: 0.42,
-        h: 0.07,
-      },
-      {
-        text: "WIREFRAMES",
-        action: "wireframe",
-        x: 0.3,
-        y: -0.3,
-        w: 0.42,
-        h: 0.07,
+        w: 0.35,
+        h: 0.05,
       },
     ],
     headers: [
@@ -125,11 +117,10 @@ const PANEL_CONFIGS = {
   },
   barsmap: {
     y: 0.45,
-    dist: 6,
+    dist: 4,
     height: 0.45,
     buttons: [
-      { text: "COMMITS/INS", action: "cycle-height", x: -0.38, y: 0.0, w: 0.6, h: 0.1 },
-      { text: "EXPLICAR", action: "explain-ai", x: 0.38, y: 0.0, w: 0.6, h: 0.1 },
+      { text: "EXPLICAR", action: "explain-ai", x: 0, y: 0.0, w: 0.7, h: 0.1 },
     ],
   },
   network: {
@@ -349,7 +340,10 @@ function buildControlPanel(scene, dash, vizId, pos, type) {
     btnTxt.setAttribute("emissive-intensity", "1.5");
     btnTxt.setAttribute(
       "width",
-      (btnWidth * (type === "boats" ? 2.8 : 2.5)).toString(),
+      (
+        btnWidth *
+        (type === "boats" ? (btn.action === "explain-ai" ? 2.4 : 2.8) : 2.5)
+      ).toString(),
     );
     btnTxt.setAttribute("font", "https://cdn.aframe.io/fonts/Exo2Bold.fnt");
     btnEl.appendChild(btnTxt);

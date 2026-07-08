@@ -7,7 +7,7 @@
   window.ViZoState = window.ViZoState || {
     loaders: {},
     dataMap: {},
-    blobUrls: {}
+    blobUrls: {},
   };
 
   /**
@@ -87,8 +87,8 @@
       const maxCommits = Math.max(...commitCounts);
       const minCommits = Math.min(...commitCounts);
 
-      const minSize = 0.0;
-      const maxSize = 100.0;
+      const minSize = 1.0;
+      const maxSize = 250.0;
 
       finalNodes.forEach((node) => {
         if (maxCommits === minCommits) {
@@ -200,15 +200,79 @@
     const heightField = (dash.mappings && dash.mappings.height) || "commits";
     let limitedData = Array.isArray(originalData) ? [...originalData] : [];
 
-    // Sort descending by height field
-    limitedData.sort((a, b) => {
-      const valA = parseFloat(a[heightField]) || 0;
-      const valB = parseFloat(b[heightField]) || 0;
-      return valB - valA;
-    });
+    if (dash.component === "babia-barsmap") {
+      const xField = (dash.mappings && dash.mappings.x_axis) || "author";
+      const zField = (dash.mappings && dash.mappings.z_axis) || "date";
 
-    // Take top 15 elements
-    limitedData = limitedData.slice(0, 15);
+      const xSums = {};
+      const zSums = {};
+
+      limitedData.forEach((item) => {
+        const xVal = item[xField];
+        const zVal = item[zField];
+        const val = parseFloat(item[heightField]) || 0;
+
+        if (xVal !== undefined && xVal !== null) {
+          xSums[xVal] = (xSums[xVal] || 0) + val;
+        }
+        if (zVal !== undefined && zVal !== null) {
+          zSums[zVal] = (zSums[zVal] || 0) + val;
+        }
+      });
+
+      const topX = Object.keys(xSums)
+        .sort((a, b) => xSums[b] - xSums[a])
+        .slice(0, 10);
+
+      const topZ = Object.keys(zSums)
+        .sort((a, b) => zSums[b] - zSums[a])
+        .slice(0, 10);
+
+      const setX = new Set(topX);
+      const setZ = new Set(topZ);
+
+      limitedData = limitedData.filter((item) => {
+        return setX.has(String(item[xField])) && setZ.has(String(item[zField]));
+      });
+
+      console.log(
+        "ViZo // Barsmap '" +
+          dash.id +
+          "' limitado a ejes X (max 12 distintos, actual: " +
+          setX.size +
+          ") y Z (max 12 distintos, actual: " +
+          setZ.size +
+          "). Celdas resultantes: " +
+          limitedData.length,
+      );
+    } else {
+      // Sort descending by height field
+      limitedData.sort((a, b) => {
+        const valA = parseFloat(a[heightField]) || 0;
+        const valB = parseFloat(b[heightField]) || 0;
+        return valB - valA;
+      });
+
+      // Take top 15 elements
+      limitedData = limitedData.slice(0, 15);
+    }
+
+    // Truncar mensajes de commits para evitar leyendas gigantescas en A-Frame
+    if (datasetKey === "evolution_data") {
+      limitedData = limitedData.map((item) => {
+        let msg = item.message || "";
+        if (msg.includes("\n")) {
+          msg = msg.split("\n")[0];
+        }
+        if (msg.length > 25) {
+          msg = msg.substring(0, 22) + "...";
+        }
+        return {
+          ...item,
+          message: msg || (item.hash ? item.hash.substring(0, 8) : "commit"),
+        };
+      });
+    }
 
     const blob = new Blob([JSON.stringify(limitedData)], {
       type: "application/json",
@@ -227,6 +291,66 @@
       "con",
       limitedData.length,
       "elementos",
+    );
+    return loaderId;
+  }
+
+  /**
+   * Creador de cargadores limitados a 20 releases más recientes (últimos 20 del historial)
+   */
+  function ensureLimitedReleasesLoader(scene, dash) {
+    const state = window.ViZoState;
+    const datasetKey = dash.dataset;
+    const originalData = state.dataMap[datasetKey];
+    if (!originalData) {
+      console.warn(
+        "ViZo // Dataset '" + datasetKey + "' no disponible para releases.",
+      );
+      return null;
+    }
+
+    const loaderId = "vizo-loader-limited-releases-" + dash.id;
+    if (state.loaders[loaderId]) return state.loaders[loaderId];
+
+    let limitedData = Array.isArray(originalData) ? [...originalData] : [];
+
+    // Tomamos las 20 releases más recientes (las últimas 20 de la lista)
+    if (limitedData.length > 20) {
+      limitedData = limitedData.slice(limitedData.length - 20);
+    }
+
+    // Truncar mensajes/tags largos para evitar deformidades en A-Frame
+    limitedData = limitedData.map((item) => {
+      let msg = item.message || "";
+      if (msg.includes("\n")) {
+        msg = msg.split("\n")[0];
+      }
+      if (msg.length > 20) {
+        msg = msg.substring(0, 17) + "...";
+      }
+      return {
+        ...item,
+        message: msg || "Release",
+      };
+    });
+
+    const blob = new Blob([JSON.stringify(limitedData)], {
+      type: "application/json",
+    });
+    const blobUrl = URL.createObjectURL(blob);
+
+    const loaderEl = document.createElement("a-entity");
+    loaderEl.setAttribute("id", loaderId);
+    loaderEl.setAttribute("babia-queryjson", "url: " + blobUrl);
+    scene.appendChild(loaderEl);
+
+    state.loaders[loaderId] = loaderId;
+    console.log(
+      "ViZo // Cargador de releases limitado creado:",
+      loaderId,
+      "con",
+      limitedData.length,
+      "releases",
     );
     return loaderId;
   }
@@ -469,12 +593,13 @@
     ensureNetworkLoaders: ensureNetworkLoaders,
     ensureLoader: ensureLoader,
     ensureLimitedLoader: ensureLimitedLoader,
+    ensureLimitedReleasesLoader: ensureLimitedReleasesLoader,
     typewriterEffect: typewriterEffect,
     toggleWireframe: toggleWireframe,
     swapMappings: swapMappings,
     cycleHeight: cycleHeight,
     setHeight: setHeight,
     setColor: setColor,
-    updateButtonStates: updateButtonStates
+    updateButtonStates: updateButtonStates,
   };
 })();

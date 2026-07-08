@@ -140,7 +140,12 @@
     );
 
     // Guardar los datos en el mapa de estado global
-    window.ViZoState.repoSummary = apiData.repo_summary || { stars: 0, forks: 0 };
+    const repoSummary = apiData.repo_summary || {};
+    const codeReviews = repoSummary.code_reviews || { nodes: [], links: [] };
+    const issuesHealth = repoSummary.issues_health || [];
+    const releasesHealth = repoSummary.releases_health || [];
+
+    window.ViZoState.repoSummary = repoSummary;
     window.ViZoState.dataMap = {
       file_metrics: fileMetrics,
       data_by_language: dataByLanguage,
@@ -152,6 +157,10 @@
       file_network: fileNetwork,
       pull_requests: pullRequests,
       issues: processedIssues,
+      code_reviews: codeReviews,
+      issues_health: issuesHealth,
+      releases_health: releasesHealth,
+      top_churn_files: apiData.top_churn_files,
     };
 
     // Pregenerar Blob URLs
@@ -182,6 +191,7 @@
     buildCity,
     buildCyls,
     buildDoughnut,
+    buildPie,
     buildBarsmap,
     buildNetwork,
     buildBars,
@@ -221,6 +231,21 @@
         "mappings:",
         JSON.stringify(dash.mappings),
       );
+
+      // Filtro de Autocuración contra datasets vacíos
+      const datasetKey = dash.dataset;
+      const datasetData = window.ViZoState.dataMap[datasetKey];
+      const isEmpty = !datasetData || 
+                      (Array.isArray(datasetData) && datasetData.length === 0) ||
+                      (typeof datasetData === 'object' && 
+                       (!datasetData.nodes || datasetData.nodes.length === 0) &&
+                       (!datasetData.links || datasetData.links.length === 0) &&
+                       Object.keys(datasetData).length === 0);
+
+      if (isEmpty) {
+        console.warn(`ViZo // Omitiendo dashboard '${dash.id}' (${dash.component}) porque el dataset '${datasetKey}' está vacío.`);
+        return; // Omitimos este dashboard de forma silenciosa
+      }
       
       let loaderId = null;
       if (
@@ -230,6 +255,12 @@
         loaderId = window.ViZoHelpers.ensureLimitedLoader(scene, dash);
       } else if (dash.component === "babia-network") {
         loaderId = "network-special-flag";
+      } else if (
+        dash.component === "babia-cyls" &&
+        dash.dataset === "evolution_data" &&
+        window.ViZoState.repoSummary.analysis_mode === "releases"
+      ) {
+        loaderId = window.ViZoHelpers.ensureLimitedReleasesLoader(scene, dash);
       } else {
         loaderId = window.ViZoHelpers.ensureLoader(scene, dash.dataset);
       }
@@ -270,6 +301,9 @@
         case "babia-doughnut":
           buildDoughnut(scene, dash, loaderId, pos);
           break;
+        case "babia-pie":
+          buildPie(scene, dash, loaderId, pos);
+          break;
         case "babia-barsmap":
           buildBarsmap(scene, dash, loaderId, pos);
           break;
@@ -307,6 +341,10 @@
     // Renderizar trofeos de Stars y Forks si están disponibles
     if (window.ViZoBuilders.buildStatsTrophies) {
       window.ViZoBuilders.buildStatsTrophies(scene, window.ViZoState.repoSummary);
+    }
+    // Renderizar Muro de la Fama de Desarrolladores (Top 3) asíncronamente
+    if (window.ViZoBuilders.initWallOfFame) {
+      window.ViZoBuilders.initWallOfFame();
     }
   }
 })();

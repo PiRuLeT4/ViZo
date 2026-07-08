@@ -6,18 +6,6 @@
   // holográficos interactivos para los Top 3 desarrolladores del repositorio.
   // =============================================================================
 
-  document.addEventListener("DOMContentLoaded", function () {
-    // Esperar a que A-Frame se inicialice completamente
-    const scene = document.querySelector("a-scene");
-    if (scene) {
-      if (scene.hasLoaded) {
-        initWallOfFame();
-      } else {
-        scene.addEventListener("loaded", initWallOfFame);
-      }
-    }
-  });
-
   function initWallOfFame() {
     console.log("ViZo // Inicializando Muro de la Fama de Desarrolladores...");
     const container = document.getElementById("fame-profiles-container");
@@ -26,23 +14,21 @@
       return;
     }
 
-    // Parsear historial de commits desde el HTML
-    const evolutionJsonEl = document.getElementById("vizo-evolution-json");
-    if (!evolutionJsonEl || !evolutionJsonEl.textContent.trim()) {
-      renderFallback(container, "Sin datos de commits.");
+    // Obtener historial de commits desde el estado global asíncrono
+    const evolutionData = window.ViZoState && window.ViZoState.dataMap && window.ViZoState.dataMap.evolution_data;
+    if (!evolutionData) {
+      renderFallback(container, "Sin datos de evolución.");
       return;
     }
 
     let commits = [];
-    try {
-      commits = JSON.parse(evolutionJsonEl.textContent);
-    } catch (e) {
-      console.error("ViZo // Error parseando historial de commits:", e);
-      renderFallback(container, "Error de datos.");
-      return;
+    if (Array.isArray(evolutionData)) {
+      commits = evolutionData;
+    } else if (evolutionData && Array.isArray(evolutionData.commits)) {
+      commits = evolutionData.commits;
     }
-
-    if (!Array.isArray(commits) || commits.length === 0) {
+ 
+    if (commits.length === 0) {
       renderFallback(container, "No hay commits registrados.");
       return;
     }
@@ -317,4 +303,8 @@
     textEl.setAttribute("font", "https://cdn.aframe.io/fonts/Exo2Bold.fnt");
     container.appendChild(textEl);
   }
+
+  // Exportar para que se llame asíncronamente tras cargar la API
+  window.ViZoBuilders = window.ViZoBuilders || {};
+  window.ViZoBuilders.initWallOfFame = initWallOfFame;
 })();
