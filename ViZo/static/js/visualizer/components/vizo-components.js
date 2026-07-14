@@ -13,23 +13,86 @@ window.SOLID_BOXES = [];
 /* ── room-bounds: keeps player inside the room walls ── */
 AFRAME.registerComponent("room-bounds", {
   schema: {
-    minX: { type: "number", default: -19 },
-    maxX: { type: "number", default: 19 },
+    minX: { type: "number", default: -15 },
+    maxX: { type: "number", default: 15 },
     minY: { type: "number", default: 1 },
     maxY: { type: "number", default: 8.5 },
-    minZ: { type: "number", default: -19 },
-    maxZ: { type: "number", default: 39 },
+    minZ: { type: "number", default: -15 },
   },
   tick: function () {
     var p = this.el.object3D.position;
     var d = this.data;
-    if (p.x < d.minX) p.x = d.minX;
-    if (p.x > d.maxX) p.x = d.maxX;
     if (p.y < d.minY) p.y = d.minY;
     if (p.y > d.maxY) p.y = d.maxY;
+    
+    // Aplicar límites laterales de la sala solo dentro de ella (Z entre -16 y 20)
+    if (p.z >= -16 && p.z <= 20) {
+      if (p.x < d.minX) p.x = d.minX;
+      if (p.x > d.maxX) p.x = d.maxX;
+    }
+    
+    // Aplicar límite frontal/trasero absoluto de movimiento
     if (p.z < d.minZ) p.z = d.minZ;
-    if (p.z > d.maxZ) p.z = d.maxZ;
   },
+});
+
+/* ── vizo-opacity-control: adjusts material opacity of target elements ── */
+AFRAME.registerComponent("vizo-opacity-control", {
+  schema: {
+    target: { type: "string" },
+    action: { type: "string" },
+    valueEl: { type: "string" }
+  },
+  init: function () {
+    this.el.addEventListener("click", () => {
+      const targetEl = document.querySelector(this.data.target);
+      const valueEl = document.querySelector(this.data.valueEl);
+      if (!targetEl || !valueEl) return;
+
+      // Get current opacity
+      let material = targetEl.getAttribute("material") || {};
+      let currentOpacity = parseFloat(material.opacity);
+      if (isNaN(currentOpacity)) {
+        currentOpacity = parseFloat(targetEl.getAttribute("opacity"));
+        if (isNaN(currentOpacity)) {
+          currentOpacity = 1.0;
+        }
+      }
+
+      // Calculate new opacity
+      let newOpacity = currentOpacity;
+      if (this.data.action === "increase") {
+        newOpacity = Math.min(1.0, currentOpacity + 0.1);
+      } else {
+        newOpacity = Math.max(0.0, currentOpacity - 0.1);
+      }
+
+      // Clamp to 1 decimal place
+      newOpacity = Math.round(newOpacity * 10) / 10;
+
+      // Apply opacity and ensure transparent is true
+      targetEl.setAttribute("material", {
+        transparent: true,
+        opacity: newOpacity
+      });
+      targetEl.setAttribute("opacity", newOpacity);
+
+      // Update value display text
+      valueEl.setAttribute("value", newOpacity.toFixed(1));
+    });
+
+    // Hover effects
+    this.el.addEventListener("mouseenter", () => {
+      this.el.setAttribute("color", "#8b0a2d");
+      this.el.setAttribute("emissive", "#8b0a2d");
+      this.el.setAttribute("emissive-intensity", "0.8");
+    });
+    this.el.addEventListener("mouseleave", () => {
+      this.el.setAttribute("color", "#1a1a24");
+      this.el.setAttribute("emissive", "#1a1a24");
+      this.el.setAttribute("emissive-intensity", "0.0");
+    });
+  }
 });
 
 /* ── solid-box: registers an AABB collider (attach to any entity) ── */
@@ -182,12 +245,12 @@ AFRAME.registerComponent("vizo-control-btn", {
       var base = el.querySelector(".vizo-btn-base");
       var border = el.querySelector(".vizo-btn-border");
       if (base) {
-        base.setAttribute("emissive", "#00d4ff");
+        base.setAttribute("emissive", "#8B0A2E");
         base.setAttribute("emissive-intensity", "1.8");
       }
       if (border) {
         border.setAttribute("color", "#ffffff");
-        border.setAttribute("emissive", "#00d4ff");
+        border.setAttribute("emissive", "#8B0A2E");
         border.setAttribute("emissive-intensity", "3.0");
       }
     });
@@ -196,8 +259,8 @@ AFRAME.registerComponent("vizo-control-btn", {
       el.setAttribute("scale", "1 1 1");
       var text = el.querySelector("a-text");
       if (text) {
-        text.setAttribute("color", "#00d4ff");
-        text.setAttribute("emissive-intensity", "1.5");
+        text.setAttribute("color", "#a0aec0");
+        text.setAttribute("emissive-intensity", "0.5");
       }
       var base = el.querySelector(".vizo-btn-base");
       var border = el.querySelector(".vizo-btn-border");
@@ -215,29 +278,33 @@ AFRAME.registerComponent("vizo-control-btn", {
         ) {
           window.ViZoHelpers.updateButtonStates(panelEl, targetEl, data.vizType);
         } else {
-          // Check if button text color is green (meaning it was highlighted, e.g. cached AI explain)
-          var isGreen =
-            text &&
-            (text.getAttribute("color") === "#4af7a0" ||
-              text.getAttribute("color") === "rgb(74, 247, 160)" ||
-              text.getAttribute("color") === "#00ff66");
-          if (isGreen) {
-            base.setAttribute("color", "#003b21");
-            base.setAttribute("emissive", "#4af7a0");
+          // Check if button text color is white / border is brand rose (meaning it is active/highlighted)
+          var isActive =
+            border &&
+            (border.getAttribute("color") === "#D4364F" ||
+              border.getAttribute("color") === "rgb(212, 54, 79)");
+          if (isActive) {
+            base.setAttribute("color", "#59041A");
+            base.setAttribute("emissive", "#59041A");
             base.setAttribute("emissive-intensity", "0.8");
             if (border) {
-              border.setAttribute("color", "#4af7a0");
-              border.setAttribute("emissive", "#4af7a0");
-              border.setAttribute("emissive-intensity", "2.0");
+              border.setAttribute("color", "#D4364F");
+              border.setAttribute("emissive", "#D4364F");
+              border.setAttribute("emissive-intensity", "1.5");
+            }
+            if (text) {
+              text.setAttribute("color", "#ffffff");
+              text.setAttribute("emissive", "#ffffff");
+              text.setAttribute("emissive-intensity", "1.5");
             }
           } else {
-            base.setAttribute("color", "#002a5a");
-            base.setAttribute("emissive", "#002a5a");
-            base.setAttribute("emissive-intensity", "0.5");
+            base.setAttribute("color", "#1a1a24");
+            base.setAttribute("emissive", "#1a1a24");
+            base.setAttribute("emissive-intensity", "0.3");
             if (border) {
-              border.setAttribute("color", "#00d4ff");
-              border.setAttribute("emissive", "#00d4ff");
-              border.setAttribute("emissive-intensity", "1.2");
+              border.setAttribute("color", "#8B0A2E");
+              border.setAttribute("emissive", "#8B0A2E");
+              border.setAttribute("emissive-intensity", "0.8");
             }
           }
         }
@@ -314,3 +381,39 @@ AFRAME.registerComponent("vizo-control-btn", {
     });
   },
 });
+
+/* ── Keyboard Camera Acceleration (Shift key to sprint in browser) ── */
+(function () {
+  let originalSpeed = null;
+
+  window.addEventListener("keydown", function (e) {
+    if (e.key === "Shift") {
+      const scene = document.querySelector("a-scene");
+      if (scene && !scene.is("vr-mode")) {
+        const rig = document.getElementById("rig");
+        if (rig) {
+          // Read current speed if not saved yet
+          const mc = rig.getAttribute("movement-controls");
+          if (mc) {
+            const currentSpeed = typeof mc === "object" ? mc.speed : parseFloat(mc.match(/speed:\s*([0-9.]+)/)?.[1] || 0.3);
+            if (originalSpeed === null) {
+              originalSpeed = currentSpeed || 0.3;
+            }
+            // Accelerate speed (2.5x original speed)
+            rig.setAttribute("movement-controls", "speed", (originalSpeed * 2.5).toFixed(2));
+          }
+        }
+      }
+    }
+  });
+
+  window.addEventListener("keyup", function (e) {
+    if (e.key === "Shift") {
+      const rig = document.getElementById("rig");
+      if (rig && originalSpeed !== null) {
+        rig.setAttribute("movement-controls", "speed", originalSpeed);
+        originalSpeed = null;
+      }
+    }
+  });
+})();

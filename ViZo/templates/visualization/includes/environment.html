@@ -1,28 +1,35 @@
 <!-- Tech Office Environment: ViZo Lab -->
 
-<!-- Sky / room atmosphere -->
-<a-sky color="#050a12"></a-sky>
+<!-- Exterior Environment component (matches professional dark & burdeos design) -->
+<!-- <a-entity
+  environment="preset: starry; skyType: none; groundColor: #060812; lighting: none; playArea: 1.5; dressing: apparatus; dressingAmount: 10; dressingColor: #59041a; dressingScale: 1.5"
+></a-entity> -->
 
-<!-- ── FLOOR: dark polished tiles ── -->
+<!-- Sky / room atmosphere -->
+<a-sky src="#office" rotation="0 180 0"></a-sky>
+
+<!-- ── FLOOR: warm dark wood ── -->
 <a-plane
-  position="0 0 0"
+  id="floor-plane"
+  position="0 0 2"
   rotation="-90 0 0"
-  width="80"
-  height="80"
-  color="#0b0f1a"
-  roughness="0.15"
-  metalness="0.6"
-  repeat="40 40"
+  width="32"
+  height="36"
+  color="#14110f"
+  roughness="0.5"
+  metalness="0.2"
+  repeat="16 18"
+  transparent="true"
 ></a-plane>
 
 <!-- Subtle tile grid overlay (emissive lines) -->
 <a-plane
-  position="0 0.01 0"
+  position="0 0.01 2"
   rotation="-90 0 0"
-  width="80"
-  height="80"
-  color="#0d1a2e"
-  opacity="0.45"
+  width="32"
+  height="36"
+  color="#301e22"
+  opacity="0.20"
   transparent="true"
   roughness="1"
   metalness="0"
@@ -30,1044 +37,493 @@
 
 <!-- ── CEILING ── -->
 <a-plane
-  position="0 9 0"
+  position="0 9 2"
   rotation="90 0 0"
-  width="80"
-  height="80"
-  color="#080c14"
+  width="32"
+  height="36"
+  color="#0c0c10"
+  roughness="0.8"
 ></a-plane>
 
-<!-- Ceiling light panels (glowing strips) -->
-<a-box
-  position="-8 8.85 0"
-  width="0.25"
-  height="0.08"
-  depth="24"
-  color="#0f35a6"
-  emissive="#0f35a6"
-  emissive-intensity="0.7"
-></a-box>
-<a-box
-  position=" 0 8.85 0"
-  width="0.25"
-  height="0.08"
-  depth="24"
-  color="#0f35a6"
-  emissive="#0f35a6"
-  emissive-intensity="0.7"
-></a-box>
-<a-box
-  position=" 8 8.85 0"
-  width="0.25"
-  height="0.08"
-  depth="24"
-  color="#0f35a6"
-  emissive="#0f35a6"
-  emissive-intensity="0.7"
-></a-box>
+<!-- Ceiling light panels (wood-trimmed warm spotlights) -->
+<!-- Left Panel Front -->
+<a-box position="-6.4 8.92 -4" width="0.8" height="0.1" depth="20" color="#2b1e19" roughness="0.7"></a-box>
+<a-box position="-6.4 8.87 -4" width="0.5" height="0.05" depth="19.6" color="#FFF8EB" emissive="#FFF8EB" emissive-intensity="1.2"></a-box>
 
-<!-- Ceiling light panels back area (glowing strips) -->
-<a-box
-  position="-8 8.85 24"
-  width="0.25"
-  height="0.08"
-  depth="24"
-  color="#0f35a6"
-  emissive="#0f35a6"
-  emissive-intensity="0.7"
-></a-box>
-<a-box
-  position=" 0 8.85 24"
-  width="0.25"
-  height="0.08"
-  depth="24"
-  color="#0f35a6"
-  emissive="#0f35a6"
-  emissive-intensity="0.7"
-></a-box>
-<a-box
-  position=" 8 8.85 24"
-  width="0.25"
-  height="0.08"
-  depth="24"
-  color="#0f35a6"
-  emissive="#0f35a6"
-  emissive-intensity="0.7"
-></a-box>
+<!-- Center Panel Front -->
+<a-box position="0 8.92 -4" width="0.8" height="0.1" depth="20" color="#2b1e19" roughness="0.7"></a-box>
+<a-box position="0 8.87 -4" width="0.5" height="0.05" depth="19.6" color="#FFF8EB" emissive="#FFF8EB" emissive-intensity="1.2"></a-box>
 
-<!-- ── BACK WALL (glass + neon frame) ── -->
-<a-plane
-  position="0 4.5 -20"
-  rotation="0 0 0"
-  width="80"
-  height="9"
-  color="#0a0e1c"
-  opacity="0.92"
-  transparent="true"
-  roughness="0.05"
-  metalness="0.9"
-></a-plane>
+<!-- Right Panel Front -->
+<a-box position="6.4 8.92 -4" width="0.8" height="0.1" depth="20" color="#2b1e19" roughness="0.7"></a-box>
+<a-box position="6.4 8.87 -4" width="0.5" height="0.05" depth="19.6" color="#FFF8EB" emissive="#FFF8EB" emissive-intensity="1.2"></a-box>
 
-<!-- Neon horizontal accent on back wall -->
-<a-box
-  position="0 1.2 -19.9"
-  width="78"
-  height="0.06"
-  depth="0.05"
-  color="#00a8cc"
-  emissive="#00a8cc"
-  emissive-intensity="0.8"
-></a-box>
-<a-box
-  position="0 8.0 -19.9"
-  width="78"
-  height="0.06"
-  depth="0.05"
-  color="#00a8cc"
-  emissive="#00a8cc"
-  emissive-intensity="0.8"
-></a-box>
+<!-- Left Panel Back (Shortened to end at Z = 20) -->
+<a-box position="-6.4 8.92 13" width="0.8" height="0.1" depth="14" color="#2b1e19" roughness="0.7"></a-box>
+<a-box position="-6.4 8.87 13" width="0.5" height="0.05" depth="13.6" color="#FFF8EB" emissive="#FFF8EB" emissive-intensity="1.2"></a-box>
 
-<!-- Vertical neon pillars on back wall -->
-<a-box
-  position="-18 4.5 -19.9"
-  width="0.06"
-  height="9"
-  depth="0.05"
-  color="#003db3"
-  emissive="#003db3"
-  emissive-intensity="0.7"
-></a-box>
-<a-box
-  position=" -6 4.5 -19.9"
-  width="0.06"
-  height="9"
-  depth="0.05"
-  color="#003db3"
-  emissive="#003db3"
-  emissive-intensity="0.7"
-></a-box>
-<a-box
-  position="  6 4.5 -19.9"
-  width="0.06"
-  height="9"
-  depth="0.05"
-  color="#003db3"
-  emissive="#003db3"
-  emissive-intensity="0.7"
-></a-box>
-<a-box
-  position=" 18 4.5 -19.9"
-  width="0.06"
-  height="9"
-  depth="0.05"
-  color="#003db3"
-  emissive="#003db3"
-  emissive-intensity="0.7"
-></a-box>
+<!-- Center Panel Back (Shortened to end at Z = 20) -->
+<a-box position="0 8.92 13" width="0.8" height="0.1" depth="14" color="#2b1e19" roughness="0.7"></a-box>
+<a-box position="0 8.87 13" width="0.5" height="0.05" depth="13.6" color="#FFF8EB" emissive="#FFF8EB" emissive-intensity="1.2"></a-box>
+
+<!-- Right Panel Back (Shortened to end at Z = 20) -->
+<a-box position="6.4 8.92 13" width="0.8" height="0.1" depth="14" color="#2b1e19" roughness="0.7"></a-box>
+<a-box position="6.4 8.87 13" width="0.5" height="0.05" depth="13.6" color="#FFF8EB" emissive="#FFF8EB" emissive-intensity="1.2"></a-box>
+
+
 
 <!-- ── SIDE WALLS ── -->
 <a-plane
-  position="-20 4.5 0"
+  id="left-wall"
+  position="-16 4.5 2"
   rotation="0  90 0"
-  width="80"
+  width="36"
   height="9"
-  color="#080c14"
+  color="#0e0e12"
+  opacity=".5"
+  transparent="true"
+  roughness="0.8"
+  metalness="0.1"
 ></a-plane>
 <a-plane
-  position=" 20 4.5 0"
+  id="right-wall"
+  position=" 16 4.5 2"
   rotation="0 -90 0"
-  width="80"
+  width="36"
   height="9"
-  color="#080c14"
+  color="#0e0e12"
+  opacity=".5"
+  transparent="true"
+  roughness="0.8"
+  metalness="0.1"
 ></a-plane>
 
-<!-- Side wall neon accents -->
+<!-- Side wall walnut wood baseboards -->
 <a-box
-  position="-19.9 1.2 0"
-  width="0.05"
-  height="0.06"
-  depth="78"
-  color="#00a8cc"
-  emissive="#00a8cc"
-  emissive-intensity="0.8"
+  position="-15.9 0.1 2"
+  width="0.04"
+  height="0.2"
+  depth="35.8"
+  color="#2b1e19"
+  roughness="0.7"
 ></a-box>
 <a-box
-  position=" 19.9 1.2 0"
-  width="0.05"
-  height="0.06"
-  depth="78"
-  color="#00a8cc"
-  emissive="#00a8cc"
-  emissive-intensity="0.8"
+  position="15.9 0.1 2"
+  width="0.04"
+  height="0.2"
+  depth="35.8"
+  color="#2b1e19"
+  roughness="0.7"
 ></a-box>
 
-<!-- ── LARGE MONITOR WALL (decorative, back-center) ── -->
-<a-box
-  position="0 5 -19.5"
-  width="18"
-  height="10"
-  depth="0.3"
-  color="#101828"
-  roughness="0.4"
-  metalness="0.8"
-></a-box>
-<a-plane
-  position="0 5 -19.3"
-  width="17"
-  height="9"
-  color="#0a1a3a"
-  emissive="#0a2a6a"
-  emissive-intensity="0.4"
-></a-plane>
-<!-- Decorative lines on monitor -->
-<a-box
-  position="-5 7    -19.25"
-  width="6"
-  height="0.15"
-  depth="0.02"
-  color="#00a8cc"
-  emissive="#00a8cc"
-  emissive-intensity="0.6"
-></a-box>
-<a-box
-  position="-3 6.4  -19.25"
-  width="4"
-  height="0.12"
-  depth="0.02"
-  color="#2bc27c"
-  emissive="#2bc27c"
-  emissive-intensity="0.6"
-></a-box>
-<a-box
-  position="-5 5.8  -19.25"
-  width="7"
-  height="0.12"
-  depth="0.02"
-  color="#2bc27c"
-  emissive="#2bc27c"
-  emissive-intensity="0.6"
-></a-box>
-<a-box
-  position="-4 5.2  -19.25"
-  width="5"
-  height="0.12"
-  depth="0.02"
-  color="#00a8cc"
-  emissive="#00a8cc"
-  emissive-intensity="0.6"
-></a-box>
-<a-box
-  position="-2 4.6  -19.25"
-  width="3"
-  height="0.12"
-  depth="0.02"
-  color="#e05252"
-  emissive="#e05252"
-  emissive-intensity="0.6"
-></a-box>
-<a-box
-  position="-5 4.0  -19.25"
-  width="6"
-  height="0.12"
-  depth="0.02"
-  color="#2bc27c"
-  emissive="#2bc27c"
-  emissive-intensity="0.6"
-></a-box>
-<a-box
-  position="-3 3.4  -19.25"
-  width="4"
-  height="0.12"
-  depth="0.02"
-  color="#00a8cc"
-  emissive="#00a8cc"
-  emissive-intensity="0.6"
-></a-box>
-<a-box
-  position="5.5 7.5 -19.25"
-  width="4"
-  height="0.6"
-  depth="0.02"
-  color="#0f35a6"
-  emissive="#0f35a6"
-  emissive-intensity="0.7"
-></a-box>
+
 
 <!-- ── DESK CLUSTER LEFT ── -->
 <a-box
-  position="-12 0.85 -8"
-  width="5"
+  position="-9.5 0.85 -6"
+  width="4"
   height="0.12"
-  depth="2.5"
-  color="#111827"
-  roughness="0.3"
-  metalness="0.5"
+  depth="2"
+  color="#3E2723"
+  roughness="0.5"
+  metalness="0.1"
 ></a-box>
 <a-entity
-  solid-box="cx: -12; cy: 0.9; cz: -8; halfW: 2.6; halfH: 0.9; halfD: 1.35"
+  solid-box="cx: -9.5; cy: 0.9; cz: -6; halfW: 2.1; halfH: 0.9; halfD: 1.1"
 ></a-entity>
 <a-box
-  position="-14.3 0.4 -7.0"
+  position="-11.3 0.4 -5.2"
   width="0.1"
   height="0.8"
   depth="0.1"
-  color="#0d1420"
-></a-box>
-<a-box
-  position="-14.3 0.4 -9.0"
-  width="0.1"
-  height="0.8"
-  depth="0.1"
-  color="#0d1420"
-></a-box>
-<a-box
-  position="-9.7  0.4 -7.0"
-  width="0.1"
-  height="0.8"
-  depth="0.1"
-  color="#0d1420"
-></a-box>
-<a-box
-  position="-9.7  0.4 -9.0"
-  width="0.1"
-  height="0.8"
-  depth="0.1"
-  color="#0d1420"
-></a-box>
-<a-box
-  position="-12 1.75 -8.8"
-  width="2.2"
-  height="1.4"
-  depth="0.09"
-  color="#0c1520"
-  roughness="0.3"
+  color="#1a1a24"
+  roughness="0.4"
   metalness="0.8"
 ></a-box>
+<a-box
+  position="-11.3 0.4 -6.8"
+  width="0.1"
+  height="0.8"
+  depth="0.1"
+  color="#1a1a24"
+  roughness="0.4"
+  metalness="0.8"
+></a-box>
+<a-box
+  position="-7.7 0.4 -5.2"
+  width="0.1"
+  height="0.8"
+  depth="0.1"
+  color="#1a1a24"
+  roughness="0.4"
+  metalness="0.8"
+></a-box>
+<a-box
+  position="-7.7 0.4 -6.8"
+  width="0.1"
+  height="0.8"
+  depth="0.1"
+  color="#1a1a24"
+  roughness="0.4"
+  metalness="0.8"
+></a-box>
+<a-box
+  position="-9.5 1.75 -6.8"
+  width="1.8"
+  height="1.2"
+  depth="0.09"
+  color="#1C1C28"
+  roughness="0.5"
+  metalness="0.2"
+></a-box>
 <a-entity
-  solid-box="cx: -12; cy: 1.75; cz: -8.8; halfW: 1.15; halfH: 0.75; halfD: 0.15"
+  solid-box="cx: -9.5; cy: 1.75; cz: -6.8; halfW: 0.95; halfH: 0.65; halfD: 0.15"
 ></a-entity>
 <a-plane
-  position="-12 1.75 -8.74"
-  width="2"
-  height="1.2"
-  color="#091530"
-  emissive="#000e3a"
-  emissive-intensity="0.5"
+  position="-9.5 1.75 -6.74"
+  width="1.6"
+  height="1.0"
+  color="#0A0A0F"
+  emissive="#59041A"
+  emissive-intensity="0.3"
 ></a-plane>
 <a-text
   value="ViZo"
-  position="-12 1.75 -8.68"
+  position="-9.5 1.75 -6.68"
   align="center"
-  color="#00a8cc"
-  emissive="#00a8cc"
-  emissive-intensity="0.8"
-  width="4.2"
+  color="#D4364F"
+  emissive="#D4364F"
+  emissive-intensity="0.6"
+  width="3.4"
   font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"
 ></a-text>
 <a-box
-  position="-12 0.97 -8.8"
+  position="-9.5 0.97 -6.8"
   width="0.15"
   height="0.24"
   depth="0.12"
-  color="#0d1420"
+  color="#111116"
 ></a-box>
 <a-box
-  position="-12 0.92 -8.75"
+  position="-9.5 0.92 -6.4"
   width="0.8"
   height="0.06"
   depth="0.4"
-  color="#0d1420"
+  color="#111116"
 ></a-box>
 
 <!-- ── DESK CLUSTER RIGHT ── -->
 <a-box
-  position="12 0.85 -8"
-  width="5"
+  position="9.5 0.85 -6"
+  width="4"
   height="0.12"
-  depth="2.5"
-  color="#111827"
-  roughness="0.3"
-  metalness="0.5"
+  depth="2"
+  color="#3E2723"
+  roughness="0.5"
+  metalness="0.1"
 ></a-box>
 <a-entity
-  solid-box="cx: 12; cy: 0.9; cz: -8; halfW: 2.6; halfH: 0.9; halfD: 1.35"
+  solid-box="cx: 9.5; cy: 0.9; cz: -6; halfW: 2.1; halfH: 0.9; halfD: 1.1"
 ></a-entity>
 <a-box
-  position="9.7  0.4 -7.0"
+  position="7.7 0.4 -5.2"
   width="0.1"
   height="0.8"
   depth="0.1"
-  color="#0d1420"
-></a-box>
-<a-box
-  position="9.7  0.4 -9.0"
-  width="0.1"
-  height="0.8"
-  depth="0.1"
-  color="#0d1420"
-></a-box>
-<a-box
-  position="14.3 0.4 -7.0"
-  width="0.1"
-  height="0.8"
-  depth="0.1"
-  color="#0d1420"
-></a-box>
-<a-box
-  position="14.3 0.4 -9.0"
-  width="0.1"
-  height="0.8"
-  depth="0.1"
-  color="#0d1420"
-></a-box>
-<a-box
-  position="12 1.75 -8.8"
-  width="2.2"
-  height="1.4"
-  depth="0.09"
-  color="#0c1520"
-  roughness="0.3"
+  color="#1a1a24"
+  roughness="0.4"
   metalness="0.8"
 ></a-box>
+<a-box
+  position="7.7 0.4 -6.8"
+  width="0.1"
+  height="0.8"
+  depth="0.1"
+  color="#1a1a24"
+  roughness="0.4"
+  metalness="0.8"
+></a-box>
+<a-box
+  position="11.3 0.4 -5.2"
+  width="0.1"
+  height="0.8"
+  depth="0.1"
+  color="#1a1a24"
+  roughness="0.4"
+  metalness="0.8"
+></a-box>
+<a-box
+  position="11.3 0.4 -6.8"
+  width="0.1"
+  height="0.8"
+  depth="0.1"
+  color="#1a1a24"
+  roughness="0.4"
+  metalness="0.8"
+></a-box>
+<a-box
+  position="9.5 1.75 -6.8"
+  width="1.8"
+  height="1.2"
+  depth="0.09"
+  color="#1C1C28"
+  roughness="0.5"
+  metalness="0.2"
+></a-box>
 <a-entity
-  solid-box="cx: 12; cy: 1.75; cz: -8.8; halfW: 1.15; halfH: 0.75; halfD: 0.15"
+  solid-box="cx: 9.5; cy: 1.75; cz: -6.8; halfW: 0.95; halfH: 0.65; halfD: 0.15"
 ></a-entity>
 <a-plane
-  position="12 1.75 -8.74"
-  width="2"
-  height="1.2"
-  color="#091530"
-  emissive="#000e3a"
-  emissive-intensity="0.5"
+  position="9.5 1.75 -6.74"
+  width="1.6"
+  height="1.0"
+  color="#0A0A0F"
+  emissive="#59041A"
+  emissive-intensity="0.3"
 ></a-plane>
 <a-text
   value="ViZo"
-  position="12 1.75 -8.68"
+  position="9.5 1.75 -6.68"
   align="center"
-  color="#00a8cc"
-  emissive="#00a8cc"
-  emissive-intensity="0.8"
-  width="4.2"
+  color="#D4364F"
+  emissive="#D4364F"
+  emissive-intensity="0.6"
+  width="3.4"
   font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"
 ></a-text>
 <a-box
-  position="12 0.97 -8.8"
+  position="9.5 0.97 -6.8"
   width="0.15"
   height="0.24"
   depth="0.12"
-  color="#0d1420"
+  color="#111116"
 ></a-box>
 <a-box
-  position="12 0.92 -8.75"
+  position="9.5 0.92 -6.4"
   width="0.8"
   height="0.06"
   depth="0.4"
-  color="#0d1420"
+  color="#111116"
 ></a-box>
 
-<!-- ── SERVER RACKS ── -->
+<!-- ── PORTFOLIO SHELVING UNITS (Walnut & Binders & Plants) ── -->
+<!-- Unit 1: Front Left Bookcase -->
 <a-box
-  position="-17 2.5 -17"
+  position="-13.5 2.5 -13.5"
   width="1.2"
   height="5"
   depth="1.5"
-  color="#0d1220"
-  roughness="0.4"
-  metalness="0.7"
+  color="#2b1e19"
+  roughness="0.8"
+  metalness="0.1"
 ></a-box>
 <a-entity
-  solid-box="cx: -17; cy: 2.5; cz: -17; halfW: 0.7; halfH: 2.6; halfD: 0.85"
+  solid-box="cx: -13.5; cy: 2.5; cz: -13.5; halfW: 0.6; halfH: 2.5; halfD: 0.75"
 ></a-entity>
-<a-box
-  position="-16.35 3.8 -17"
-  width="0.04"
-  height="0.06"
-  depth="1.4"
-  color="#00a8cc"
-  emissive="#00a8cc"
-  emissive-intensity="0.9"
-></a-box>
-<a-box
-  position="-16.35 3.2 -17"
-  width="0.04"
-  height="0.06"
-  depth="1.4"
-  color="#2bc27c"
-  emissive="#2bc27c"
-  emissive-intensity="0.9"
-></a-box>
-<a-box
-  position="-16.35 2.6 -17"
-  width="0.04"
-  height="0.06"
-  depth="1.4"
-  color="#00a8cc"
-  emissive="#00a8cc"
-  emissive-intensity="0.9"
-></a-box>
-<a-box
-  position="-16.35 2.0 -17"
-  width="0.04"
-  height="0.06"
-  depth="1.4"
-  color="#e05252"
-  emissive="#e05252"
-  emissive-intensity="0.8"
-></a-box>
+<!-- Shelves -->
+<a-box position="-12.85 3.8 -13.5" width="0.10" height="0.06" depth="1.4" color="#3E2723" roughness="0.7"></a-box>
+<a-box position="-12.85 3.2 -13.5" width="0.10" height="0.06" depth="1.4" color="#3E2723" roughness="0.7"></a-box>
+<a-box position="-12.85 2.6 -13.5" width="0.10" height="0.06" depth="1.4" color="#3E2723" roughness="0.7"></a-box>
+<a-box position="-12.85 2.0 -13.5" width="0.10" height="0.06" depth="1.4" color="#3E2723" roughness="0.7"></a-box>
+<!-- Items on shelves -->
+<a-box position="-12.8 3.95 -13.8" width="0.08" height="0.25" depth="0.2" color="#59041A"></a-box>
+<a-box position="-12.8 3.95 -13.6" width="0.08" height="0.25" depth="0.2" color="#1C1C28"></a-box>
+<a-cylinder position="-12.8 3.32 -13.2" radius="0.08" height="0.12" color="#A0522D"></a-cylinder>
+<a-sphere position="-12.8 3.42 -13.2" radius="0.12" color="#2E8B57" roughness="1"></a-sphere>
+<a-box position="-12.8 2.75 -13.7" width="0.08" height="0.25" depth="0.2" color="#59041A"></a-box>
+<a-cylinder position="-12.8 2.12 -13.3" radius="0.08" height="0.12" color="#A0522D"></a-cylinder>
+<a-sphere position="-12.8 2.22 -13.3" radius="0.12" color="#2E8B57" roughness="1"></a-sphere>
 
+<!-- Unit 2: Front Right Bookcase -->
 <a-box
-  position="17 2.5 -17"
+  position="13.5 2.5 -13.5"
   width="1.2"
   height="5"
   depth="1.5"
-  color="#0d1220"
-  roughness="0.4"
-  metalness="0.7"
+  color="#2b1e19"
+  roughness="0.8"
+  metalness="0.1"
 ></a-box>
 <a-entity
-  solid-box="cx: 17; cy: 2.5; cz: -17; halfW: 0.7; halfH: 2.6; halfD: 0.85"
+  solid-box="cx: 13.5; cy: 2.5; cz: -13.5; halfW: 0.6; halfH: 2.5; halfD: 0.75"
 ></a-entity>
-<a-box
-  position="16.35 3.8 -17"
-  width="0.04"
-  height="0.06"
-  depth="1.4"
-  color="#00a8cc"
-  emissive="#00a8cc"
-  emissive-intensity="0.9"
-></a-box>
-<a-box
-  position="16.35 3.2 -17"
-  width="0.04"
-  height="0.06"
-  depth="1.4"
-  color="#2bc27c"
-  emissive="#2bc27c"
-  emissive-intensity="0.9"
-></a-box>
-<a-box
-  position="16.35 2.6 -17"
-  width="0.04"
-  height="0.06"
-  depth="1.4"
-  color="#00a8cc"
-  emissive="#00a8cc"
-  emissive-intensity="0.9"
-></a-box>
-<a-box
-  position="16.35 2.0 -17"
-  width="0.04"
-  height="0.06"
-  depth="1.4"
-  color="#e05252"
-  emissive="#e05252"
-  emissive-intensity="0.8"
-></a-box>
+<!-- Shelves -->
+<a-box position="12.85 3.8 -13.5" width="0.10" height="0.06" depth="1.4" color="#3E2723" roughness="0.7"></a-box>
+<a-box position="12.85 3.2 -13.5" width="0.10" height="0.06" depth="1.4" color="#3E2723" roughness="0.7"></a-box>
+<a-box position="12.85 2.6 -13.5" width="0.10" height="0.06" depth="1.4" color="#3E2723" roughness="0.7"></a-box>
+<a-box position="12.85 2.0 -13.5" width="0.10" height="0.06" depth="1.4" color="#3E2723" roughness="0.7"></a-box>
+<!-- Items on shelves -->
+<a-box position="12.8 3.95 -13.8" width="0.08" height="0.25" depth="0.2" color="#59041A"></a-box>
+<a-box position="12.8 3.95 -13.6" width="0.08" height="0.25" depth="0.2" color="#1C1C28"></a-box>
+<a-cylinder position="12.8 3.32 -13.2" radius="0.08" height="0.12" color="#A0522D"></a-cylinder>
+<a-sphere position="12.8 3.42 -13.2" radius="0.12" color="#2E8B57" roughness="1"></a-sphere>
+<a-box position="12.8 2.75 -13.7" width="0.08" height="0.25" depth="0.2" color="#59041A"></a-box>
+<a-cylinder position="12.8 2.12 -13.3" radius="0.08" height="0.12" color="#A0522D"></a-cylinder>
+<a-sphere position="12.8 2.22 -13.3" radius="0.12" color="#2E8B57" roughness="1"></a-sphere>
 
-<!-- ── SERVER RACKS IN BACK AREA ── -->
-<a-box
-  position="-17 2.5 28"
-  width="1.2"
-  height="5"
-  depth="1.5"
-  color="#0d1220"
-  roughness="0.4"
-  metalness="0.7"
-></a-box>
-<a-entity
-  solid-box="cx: -17; cy: 2.5; cz: 28; halfW: 0.7; halfH: 2.6; halfD: 0.85"
-></a-entity>
-<a-box
-  position="-16.35 3.8 28"
-  width="0.04"
-  height="0.06"
-  depth="1.4"
-  color="#2bc27c"
-  emissive="#2bc27c"
-  emissive-intensity="0.9"
-></a-box>
-<a-box
-  position="-16.35 3.2 28"
-  width="0.04"
-  height="0.06"
-  depth="1.4"
-  color="#00a8cc"
-  emissive="#00a8cc"
-  emissive-intensity="0.9"
-></a-box>
-<a-box
-  position="-16.35 2.6 28"
-  width="0.04"
-  height="0.06"
-  depth="1.4"
-  color="#e05252"
-  emissive="#e05252"
-  emissive-intensity="0.8"
-></a-box>
-<a-box
-  position="-16.35 2.0 28"
-  width="0.04"
-  height="0.06"
-  depth="1.4"
-  color="#00a8cc"
-  emissive="#00a8cc"
-  emissive-intensity="0.9"
-></a-box>
 
-<a-box
-  position="17 2.5 28"
-  width="1.2"
-  height="5"
-  depth="1.5"
-  color="#0d1220"
-  roughness="0.4"
-  metalness="0.7"
-></a-box>
-<a-entity
-  solid-box="cx: 17; cy: 2.5; cz: 28; halfW: 0.7; halfH: 2.6; halfD: 0.85"
-></a-entity>
-<a-box
-  position="16.35 3.8 28"
-  width="0.04"
-  height="0.06"
-  depth="1.4"
-  color="#2bc27c"
-  emissive="#2bc27c"
-  emissive-intensity="0.9"
-></a-box>
-<a-box
-  position="16.35 3.2 28"
-  width="0.04"
-  height="0.06"
-  depth="1.4"
-  color="#00a8cc"
-  emissive="#00a8cc"
-  emissive-intensity="0.9"
-></a-box>
-<a-box
-  position="16.35 2.6 28"
-  width="0.04"
-  height="0.06"
-  depth="1.4"
-  color="#e05252"
-  emissive="#e05252"
-  emissive-intensity="0.8"
-></a-box>
-<a-box
-  position="16.35 2.0 28"
-  width="0.04"
-  height="0.06"
-  depth="1.4"
-  color="#00a8cc"
-  emissive="#00a8cc"
-  emissive-intensity="0.9"
-></a-box>
-
-<!-- ── HOLOGRAPHIC PROJECTORS ── -->
-<a-entity position="-15 0.1 32">
-  <a-cylinder
-    radius="0.5"
-    height="0.2"
-    color="#101828"
-    roughness="0.4"
-    metalness="0.7"
-  ></a-cylinder>
-  <a-cylinder
-    position="0 0.11 0"
-    radius="0.38"
-    height="0.02"
-    color="#00a8cc"
-    emissive="#00a8cc"
-    emissive-intensity="0.8"
-  ></a-cylinder>
-  <a-cone
-    position="0 1.01 0"
-    radius-bottom="0.48"
-    radius-top="0.01"
-    height="1.8"
-    color="#00a8cc"
-    opacity="0.1"
-    transparent="true"
-    open-ended="true"
-  ></a-cone>
-  <a-torus
-    position="0 2.1 0"
-    radius="0.25"
-    radius-tubular="0.025"
-    color="#00a8cc"
-    emissive="#00a8cc"
-    emissive-intensity="0.8"
-    opacity="0.7"
-    transparent="true"
-    animation="property: rotation; to: 360 360 0; loop: true; dur: 6000; easing: linear"
-  ></a-torus>
-</a-entity>
-<a-entity
-  solid-box="cx: -15; cy: 0.1; cz: 32; halfW: 0.6; halfH: 0.25; halfD: 0.6"
-></a-entity>
-
-<a-entity position="15 0.1 32">
-  <a-cylinder
-    radius="0.5"
-    height="0.2"
-    color="#101828"
-    roughness="0.4"
-    metalness="0.7"
-  ></a-cylinder>
-  <a-cylinder
-    position="0 0.11 0"
-    radius="0.38"
-    height="0.02"
-    color="#00a8cc"
-    emissive="#00a8cc"
-    emissive-intensity="0.8"
-  ></a-cylinder>
-  <a-cone
-    position="0 1.01 0"
-    radius-bottom="0.48"
-    radius-top="0.01"
-    height="1.8"
-    color="#00a8cc"
-    opacity="0.1"
-    transparent="true"
-    open-ended="true"
-  ></a-cone>
-  <a-sphere
-    position="0 2.1 0"
-    radius="0.25"
-    color="#00a8cc"
-    emissive="#00a8cc"
-    emissive-intensity="0.8"
-    opacity="0.6"
-    transparent="true"
-    wireframe="true"
-    animation="property: rotation; to: 0 360 0; loop: true; dur: 8000; easing: linear"
-  ></a-sphere>
-</a-entity>
-<a-entity
-  solid-box="cx: 15; cy: 0.1; cz: 32; halfW: 0.6; halfH: 0.25; halfD: 0.6"
-></a-entity>
-
-<!-- ── CYBER LOUNGE AREAS ── -->
-<a-entity position="-11 0.25 32">
-  <!-- Table -->
-  <a-cylinder
-    radius="0.55"
-    height="0.45"
-    color="#0a0f1d"
-    roughness="0.2"
-    metalness="0.8"
-  ></a-cylinder>
-  <a-cylinder
-    position="0 0.23 0"
-    radius="0.58"
-    height="0.03"
-    color="#00a8cc"
-    opacity="0.8"
-    transparent="true"
-    emissive="#00a8cc"
-    emissive-intensity="0.5"
-  ></a-cylinder>
-  <!-- Cyber Seats -->
-  <a-cylinder
-    position="-0.9 0 0"
-    radius="0.3"
-    height="0.35"
-    color="#111827"
-    roughness="0.5"
-  ></a-cylinder>
-  <a-cylinder
-    position="-0.9 0.18 0"
-    radius="0.28"
-    height="0.04"
-    color="#003db3"
-    emissive="#003db3"
-    emissive-intensity="0.3"
-  ></a-cylinder>
-  <a-cylinder
-    position="0.9 0 0"
-    radius="0.3"
-    height="0.35"
-    color="#111827"
-    roughness="0.5"
-  ></a-cylinder>
-  <a-cylinder
-    position="0.9 0.18 0"
-    radius="0.28"
-    height="0.04"
-    color="#003db3"
-    emissive="#003db3"
-    emissive-intensity="0.3"
-  ></a-cylinder>
-</a-entity>
-<a-entity
-  solid-box="cx: -11; cy: 0.25; cz: 32; halfW: 1.4; halfH: 0.35; halfD: 0.65"
-></a-entity>
-
-<a-entity position="11 0.25 32">
-  <!-- Table -->
-  <a-cylinder
-    radius="0.55"
-    height="0.45"
-    color="#0a0f1d"
-    roughness="0.2"
-    metalness="0.8"
-  ></a-cylinder>
-  <a-cylinder
-    position="0 0.23 0"
-    radius="0.58"
-    height="0.03"
-    color="#00a8cc"
-    opacity="0.8"
-    transparent="true"
-    emissive="#00a8cc"
-    emissive-intensity="0.5"
-  ></a-cylinder>
-  <!-- Cyber Seats -->
-  <a-cylinder
-    position="-0.9 0 0"
-    radius="0.3"
-    height="0.35"
-    color="#111827"
-    roughness="0.5"
-  ></a-cylinder>
-  <a-cylinder
-    position="-0.9 0.18 0"
-    radius="0.28"
-    height="0.04"
-    color="#003db3"
-    emissive="#003db3"
-    emissive-intensity="0.3"
-  ></a-cylinder>
-  <a-cylinder
-    position="0.9 0 0"
-    radius="0.3"
-    height="0.35"
-    color="#111827"
-    roughness="0.5"
-  ></a-cylinder>
-  <a-cylinder
-    position="0.9 0.18 0"
-    radius="0.28"
-    height="0.04"
-    color="#003db3"
-    emissive="#003db3"
-    emissive-intensity="0.3"
-  ></a-cylinder>
-</a-entity>
-<a-entity
-  solid-box="cx: 11; cy: 0.25; cz: 32; halfW: 1.4; halfH: 0.35; halfD: 0.65"
-></a-entity>
 
 <!-- ── OFFICE PLANTS ── -->
-<a-cylinder
-  position="-16 0.35 -5"
-  radius="0.25"
-  height="0.5"
-  color="#1a1008"
-></a-cylinder>
-<a-sphere
-  position="-16 0.9  -5"
-  radius="0.45"
-  color="#1a3d1a"
-  roughness="1"
-></a-sphere>
+<a-entity position="-13.5 0 -4">
+  <a-cylinder radius="0.3" height="0.6" color="#A0522D" roughness="0.6"></a-cylinder>
+  <a-cylinder position="0 0.4 0" radius="0.04" height="0.8" color="#5C4033"></a-cylinder>
+  <a-sphere position="0 0.8 0" radius="0.45" color="#2E8B57" roughness="1"></a-sphere>
+  <a-sphere position="0.1 1.0 0.05" radius="0.32" color="#388E3C" roughness="1"></a-sphere>
+</a-entity>
 <a-entity
-  solid-box="cx: -16; cy: 0.7; cz: -5; halfW: 0.5; halfH: 0.75; halfD: 0.5"
+  solid-box="cx: -13.5; cy: 0.7; cz: -4; halfW: 0.5; halfH: 0.75; halfD: 0.5"
 ></a-entity>
 
-<a-cylinder
-  position="16 0.35 -5"
-  radius="0.25"
-  height="0.5"
-  color="#1a1008"
-></a-cylinder>
-<a-sphere
-  position="16 0.9  -5"
-  radius="0.45"
-  color="#1a3d1a"
-  roughness="1"
-></a-sphere>
+<a-entity position="13.5 0 -4">
+  <a-cylinder radius="0.3" height="0.6" color="#A0522D" roughness="0.6"></a-cylinder>
+  <a-cylinder position="0 0.4 0" radius="0.04" height="0.8" color="#5C4033"></a-cylinder>
+  <a-sphere position="0 0.8 0" radius="0.45" color="#2E8B57" roughness="1"></a-sphere>
+  <a-sphere position="-0.1 1.0 0.05" radius="0.32" color="#388E3C" roughness="1"></a-sphere>
+</a-entity>
 <a-entity
-  solid-box="cx: 16; cy: 0.7; cz: -5; halfW: 0.5; halfH: 0.75; halfD: 0.5"
+  solid-box="cx: 13.5; cy: 0.7; cz: -4; halfW: 0.5; halfH: 0.75; halfD: 0.5"
 ></a-entity>
 
-<!-- ── CYBER PLANTS IN BACK AREA ── -->
-<a-cylinder
-  position="-16 0.35 20"
-  radius="0.25"
-  height="0.5"
-  color="#1a1008"
-></a-cylinder>
-<a-sphere
-  position="-16 0.9  20"
-  radius="0.45"
-  color="#00ff88"
-  roughness="1"
-  emissive="#00ff88"
-  emissive-intensity="0.35"
-></a-sphere>
+<!-- ── OFFICE PLANTS IN BACK AREA ── -->
+<a-entity position="-13.5 0 16">
+  <a-cylinder radius="0.3" height="0.6" color="#A0522D" roughness="0.6"></a-cylinder>
+  <a-cylinder position="0 0.4 0" radius="0.04" height="0.8" color="#5C4033"></a-cylinder>
+  <a-sphere position="0 0.8 0" radius="0.45" color="#2E8B57" roughness="1"></a-sphere>
+  <a-sphere position="0.1 1.0 -0.05" radius="0.32" color="#388E3C" roughness="1"></a-sphere>
+</a-entity>
 <a-entity
-  solid-box="cx: -16; cy: 0.7; cz: 20; halfW: 0.5; halfH: 0.75; halfD: 0.5"
+  solid-box="cx: -13.5; cy: 0.7; cz: 16; halfW: 0.5; halfH: 0.75; halfD: 0.5"
 ></a-entity>
 
-<a-cylinder
-  position="16 0.35 20"
-  radius="0.25"
-  height="0.5"
-  color="#1a1008"
-></a-cylinder>
-<a-sphere
-  position="16 0.9  20"
-  radius="0.45"
-  color="#00ff88"
-  roughness="1"
-  emissive="#00ff88"
-  emissive-intensity="0.35"
-></a-sphere>
+<a-entity position="13.5 0 16">
+  <a-cylinder radius="0.3" height="0.6" color="#A0522D" roughness="0.6"></a-cylinder>
+  <a-cylinder position="0 0.4 0" radius="0.04" height="0.8" color="#5C4033"></a-cylinder>
+  <a-sphere position="0 0.8 0" radius="0.45" color="#2E8B57" roughness="1"></a-sphere>
+  <a-sphere position="-0.1 1.0 -0.05" radius="0.32" color="#388E3C" roughness="1"></a-sphere>
+</a-entity>
 <a-entity
-  solid-box="cx: 16; cy: 0.7; cz: 20; halfW: 0.5; halfH: 0.75; halfD: 0.5"
+  solid-box="cx: 13.5; cy: 0.7; cz: 16; halfW: 0.5; halfH: 0.75; halfD: 0.5"
 ></a-entity>
 
 <!-- ── LIGHTING ── -->
-<a-entity light="type: ambient; color: #1c2540; intensity: 0.7"></a-entity>
+<a-entity light="type: ambient; color: #181824; intensity: 0.7"></a-entity>
 
-<!-- Ceiling lights front area -->
+<!-- Ceiling lights front area (warm spotlights) -->
 <a-entity
-  light="type: point; color: #c8d8ff; intensity: 1.6; distance: 20; decay: 2"
-  position="-8 8.5 0"
+  light="type: point; color: #fff8eb; intensity: 1.6; distance: 20; decay: 2"
+  position="-6.4 8.5 -4"
 ></a-entity>
 <a-entity
-  light="type: point; color: #c8d8ff; intensity: 1.6; distance: 20; decay: 2"
-  position=" 0 8.5 0"
+  light="type: point; color: #fff8eb; intensity: 1.6; distance: 20; decay: 2"
+  position=" 0 8.5 -4"
 ></a-entity>
 <a-entity
-  light="type: point; color: #c8d8ff; intensity: 1.6; distance: 20; decay: 2"
-  position=" 8 8.5 0"
-></a-entity>
-
-<!-- Ceiling lights back area -->
-<a-entity
-  light="type: point; color: #c8d8ff; intensity: 1.6; distance: 20; decay: 2"
-  position="-8 8.5 24"
-></a-entity>
-<a-entity
-  light="type: point; color: #c8d8ff; intensity: 1.6; distance: 20; decay: 2"
-  position=" 0 8.5 24"
-></a-entity>
-<a-entity
-  light="type: point; color: #c8d8ff; intensity: 1.6; distance: 20; decay: 2"
-  position=" 8 8.5 24"
+  light="type: point; color: #fff8eb; intensity: 1.6; distance: 20; decay: 2"
+  position=" 6.4 8.5 -4"
 ></a-entity>
 
-<!-- Accent glows front area -->
+<!-- Ceiling lights back area (warm spotlights) -->
 <a-entity
-  light="type: point; color: #00d4ff; intensity: 1.5; distance: 12; decay: 2"
-  position="0 4 -18"
+  light="type: point; color: #fff8eb; intensity: 1.6; distance: 20; decay: 2"
+  position="-6.4 8.5 16"
 ></a-entity>
 <a-entity
-  light="type: point; color: #00d4ff; intensity: 0.8; distance: 8;  decay: 2"
-  position="-17 3 -17"
+  light="type: point; color: #fff8eb; intensity: 1.6; distance: 20; decay: 2"
+  position=" 0 8.5 16"
 ></a-entity>
 <a-entity
-  light="type: point; color: #00d4ff; intensity: 0.8; distance: 8;  decay: 2"
-  position=" 17 3 -17"
+  light="type: point; color: #fff8eb; intensity: 1.6; distance: 20; decay: 2"
+  position=" 6.4 8.5 16"
 ></a-entity>
 
-<!-- Accent glows back area -->
+<!-- Brand Burgundy Accent glows (adds cozy depth) -->
+
 <a-entity
-  light="type: point; color: #00d4ff; intensity: 0.8; distance: 8;  decay: 2"
-  position="-17 3 28"
+  light="type: point; color: #8B0A2E; intensity: 0.8; distance: 8;  decay: 2"
+  position="-13.5 3 -13.5"
 ></a-entity>
 <a-entity
-  light="type: point; color: #00d4ff; intensity: 0.8; distance: 8;  decay: 2"
-  position=" 17 3 28"
+  light="type: point; color: #8B0A2E; intensity: 0.8; distance: 8;  decay: 2"
+  position=" 13.5 3 -13.5"
 ></a-entity>
-<a-entity
-  light="type: point; color: #00ff88; intensity: 1.0; distance: 10; decay: 2"
-  position="-15 1.5 32"
-></a-entity>
-<a-entity
-  light="type: point; color: #00ff88; intensity: 1.0; distance: 10; decay: 2"
-  position="15 1.5 32"
-></a-entity>
+
+
 
 <!-- Fill light -->
 <a-entity
-  light="type: directional; color: #d8e8f5; intensity: 0.7"
-  position="0 10 15"
+  light="type: directional; color: #fff8eb; intensity: 0.5"
+  position="0 10 12"
 ></a-entity>
 
 <!-- ── LARGE DOCUMENTATION PANEL ON THE RIGHT WALL ── -->
-<a-entity position="19.85 4.5 8" rotation="0 -90 0">
+<a-entity position="15.85 4.5 2" rotation="0 -90 0">
   <!-- Outer Bezel Frame -->
   <a-box
     position="0 0 -0.05"
     width="12.2"
     height="6.2"
     depth="0.1"
-    color="#101828"
-    roughness="0.5"
-    metalness="0.8"
+    color="#2b1e19"
+    roughness="0.8"
+    metalness="0.1"
   ></a-box>
-  <!-- Holographic Screen Glass (soft glow) -->
+  <!-- Screen Glass (soft glow) -->
   <a-plane
     width="12"
     height="6"
-    color="#0a1a3a"
-    emissive="#000e3a"
-    emissive-intensity="0.5"
-    opacity="0.92"
+    color="#0c0c12"
+    emissive="#59041A"
+    emissive-intensity="0.3"
+    opacity="0.95"
     transparent="true"
   ></a-plane>
 
-  <!-- Glowing Screen Borders (toned down to comfortable glow) -->
+  <!-- Glowing Screen Borders (Bordeaux) -->
   <a-box
     position="0 3.0 0"
     width="12.1"
     height="0.06"
     depth="0.04"
-    color="#00a8cc"
-    emissive="#00a8cc"
-    emissive-intensity="0.7"
+    color="#8B0A2E"
+    emissive="#8B0A2E"
+    emissive-intensity="0.8"
   ></a-box>
   <a-box
     position="0 -3.0 0"
     width="12.1"
     height="0.06"
     depth="0.04"
-    color="#00a8cc"
-    emissive="#00a8cc"
-    emissive-intensity="0.7"
+    color="#8B0A2E"
+    emissive="#8B0A2E"
+    emissive-intensity="0.8"
   ></a-box>
   <a-box
     position="-6.05 0 0"
     width="0.06"
     height="6"
     depth="0.04"
-    color="#00a8cc"
-    emissive="#00a8cc"
-    emissive-intensity="0.7"
+    color="#8B0A2E"
+    emissive="#8B0A2E"
+    emissive-intensity="0.8"
   ></a-box>
   <a-box
     position="6.05 0 0"
     width="0.06"
     height="6"
     depth="0.04"
-    color="#00a8cc"
-    emissive="#00a8cc"
-    emissive-intensity="0.7"
+    color="#8B0A2E"
+    emissive="#8B0A2E"
+    emissive-intensity="0.8"
   ></a-box>
 
-  <!-- Title (softer color, comfortable brightness) -->
+  <!-- Title -->
   <a-text
     value="VIZO TECHNICAL MANUAL: CORE METRICS"
     position="0 2.5 0.05"
     align="center"
-    color="#2bc27c"
-    emissive="#2bc27c"
-    emissive-intensity="0.8"
+    color="#D4364F"
+    emissive="#D4364F"
+    emissive-intensity="0.6"
     width="9"
     font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"
   ></a-text>
@@ -1076,19 +532,19 @@
     width="10"
     height="0.02"
     depth="0.01"
-    color="#00a8cc"
-    emissive="#00a8cc"
-    emissive-intensity="0.5"
+    color="#8B0A2E"
+    emissive="#8B0A2E"
+    emissive-intensity="0.6"
   ></a-box>
 
-  <!-- Left Column: Metrics Guide (widened and moved to prevent overlap) -->
+  <!-- Left Column: Metrics Guide -->
   <a-entity position="-5.6 0.5 0.05">
     <a-text
       value="M E T R I C A S   C L A V E"
       position="0 1.2 0"
-      color="#00a8cc"
-      emissive="#00a8cc"
-      emissive-intensity="0.6"
+      color="#FFF8EB"
+      emissive="#FFF8EB"
+      emissive-intensity="0.4"
       width="5.2"
       font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"
     ></a-text>
@@ -1132,19 +588,19 @@
     width="0.02"
     height="4.2"
     depth="0.01"
-    color="#003db3"
-    emissive="#003db3"
+    color="#8B0A2E"
+    emissive="#8B0A2E"
     emissive-intensity="0.5"
   ></a-box>
 
-  <!-- Right Column: Dashboard Explanation (moved to prevent overlap) -->
+  <!-- Right Column: Dashboard Explanation -->
   <a-entity position="0.6 0.5 0.05">
     <a-text
       value="G U I A   D E   V I S U A L I Z A C I O N"
       position="0 1.2 0"
-      color="#00a8cc"
-      emissive="#00a8cc"
-      emissive-intensity="0.6"
+      color="#FFF8EB"
+      emissive="#FFF8EB"
+      emissive-intensity="0.4"
       width="5.2"
       font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"
     ></a-text>
@@ -1187,33 +643,27 @@
     value="SISTEMA VIZO v1.2 // XR METRICS OFFICE"
     position="0 -2.5 0.05"
     align="center"
-    color="#003db3"
-    emissive="#003db3"
+    color="#8B0A2E"
+    emissive="#8B0A2E"
     emissive-intensity="0.6"
     width="4"
     font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"
   ></a-text>
 </a-entity>
 <a-entity
-  solid-box="cx: 19.8; cy: 4.5; cz: 8; halfW: 0.15; halfH: 3.1; halfD: 6.1"
+  solid-box="cx: 15.8; cy: 4.5; cz: 2; halfW: 0.15; halfH: 3.1; halfD: 6.1"
 ></a-entity>
 
 <!-- ── DEVELOPERS WALL OF FAME ON THE LEFT WALL ── -->
-<a-entity id="vizo-wall-of-fame" position="-19.85 4.5 8" rotation="0 90 0">
-  <!-- Glowing Screen Borders (toned down to comfortable glow) -->
-  <!-- <a-box position="0 3.0 0" width="12.1" height="0.06" depth="0.04" color="#00a8cc" emissive="#00a8cc" emissive-intensity="0.7"></a-box>
-  <a-box position="0 -3.0 0" width="12.1" height="0.06" depth="0.04" color="#00a8cc" emissive="#00a8cc" emissive-intensity="0.7"></a-box>
-  <a-box position="-6.05 0 0" width="0.06" height="6" depth="0.04" color="#00a8cc" emissive="#00a8cc" emissive-intensity="0.7"></a-box>
-  <a-box position="6.05 0 0" width="0.06" height="6" depth="0.04" color="#00a8cc" emissive="#00a8cc" emissive-intensity="0.7"></a-box> -->
-
-  <!-- Title (softer color, comfortable brightness) -->
+<a-entity id="vizo-wall-of-fame" position="-15.85 4.5 2" rotation="0 90 0">
+  <!-- Title -->
   <a-text
     value="VIZO DEVELOPERS WALL OF FAME"
     position="0 2.5 0.05"
     align="center"
-    color="#2bc27c"
-    emissive="#2bc27c"
-    emissive-intensity="0.8"
+    color="#D4364F"
+    emissive="#D4364F"
+    emissive-intensity="0.6"
     width="9"
     font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"
   ></a-text>
@@ -1222,9 +672,9 @@
     width="10"
     height="0.02"
     depth="0.01"
-    color="#00a8cc"
-    emissive="#00a8cc"
-    emissive-intensity="0.5"
+    color="#8B0A2E"
+    emissive="#8B0A2E"
+    emissive-intensity="0.6"
   ></a-box>
 
   <!-- Container for Dynamic Contributor Profiles (populated by fame.js) -->
@@ -1235,24 +685,380 @@
     value="SISTEMA VIZO v1.2 // GIT HISTORICAL HALL OF FAME"
     position="0 -2.5 0.05"
     align="center"
-    color="#003db3"
-    emissive="#003db3"
+    color="#8B0A2E"
+    emissive="#8B0A2E"
     emissive-intensity="0.6"
     width="4"
     font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"
   ></a-text>
 </a-entity>
 <a-entity
-  solid-box="cx: -19.8; cy: 4.5; cz: 8; halfW: 0.15; halfH: 3.1; halfD: 6.1"
+  solid-box="cx: -15.8; cy: 4.5; cz: 2; halfW: 0.15; halfH: 3.1; halfD: 6.1"
 ></a-entity>
 
-<!-- ── FRONT WALL (Opposite to TV) & CHAT SCREEN ── -->
-<a-plane
-  position="0 4.5 38.9"
-  rotation="0 180 0"
-  width="80"
-  height="9"
-  color="#080c14"
-  opacity="0.9"
-  transparent="true"
-></a-plane>
+<!-- ── 3D SKYBOX SWITCHER PANEL ON THE LEFT WALL ── -->
+<a-entity
+  id="sky-switcher-3d-panel"
+  position="-15.7 2.5 15"
+  rotation="0 90 0"
+  sky-switcher-3d
+>
+  <!-- Backplate -->
+  <a-plane
+    width="5"
+    height="1.8"
+    color="#0c0c12"
+    material="opacity: 0.8; transparent: true; roughness: 0.5; metalness: 0.1"
+  ></a-plane>
+  <!-- Glowing Bordeaux Borders -->
+  <a-box
+    position="0  0.9 0"
+    width="5.04"
+    height="0.04"
+    depth="0.02"
+    color="#8B0A2E"
+    emissive="#8B0A2E"
+    emissive-intensity="1.2"
+  ></a-box>
+  <a-box
+    position="0 -0.9 0"
+    width="5.04"
+    height="0.04"
+    depth="0.02"
+    color="#8B0A2E"
+    emissive="#8B0A2E"
+    emissive-intensity="1.2"
+  ></a-box>
+  <a-box
+    position="-2.52 0 0"
+    width="0.04"
+    height="1.80"
+    depth="0.02"
+    color="#8B0A2E"
+    emissive="#8B0A2E"
+    emissive-intensity="1.2"
+  ></a-box>
+  <a-box
+    position=" 2.52 0 0"
+    width="0.04"
+    height="1.80"
+    depth="0.02"
+    color="#8B0A2E"
+    emissive="#8B0A2E"
+    emissive-intensity="1.2"
+  ></a-box>
+
+  <!-- Left Button (Cylinder + Text icon '<') -->
+  <a-entity class="clickable btn-left" position="-1.7 0 0.02">
+    <a-cylinder
+      rotation="90 0 0"
+      radius="0.32"
+      height="0.05"
+      color="#1a1a24"
+      metalness="0.5"
+      roughness="0.5"
+    ></a-cylinder>
+    <a-cylinder
+      class="clickable"
+      radius="0.25"
+      height="0.10"
+      rotation="90 0 0"
+      color="#2b1016"
+      emissive="#2b1016"
+      emissive-intensity="0.5"
+      position="0 0 0.03"
+    ></a-cylinder>
+    <a-text
+      value="<"
+      align="center"
+      position="0 0 0.10"
+      width="4.5"
+      color="#ffffff"
+      font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"
+    ></a-text>
+  </a-entity>
+
+  <!-- Center Current Sky Value -->
+  <a-text
+    id="switcher-sky-text"
+    value="office"
+    position="0 0 0.05"
+    align="center"
+    width="6.5"
+    color="#ffffff"
+    font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"
+  ></a-text>
+
+  <!-- Right Button (Cylinder + Text icon '>') -->
+  <a-entity class="clickable btn-right" position="1.7 0 0.02">
+    <a-cylinder
+      rotation="90 0 0"
+      radius="0.32"
+      height="0.05"
+      color="#1a1a24"
+      metalness="0.5"
+      roughness="0.5"
+    ></a-cylinder>
+    <a-cylinder
+      class="clickable"
+      radius="0.25"
+      height="0.10"
+      rotation="90 0 0"
+      color="#2b1016"
+      emissive="#2b1016"
+      emissive-intensity="0.5"
+      position="0 0 0.03"
+    ></a-cylinder>
+    <a-text
+      value=">"
+      align="center"
+      position="0 0 0.10"
+      width="4.5"
+      color="#ffffff"
+      font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"
+    ></a-text>
+  </a-entity>
+</a-entity>
+<a-entity
+  solid-box="cx: -15.8; cy: 2.5; cz: 15; halfW: 0.15; halfH: 0.9; halfD: 2.5"
+></a-entity>
+
+<!-- ── 3D SURFACE OPACITY CONTROLLER PANEL ON THE LEFT WALL ── -->
+<a-entity
+  id="opacity-controller-panel"
+  position="-15.7 2.5 10"
+  rotation="0 90 0"
+>
+  <!-- Backplate -->
+  <a-plane
+    width="2.2"
+    height="1.4"
+    color="#0c0c12"
+    material="opacity: 0.8; transparent: true; roughness: 0.5; metalness: 0.1"
+  ></a-plane>
+  
+  <!-- Glowing Bordeaux Borders -->
+  <a-box position="0  0.7 0" width="2.24" height="0.02" depth="0.01" color="#8B0A2E" emissive="#8B0A2E" emissive-intensity="1.2"></a-box>
+  <a-box position="0 -0.7 0" width="2.24" height="0.02" depth="0.01" color="#8B0A2E" emissive="#8B0A2E" emissive-intensity="1.2"></a-box>
+  <a-box position="-1.12 0 0" width="0.02" height="1.40" depth="0.01" color="#8B0A2E" emissive="#8B0A2E" emissive-intensity="1.2"></a-box>
+  <a-box position=" 1.12 0 0" width="0.02" height="1.40" depth="0.01" color="#8B0A2E" emissive="#8B0A2E" emissive-intensity="1.2"></a-box>
+
+  <!-- Panel Header Title (English) -->
+  <a-text
+    value="SURFACE OPACITY"
+    position="0 0.52 0.02"
+    align="center"
+    width="3.5"
+    color="#D4364F"
+    emissive="#D4364F"
+    emissive-intensity="0.6"
+    font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"
+  ></a-text>
+
+  <!-- Column 1: FLOOR -->
+  <a-entity position="-0.65 0 0.02">
+    <a-text
+      value="FLOOR"
+      position="0 0.32 0"
+      align="center"
+      width="2.8"
+      color="#FFF8EB"
+      font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"
+    ></a-text>
+    
+    <!-- Increment Up Button -->
+    <a-box
+      class="clickable"
+      position="0 0.14 0"
+      width="0.24"
+      height="0.09"
+      depth="0.015"
+      color="#1a1a24"
+      material="roughness: 0.5; metalness: 0.1"
+      vizo-opacity-control="target: #floor-plane; action: increase; valueEl: #val-floor"
+    >
+      <a-text
+        value="+"
+        align="center"
+        baseline="center"
+        position="0 -0.01 0.01"
+        width="3"
+        color="#ffffff"
+        font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"
+      ></a-text>
+    </a-box>
+
+    <!-- Value Indicator -->
+    <a-text
+      id="val-floor"
+      value="0.5"
+      position="0 -0.06 0"
+      align="center"
+      baseline="center"
+      width="3.2"
+      color="#ffffff"
+      font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"
+    ></a-text>
+
+    <!-- Decrement Down Button -->
+    <a-box
+      class="clickable"
+      position="0 -0.26 0"
+      width="0.24"
+      height="0.09"
+      depth="0.015"
+      color="#1a1a24"
+      material="roughness: 0.5; metalness: 0.1"
+      vizo-opacity-control="target: #floor-plane; action: decrease; valueEl: #val-floor"
+    >
+      <a-text
+        value="-"
+        align="center"
+        baseline="center"
+        position="0 0.02 0.01"
+        width="3"
+        color="#ffffff"
+        font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"
+      ></a-text>
+    </a-box>
+  </a-entity>
+
+  <!-- Column 2: LEFT WALL -->
+  <a-entity position="0 0 0.02">
+    <a-text
+      value="LEFT W."
+      position="0 0.32 0"
+      align="center"
+      width="2.8"
+      color="#FFF8EB"
+      font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"
+    ></a-text>
+    
+    <!-- Increment Up Button -->
+    <a-box
+      class="clickable"
+      position="0 0.14 0"
+      width="0.24"
+      height="0.09"
+      depth="0.015"
+      color="#1a1a24"
+      material="roughness: 0.5; metalness: 0.1"
+      vizo-opacity-control="target: #left-wall; action: increase; valueEl: #val-left"
+    >
+      <a-text
+        value="+"
+        align="center"
+        baseline="center"
+        position="0 -0.01 0.01"
+        width="3"
+        color="#ffffff"
+        font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"
+      ></a-text>
+    </a-box>
+
+    <!-- Value Indicator -->
+    <a-text
+      id="val-left"
+      value="0.5"
+      position="0 -0.06 0"
+      align="center"
+      baseline="center"
+      width="3.2"
+      color="#ffffff"
+      font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"
+    ></a-text>
+
+    <!-- Decrement Down Button -->
+    <a-box
+      class="clickable"
+      position="0 -0.26 0"
+      width="0.24"
+      height="0.09"
+      depth="0.015"
+      color="#1a1a24"
+      material="roughness: 0.5; metalness: 0.1"
+      vizo-opacity-control="target: #left-wall; action: decrease; valueEl: #val-left"
+    >
+      <a-text
+        value="-"
+        align="center"
+        baseline="center"
+        position="0 0.02 0.01"
+        width="3"
+        color="#ffffff"
+        font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"
+      ></a-text>
+    </a-box>
+  </a-entity>
+
+  <!-- Column 3: RIGHT WALL -->
+  <a-entity position="0.65 0 0.02">
+    <a-text
+      value="RIGHT W."
+      position="0 0.32 0"
+      align="center"
+      width="2.8"
+      color="#FFF8EB"
+      font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"
+    ></a-text>
+    
+    <!-- Increment Up Button -->
+    <a-box
+      class="clickable"
+      position="0 0.14 0"
+      width="0.24"
+      height="0.09"
+      depth="0.015"
+      color="#1a1a24"
+      material="roughness: 0.5; metalness: 0.1"
+      vizo-opacity-control="target: #right-wall; action: increase; valueEl: #val-right"
+    >
+      <a-text
+        value="+"
+        align="center"
+        baseline="center"
+        position="0 -0.01 0.01"
+        width="3"
+        color="#ffffff"
+        font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"
+      ></a-text>
+    </a-box>
+
+    <!-- Value Indicator -->
+    <a-text
+      id="val-right"
+      value="0.5"
+      position="0 -0.06 0"
+      align="center"
+      baseline="center"
+      width="3.2"
+      color="#ffffff"
+      font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"
+    ></a-text>
+
+    <!-- Decrement Down Button -->
+    <a-box
+      class="clickable"
+      position="0 -0.26 0"
+      width="0.24"
+      height="0.09"
+      depth="0.015"
+      color="#1a1a24"
+      material="roughness: 0.5; metalness: 0.1"
+      vizo-opacity-control="target: #right-wall; action: decrease; valueEl: #val-right"
+    >
+      <a-text
+        value="-"
+        align="center"
+        baseline="center"
+        position="0 0.02 0.01"
+        width="3"
+        color="#ffffff"
+        font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"
+      ></a-text>
+    </a-box>
+  </a-entity>
+</a-entity>
+<a-entity
+  solid-box="cx: -15.8; cy: 2.5; cz: 10; halfW: 0.15; halfH: 0.7; halfD: 1.1"
+></a-entity>

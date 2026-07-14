@@ -5,6 +5,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ViZo - Data Visualization Suite</title>
+    <link rel="shortcut icon" href="{% static 'logo.png' %}" />
 
     <!-- A-Frame & Components -->
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
@@ -14,7 +15,10 @@
     <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-particle-system-component@master/dist/aframe-particle-system-component.min.js"></script>
 
     <!-- ViZo Styles -->
-    <link rel="stylesheet" href="{% static 'css/visualizer/visualization.css' %}" />
+    <link
+      rel="stylesheet"
+      href="{% static 'css/visualizer/visualization.css' %}"
+    />
     <link
       href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;700&display=swap"
       rel="stylesheet"
@@ -34,38 +38,73 @@
       </div>
       {% if ai_status == 'offline' %}
       <div class="vizo-warning">
-        [AI_OFFLINE] Servidor de IA local no detectado. Visualización estándar activada.
+        [AI_OFFLINE] Servidor de IA local no detectado. Visualización estándar
+        activada.
       </div>
       {% endif %}
     </div>
-
-
 
     <!-- Holographic Terminal Modal -->
     <div id="vizo-terminal-modal">
       <div class="terminal-header">
         <div class="terminal-title">VIZO_01 // ASISTENTE IA</div>
-        <button class="terminal-close" onclick="window.ViZo.ui.closeExplanation()">CLOSE [X]</button>
+        <button
+          class="terminal-close"
+          onclick="window.ViZo.ui.closeExplanation()"
+        >
+          CLOSE [X]
+        </button>
       </div>
       <div class="terminal-body">
-        <div class="terminal-prompt">> INICIANDO COMUNICACIÓN CON LA IA DE ANÁLISIS...</div>
+        <div class="terminal-prompt">
+          > INICIANDO COMUNICACIÓN CON LA IA DE ANÁLISIS...
+        </div>
         <div id="terminal-content"></div>
       </div>
     </div>
 
-    <a-scene
-      xr-mode-ui="enabled: true"
-      fog="type: linear; color: #050a12; near: 30; far: 80"
-    >
+    <a-scene xr-mode-ui="enabled: true">
       <!-- General Assets -->
       <a-assets>
         <a-asset-item id="font" src="/static/fonts/font.json"></a-asset-item>
+        <img
+          id="office"
+          src="{% static 'images/office.jpeg' %}"
+          crossorigin="anonymous"
+        />
+        <img
+          id="cloud"
+          src="{% static 'images/nature.jpg' %}"
+          crossorigin="anonymous"
+        />
+        <img
+          id="forest"
+          src="{% static 'images/forest.png' %}"
+          crossorigin="anonymous"
+        />
+        <img
+          id="island"
+          src="{% static 'images/island.jpg' %}"
+          crossorigin="anonymous"
+        />
+        <img
+          id="night"
+          src="{% static 'images/night.png' %}"
+          crossorigin="anonymous"
+        />
+        <img
+          id="chinese_garden"
+          src="{% static 'images/chinese_garden.png' %}"
+          crossorigin="anonymous"
+        />
+        <img id="podio-texture" src="{% static 'images/texture.jpg'%}"/>
+        <img id="panel-texture" src="{% static 'images/texture_panel.jpg'%}"/>
       </a-assets>
 
       <!-- ══════════════════════════════════════
            LAB ENVIRONMENT & NAVIGATION
            ══════════════════════════════════════ -->
-      {% include 'visualization/includes/environment.html' %} 
+      {% include 'visualization/includes/environment.html' %}  
       {% include 'visualization/includes/nav_button.html' %}
 
       <!-- Guardar el ID de sesión para la carga asíncrona -->
@@ -84,13 +123,14 @@
       <script src="{% static 'js/visualizer/ai-assistant.js' %}"></script>
       <script src="{% static 'js/visualizer/builders.js' %}"></script>
       <script src="{% static 'js/visualizer/visualization.js' %}"></script>
+      <script src="{% static 'js/visualizer/components/vizo-sky-switcher.js' %}"></script>
 
       <!-- ── CAMERA (confined to room + object collisions) ── -->
       <a-entity
         id="rig"
         movement-controls
-        position="0 1.5 30"
-        room-bounds="minX: -19; maxX: 19; minY: 1; maxY: 8.5; minZ: -19; maxZ: 39"
+        position="0 1.7 19"
+        room-bounds="minX: -15; maxX: 15; minY: 1; maxY: 8.5; minZ: -100"
         object-collide="radius: 0.4"
       >
         <a-entity camera position="0 0 0" look-controls></a-entity>

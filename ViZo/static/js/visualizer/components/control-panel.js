@@ -4,7 +4,7 @@
 const PANEL_CONFIGS = {
   boats: {
     y: 0.4,
-    dist: 3.4,
+    dist: 2.6,
     height: 0.8,
     buttons: [
       // Altura de edificios (Y: 0.12)
@@ -101,42 +101,42 @@ const PANEL_CONFIGS = {
   },
   cyls: {
     y: 0.45,
-    dist: 3,
-    height: 0.45,
+    dist: 2.1,
+    height: 0.4,
     buttons: [
-      { text: "EXPLICAR", action: "explain-ai", x: 0, y: 0.0, w: 0.7, h: 0.1 },
+      { text: "EXPLICAR", action: "explain-ai", x: 0, y: 0.0, w: 0.6, h: 0.1 },
     ],
   },
   doughnut: {
     y: 0.45,
-    dist: 3,
-    height: 0.45,
+    dist: 2.1,
+    height: 0.4,
     buttons: [
-      { text: "EXPLICAR", action: "explain-ai", x: 0, y: 0.0, w: 0.7, h: 0.1 },
+      { text: "EXPLICAR", action: "explain-ai", x: 0, y: 0.0, w: 0.6, h: 0.1 },
     ],
   },
   barsmap: {
     y: 0.45,
-    dist: 4,
-    height: 0.45,
+    dist: 3.0,
+    height: 0.4,
     buttons: [
-      { text: "EXPLICAR", action: "explain-ai", x: 0, y: 0.0, w: 0.7, h: 0.1 },
+      { text: "EXPLICAR", action: "explain-ai", x: 0, y: 0.0, w: 0.6, h: 0.1 },
     ],
   },
   network: {
     y: 0.45,
-    dist: 3,
-    height: 0.45,
+    dist: 2.1,
+    height: 0.4,
     buttons: [
-      { text: "EXPLICAR", action: "explain-ai", x: 0, y: 0.0, w: 0.7, h: 0.1 },
+      { text: "EXPLICAR", action: "explain-ai", x: 0, y: 0.0, w: 0.6, h: 0.1 },
     ],
   },
   bars: {
     y: 0.45,
-    dist: 3,
-    height: 0.45,
+    dist: 2.1,
+    height: 0.4,
     buttons: [
-      { text: "EXPLICAR", action: "explain-ai", x: 0, y: 0.0, w: 0.7, h: 0.1 },
+      { text: "EXPLICAR", action: "explain-ai", x: 0, y: 0.0, w: 0.6, h: 0.1 },
     ],
   },
 };
@@ -154,9 +154,9 @@ function buildControlPanel(scene, dash, vizId, pos, type) {
 
   if (type === "boats") {
     // Colocar el panel enfrente de la ciudad, centrado y cerca del suelo
-    panelX = 0;
+    panelX = pos.x || 0;
     panelY = cfg.y || 0.4; // cerca del suelo pero levantado para visibilidad completa
-    panelZ = 23.2;
+    panelZ = pos.z + (cfg.dist || 2.6);
     yawDegrees = 0; // Encarando al usuario de frente
   } else {
     var yawRad = (yawDegrees * Math.PI) / 180;
@@ -180,14 +180,8 @@ function buildControlPanel(scene, dash, vizId, pos, type) {
     .replace(/[ÚÙÜÛ]/g, "U")
     .replace(/[Ñ]/g, "N");
   var titleLen = titleTextValue.length;
-  // Standard title "CODE COMPLEXITY BOATS" has 21 chars, fits on width 1.9
-  // 1.9 / 21 = ~0.09. Let's use 0.085 per char + 0.3 offset, minimum 1.9 meters wide
-  var panelWidth = Math.max(1.9, titleLen * 0.085 + 0.3);
-  if (type === "barsmap") {
-    panelWidth = Math.max(panelWidth, 2.2);
-  } else if (type === "boats") {
-    panelWidth = 1.46; // Fixed compact width for boats holographic console
-  }
+  // Set panel width: 1.46 for boats, 0.8 (compact holographic) for others
+  var panelWidth = type === "boats" ? 1.46 : 0.8;
 
   var panelEl = document.createElement("a-entity");
   panelEl.setAttribute("id", "vizo-panel-" + dash.id);
@@ -195,36 +189,38 @@ function buildControlPanel(scene, dash, vizId, pos, type) {
   panelEl.setAttribute("position", `${panelX} ${panelY} ${panelZ}`);
   panelEl.setAttribute("rotation", `0 ${yawDegrees} 0`);
 
-  // Create tilted sub-entity for the screen plate
+  // Create tilted sub-entity for the screen plate (tilted like the city panel for all)
   var screenEl = document.createElement("a-entity");
-  var tiltAngle = type === "boats" ? "-50 0 0" : "-65 0 0";
+  var tiltAngle = "-50 0 0";
   screenEl.setAttribute("rotation", tiltAngle);
 
-  // Holographic blue semi-transparent base plate
+  // Base plate: a-plane for all floating holographic screens
   var plate = document.createElement("a-plane");
   plate.setAttribute("width", panelWidth.toString());
   plate.setAttribute("height", panelHeight.toString());
-  plate.setAttribute("color", "#021530");
+  plate.setAttribute("color", "#0c0c12");
+  // plate.setAttribute("src", "#panel-texture");
+  
   plate.setAttribute(
     "material",
-    "opacity: 0.8; transparent: true; roughness: 0.1; metalness: 0.9",
+    "opacity: 0.9; transparent: true; roughness: 0.5; metalness: 0.1",
   );
   screenEl.appendChild(plate);
 
-  // Glowing borders (dynamic size/thickness for compact holographic look)
-  var borderThickness = type === "boats" ? 0.015 : 0.04;
-  var borderDepth = type === "boats" ? 0.01 : 0.02;
-  var borderZOffset = type === "boats" ? 0.005 : 0.01;
-  var borderMargin = type === "boats" ? 0.015 : 0.05;
+  // Glowing borders (thin holographic styling for all)
+  var borderThickness = 0.015;
+  var borderDepth = 0.01;
+  var borderZOffset = 0.005;
+  var borderMargin = 0.015;
 
   var borderTop = document.createElement("a-box");
   borderTop.setAttribute("position", `0 ${halfHeight} ${borderZOffset}`);
   borderTop.setAttribute("width", (panelWidth + borderMargin).toString());
   borderTop.setAttribute("height", borderThickness.toString());
   borderTop.setAttribute("depth", borderDepth.toString());
-  borderTop.setAttribute("color", "#00d4ff");
-  borderTop.setAttribute("emissive", "#00d4ff");
-  borderTop.setAttribute("emissive-intensity", "1.5");
+  borderTop.setAttribute("color", "#8B0A2E");
+  borderTop.setAttribute("emissive", "#8B0A2E");
+  borderTop.setAttribute("emissive-intensity", "0.8");
   screenEl.appendChild(borderTop);
 
   var borderBottom = document.createElement("a-box");
@@ -232,9 +228,9 @@ function buildControlPanel(scene, dash, vizId, pos, type) {
   borderBottom.setAttribute("width", (panelWidth + borderMargin).toString());
   borderBottom.setAttribute("height", borderThickness.toString());
   borderBottom.setAttribute("depth", borderDepth.toString());
-  borderBottom.setAttribute("color", "#00d4ff");
-  borderBottom.setAttribute("emissive", "#00d4ff");
-  borderBottom.setAttribute("emissive-intensity", "1.5");
+  borderBottom.setAttribute("color", "#8B0A2E");
+  borderBottom.setAttribute("emissive", "#8B0A2E");
+  borderBottom.setAttribute("emissive-intensity", "0.8");
   screenEl.appendChild(borderBottom);
 
   var borderLeft = document.createElement("a-box");
@@ -242,9 +238,9 @@ function buildControlPanel(scene, dash, vizId, pos, type) {
   borderLeft.setAttribute("width", borderThickness.toString());
   borderLeft.setAttribute("height", panelHeight.toString());
   borderLeft.setAttribute("depth", borderDepth.toString());
-  borderLeft.setAttribute("color", "#00d4ff");
-  borderLeft.setAttribute("emissive", "#00d4ff");
-  borderLeft.setAttribute("emissive-intensity", "1.5");
+  borderLeft.setAttribute("color", "#8B0A2E");
+  borderLeft.setAttribute("emissive", "#8B0A2E");
+  borderLeft.setAttribute("emissive-intensity", "0.8");
   screenEl.appendChild(borderLeft);
 
   var borderRight = document.createElement("a-box");
@@ -252,23 +248,23 @@ function buildControlPanel(scene, dash, vizId, pos, type) {
   borderRight.setAttribute("width", borderThickness.toString());
   borderRight.setAttribute("height", panelHeight.toString());
   borderRight.setAttribute("depth", borderDepth.toString());
-  borderRight.setAttribute("color", "#00d4ff");
-  borderRight.setAttribute("emissive", "#00d4ff");
-  borderRight.setAttribute("emissive-intensity", "1.5");
+  borderRight.setAttribute("color", "#8B0A2E");
+  borderRight.setAttribute("emissive", "#8B0A2E");
+  borderRight.setAttribute("emissive-intensity", "0.8");
   screenEl.appendChild(borderRight);
 
   // Title text - Uses custom dashboard title
   var titleText = document.createElement("a-text");
   titleText.setAttribute("value", titleTextValue);
-  var titleY = type === "boats" ? halfHeight - 0.07 : halfHeight - 0.08;
-  var titleWrap =
-    type === "boats" ? Math.max(26, titleLen + 4) : Math.max(24, titleLen + 3);
-  titleText.setAttribute("position", `0 ${titleY} 0.02`);
+  var titleY = halfHeight - 0.07;
+  var titleZ = 0.02;
+  var titleWrap = type === "boats" ? Math.max(26, titleLen + 4) : Math.max(20, titleLen + 2);
+  titleText.setAttribute("position", `0 ${titleY} ${titleZ}`);
   titleText.setAttribute("align", "center");
-  titleText.setAttribute("color", "#4af7a0");
-  titleText.setAttribute("emissive", "#4af7a0");
-  titleText.setAttribute("emissive-intensity", "1");
-  titleText.setAttribute("width", (panelWidth - 0.3).toString());
+  titleText.setAttribute("color", "#D4364F");
+  titleText.setAttribute("emissive", "#D4364F");
+  titleText.setAttribute("emissive-intensity", "0.6");
+  titleText.setAttribute("width", (panelWidth - 0.1).toString());
   titleText.setAttribute("wrap-count", titleWrap.toString());
   titleText.setAttribute("font", "https://cdn.aframe.io/fonts/Exo2Bold.fnt");
   screenEl.appendChild(titleText);
@@ -278,10 +274,10 @@ function buildControlPanel(scene, dash, vizId, pos, type) {
   headers.forEach(function (h) {
     var headerText = document.createElement("a-text");
     headerText.setAttribute("value", h.text);
-    headerText.setAttribute("position", `${h.x} ${h.y} 0.02`);
+    headerText.setAttribute("position", `${h.x} ${h.y} ${titleZ}`);
     headerText.setAttribute("align", "center");
-    headerText.setAttribute("color", "#a5b4fc");
-    headerText.setAttribute("width", type === "boats" ? "1.1" : "1.8");
+    headerText.setAttribute("color", "#FFF8EB");
+    headerText.setAttribute("width", type === "boats" ? "1.1" : (panelWidth - 0.1).toString());
     headerText.setAttribute("font", "https://cdn.aframe.io/fonts/Exo2Bold.fnt");
     screenEl.appendChild(headerText);
   });
@@ -292,52 +288,56 @@ function buildControlPanel(scene, dash, vizId, pos, type) {
   // Generate A-Frame button entities
   buttons.forEach(function (btn) {
     var btnEl = document.createElement("a-entity");
-    btnEl.setAttribute("position", `${btn.x} ${btn.y} 0.02`);
+    var btnZ = type === "boats" ? 0.02 : 0.035;
+    btnEl.setAttribute("position", `${btn.x} ${btn.y} ${btnZ}`);
     btnEl.setAttribute(
       "vizo-control-btn",
       `action: ${btn.action}; targetId: ${vizId}; vizType: ${type}; value: ${btn.value || ""}`,
     );
 
     var btnWidth = btn.w || (btn.action === "explain-ai" ? 0.72 : 0.52);
+    if (type !== "boats") {
+      btnWidth = Math.min(btnWidth, panelWidth - 0.1); // Limit width to fit 0.5m panel width
+    }
     var btnHeight =
       btn.h ||
       (btn.action === "explain-ai" || btn.action === "wireframe" ? 0.14 : 0.11);
     var btnBorderWidth = btnWidth + 0.02;
     var btnBorderHeight = btnHeight + 0.02;
 
-    // Interactive button box base (thinner, sleeker height and depth)
+    // Interactive button box base
     var btnBase = document.createElement("a-box");
     btnBase.setAttribute("class", "clickable vizo-btn-base");
     btnBase.setAttribute("width", btnWidth.toString());
     btnBase.setAttribute("height", btnHeight.toString());
     btnBase.setAttribute("depth", "0.015");
-    btnBase.setAttribute("color", "#002a5a");
-    btnBase.setAttribute("emissive", "#002a5a");
-    btnBase.setAttribute("emissive-intensity", "0.5");
-    btnBase.setAttribute("material", "roughness: 0.2; metalness: 0.8");
+    btnBase.setAttribute("color", "#1a1a24");
+    btnBase.setAttribute("emissive", "#1a1a24");
+    btnBase.setAttribute("emissive-intensity", "0.3");
+    btnBase.setAttribute("material", "roughness: 0.5; metalness: 0.1");
     btnEl.appendChild(btnBase);
 
-    // Glowing solid backplate border (thinner, more precise cyberpunk outlines)
+    // Border
     var btnBorder = document.createElement("a-box");
     btnBorder.setAttribute("class", "vizo-btn-border");
     btnBorder.setAttribute("position", "0 0 -0.008");
     btnBorder.setAttribute("width", btnBorderWidth.toString());
     btnBorder.setAttribute("height", btnBorderHeight.toString());
     btnBorder.setAttribute("depth", "0.005");
-    btnBorder.setAttribute("color", "#00d4ff");
-    btnBorder.setAttribute("emissive", "#00d4ff");
-    btnBorder.setAttribute("emissive-intensity", "1.2");
-    btnBorder.setAttribute("material", "roughness: 0.1; metalness: 0.9");
+    btnBorder.setAttribute("color", "#8B0A2E");
+    btnBorder.setAttribute("emissive", "#8B0A2E");
+    btnBorder.setAttribute("emissive-intensity", "0.8");
+    btnBorder.setAttribute("material", "roughness: 0.5; metalness: 0.1");
     btnEl.appendChild(btnBorder);
 
-    // Label text (dynamically scaled width to fit small button borders)
+    // Label text
     var btnTxt = document.createElement("a-text");
     btnTxt.setAttribute("value", btn.text);
     btnTxt.setAttribute("position", "0 0 0.01");
     btnTxt.setAttribute("align", "center");
-    btnTxt.setAttribute("color", "#00d4ff");
-    btnTxt.setAttribute("emissive", "#00d4ff");
-    btnTxt.setAttribute("emissive-intensity", "1.5");
+    btnTxt.setAttribute("color", "#a0aec0");
+    btnTxt.setAttribute("emissive", "#a0aec0");
+    btnTxt.setAttribute("emissive-intensity", "0.5");
     btnTxt.setAttribute(
       "width",
       (
@@ -353,43 +353,11 @@ function buildControlPanel(scene, dash, vizId, pos, type) {
 
   panelEl.appendChild(screenEl);
 
-  // Futuristic Metallic Console Desk Stand (only for non-boats dashboard panels)
-  if (type !== "boats") {
-    var standCol = document.createElement("a-cylinder");
-    standCol.setAttribute("radius", "0.04");
-    standCol.setAttribute("height", panelY.toString());
-    standCol.setAttribute("color", "#101828");
-    standCol.setAttribute("roughness", "0.5");
-    standCol.setAttribute("metalness", "0.8");
-    standCol.setAttribute("position", `0 ${-panelY / 2} 0`);
-    panelEl.appendChild(standCol);
-
-    var standBase = document.createElement("a-cylinder");
-    standBase.setAttribute("radius", "0.3");
-    standBase.setAttribute("height", "0.05");
-    standBase.setAttribute("color", "#101828");
-    standBase.setAttribute("roughness", "0.4");
-    standBase.setAttribute("metalness", "0.9");
-    standBase.setAttribute("position", `0 ${-(panelY - 0.02)} 0`);
-    panelEl.appendChild(standBase);
-
-    // Solid box collider for player collision resolution dynamically sized
-    var solidEl = document.createElement("a-entity");
-    solidEl.setAttribute(
-      "solid-box",
-      `cx: ${panelX}; cy: 0.5; cz: ${panelZ}; halfW: ${(panelWidth / 2 + 0.05).toFixed(2)}; halfH: 0.5; halfD: 0.4`,
-    );
-    // scene.appendChild(solidEl);
-  }
-
   scene.appendChild(panelEl);
   console.log(
     "ViZo // Panel de Control creado para el dashboard (" +
       type +
-      ") como " +
-      (type === "boats"
-        ? "consola holografica flotante"
-        : "consola de escritorio inclinada"),
+      ") como consola holografica flotante",
   );
 }
 

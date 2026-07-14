@@ -15,7 +15,7 @@ input.addEventListener("input", function () {
               <line x1="12" y1="16" x2="12" y2="12"></line>
               <line x1="12" y1="8" x2="12.01" y2="8"></line>
             </svg>
-            Ingresa la URL completa del repositorio (GitHub, GitLab, etc.)
+            ${t("analyzer.form.helper_default")}
           `;
   } else if (
     this.validity.valid &&
@@ -31,7 +31,7 @@ input.addEventListener("input", function () {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="20 6 9 17 4 12"></polyline>
             </svg>
-            URL válida detectada
+            ${t("analyzer.form.helper_valid")}
           `;
   } else {
     this.classList.remove("valid");
@@ -44,7 +44,7 @@ input.addEventListener("input", function () {
               <line x1="15" y1="9" x2="9" y2="15"></line>
               <line x1="9" y1="9" x2="15" y2="15"></line>
             </svg>
-            Por favor, ingresa una URL válida de repositorio
+            ${t("analyzer.form.helper_invalid")}
           `;
   }
 });
@@ -81,21 +81,21 @@ if (closeHudBtn) {
       
       if (hud.className.includes("status-completed")) {
         if (dot) {
-          dot.style.backgroundColor = "var(--green-rack)";
-          dot.style.boxShadow = "0 0 10px var(--green-rack)";
+          dot.style.backgroundColor = "var(--success)";
+          dot.style.boxShadow = "0 0 10px var(--success-soft)";
         }
         if (txt) {
-          txt.textContent = "SALA_LISTA!";
-          txt.style.color = "var(--green-rack)";
+          txt.textContent = t("hud.room_ready");
+          txt.style.color = "var(--success)";
         }
       } else if (hud.className.includes("status-failed")) {
         if (dot) {
-          dot.style.backgroundColor = "#ff6b6b";
-          dot.style.boxShadow = "0 0 10px #ff6b6b";
+          dot.style.backgroundColor = "var(--error)";
+          dot.style.boxShadow = "0 0 10px var(--error-soft)";
         }
         if (txt) {
-          txt.textContent = "SALA_FALLIDA!";
-          txt.style.color = "#ff6b6b";
+          txt.textContent = "FAILED";
+          txt.style.color = "var(--error)";
         }
       }
     }
@@ -184,7 +184,7 @@ if (cancelAnalysisBtn) {
       })
       .finally(() => {
         cancelAnalysisBtn.disabled = false;
-        cancelAnalysisBtn.textContent = "CANCELAR_ANÁLISIS [ABORT_PROCESS]";
+        cancelAnalysisBtn.textContent = t("hud.cancel");
       });
   });
 }
@@ -199,13 +199,13 @@ function resetReopenBtn() {
     reopenHudBtn.classList.remove("active");
     const dot = reopenHudBtn.querySelector(".pulse-dot");
     if (dot) {
-      dot.style.backgroundColor = "var(--cyan)";
-      dot.style.boxShadow = "0 0 8px var(--cyan)";
+      dot.style.backgroundColor = "var(--accent-text)";
+      dot.style.boxShadow = "0 0 8px var(--accent-glow)";
     }
     const txt = reopenHudBtn.querySelector(".btn-text");
     if (txt) {
-      txt.textContent = "VZ_MONITOR";
-      txt.style.color = "var(--cyan)";
+      txt.textContent = t("hud.reopen");
+      txt.style.color = "var(--text-secondary)";
     }
   }
 }
@@ -295,7 +295,7 @@ function pollSessionStatus(sessionId) {
           clearActiveSessionStorage(); // Limpiar el almacenamiento local asíncrono
           if (hudCancelContainer) hudCancelContainer.style.display = "none";
 
-          hudStatusText.textContent = "¡Análisis Completado!";
+          hudStatusText.textContent = t("hud.completed");
           hud.className = "vizo-progress-hud active status-completed";
           hudBar.style.width = "100%";
           
@@ -312,13 +312,13 @@ function pollSessionStatus(sessionId) {
             reopenHudBtn.classList.add("active");
             const dot = reopenHudBtn.querySelector(".pulse-dot");
             if (dot) {
-              dot.style.backgroundColor = "var(--green-rack)";
-              dot.style.boxShadow = "0 0 10px var(--green-rack)";
+              dot.style.backgroundColor = "var(--success)";
+              dot.style.boxShadow = "0 0 10px var(--success-soft)";
             }
             const txt = reopenHudBtn.querySelector(".btn-text");
             if (txt) {
-              txt.textContent = "SALA_LISTA!";
-              txt.style.color = "var(--green-rack)";
+              txt.textContent = t("hud.room_ready");
+              txt.style.color = "var(--success)";
             }
           } else {
             resetReopenBtn();
@@ -333,7 +333,7 @@ function pollSessionStatus(sessionId) {
           if (hudCancelContainer) hudCancelContainer.style.display = "none";
 
           const errMsg = data.error_message || "Error desconocido durante el escaneo.";
-          hudStatusText.textContent = "Fallo en el Análisis";
+          hudStatusText.textContent = "FAILED";
           hud.className = "vizo-progress-hud active status-failed";
           hudBar.style.width = "100%";
           
@@ -347,13 +347,13 @@ function pollSessionStatus(sessionId) {
             reopenHudBtn.classList.add("active");
             const dot = reopenHudBtn.querySelector(".pulse-dot");
             if (dot) {
-              dot.style.backgroundColor = "#ff6b6b";
-              dot.style.boxShadow = "0 0 10px #ff6b6b";
+              dot.style.backgroundColor = "var(--error)";
+              dot.style.boxShadow = "0 0 10px var(--error-soft)";
             }
             const txt = reopenHudBtn.querySelector(".btn-text");
             if (txt) {
-              txt.textContent = "SALA_FALLIDA!";
-              txt.style.color = "#ff6b6b";
+              txt.textContent = "FAILED";
+              txt.style.color = "var(--error)";
             }
           } else {
             resetReopenBtn();
@@ -498,9 +498,9 @@ document.addEventListener("DOMContentLoaded", function () {
       }
 
       if (depthLabel) {
-        depthLabel.textContent = mode === "releases" 
-          ? "Profundidad de Análisis (Últimas Releases)" 
-          : "Profundidad de Análisis (Historial de Commits)";
+        const key = mode === "releases" ? "analyzer.depth.label_releases" : "analyzer.depth.label_commits";
+        depthLabel.setAttribute("data-i18n", key);
+        depthLabel.textContent = typeof t === "function" ? t(key) : (mode === "releases" ? "Profundidad de Análisis (Últimas Releases)" : "Profundidad de Análisis (Historial de Commits)");
       }
 
       // Update features content dynamically based on selected mode
@@ -514,7 +514,14 @@ document.addEventListener("DOMContentLoaded", function () {
         if (card && configs[index]) {
           card.setAttribute("data-depth", configs[index].depth);
           if (desc) {
-            desc.textContent = configs[index].desc;
+            if (configs[index].depth === "all") {
+              const key = mode === "commits" ? "analyzer.depth.all_commits" : "analyzer.depth.all_releases";
+              desc.setAttribute("data-i18n", key);
+              desc.textContent = typeof t === "function" ? t(key) : configs[index].desc;
+            } else {
+              desc.removeAttribute("data-i18n");
+              desc.textContent = configs[index].desc;
+            }
           }
         }
       });
@@ -524,7 +531,7 @@ document.addEventListener("DOMContentLoaded", function () {
         f.classList.remove("active");
         const desc = f.querySelector(".feature-desc");
         if (desc) {
-          desc.style.color = "var(--text-dim)";
+          desc.style.color = "var(--text-muted)";
         }
       });
 
@@ -533,7 +540,7 @@ document.addEventListener("DOMContentLoaded", function () {
         defaultBalancedCard.classList.add("active");
         const desc = defaultBalancedCard.querySelector(".feature-desc");
         if (desc) {
-          desc.style.color = "var(--cyan)";
+          desc.style.color = "var(--accent-text)";
         }
         if (depthInput) {
           depthInput.value = defaultBalancedCard.getAttribute("data-depth");
@@ -549,14 +556,14 @@ document.addEventListener("DOMContentLoaded", function () {
         f.classList.remove("active");
         const desc = f.querySelector(".feature-desc");
         if (desc) {
-          desc.style.color = "var(--text-dim)";
+          desc.style.color = "var(--text-muted)";
         }
       });
       
       this.classList.add("active");
       const activeDesc = this.querySelector(".feature-desc");
       if (activeDesc) {
-        activeDesc.style.color = "var(--cyan)";
+        activeDesc.style.color = "var(--accent-text)";
       }
       
       const val = this.getAttribute("data-depth");

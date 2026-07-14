@@ -1,124 +1,80 @@
+{% extends "base.html" %}
 {% load static %}
-<!doctype html>
-<html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ViZo - Repository Analyzer</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
-    <link rel="stylesheet" href="{% static 'css/landing/analyzer.css' %}?v=5" />
-    <link rel="icon" type="image/x-icon" href="{% static 'favicon1.png' %}" />
-    <script src="{% static 'js/landing/analyzer.js' %}?v=5" defer></script>
-  </head>
-  <body>
-    <!-- Background Design Elements -->
-    <div class="glow-sphere glow-cyan"></div>
-    <div class="glow-sphere glow-magenta"></div>
-    <div class="grid-overlay"></div>
 
-    <div class="dashboard-wrapper">
-      <div class="header">
-        <div class="logo">
-          <span class="logo-text">VZ</span>
-        </div>
-        <h1 class="vizo-title">VIZO_ANALYZE</h1>
-        <p class="subtitle">
-          Ingeniería Inversa de Código & Visualización XR
-        </p>
+{% block title %}ViZo — Repository Analyzer{% endblock %}
 
-        <!-- Connection Panel (OAuth) -->
-        <div class="oauth-panel">
-          {% if user.is_authenticated %}
-            <div class="user-profile-badge">
-              <div class="avatar-ring">
-                {% if user.profile.avatar_url %}
-                  <img src="{{ user.profile.avatar_url }}" alt="{{ user.username }}" class="user-avatar" />
-                {% else %}
-                  <div class="default-avatar">{{ user.username|slice:":2"|upper }}</div>
-                {% endif %}
-              </div>
-              <div class="user-info">
-                <span class="username">{{ user.profile.github_username|default:user.profile.gitlab_username|default:user.username }}</span>
-                <span class="provider-label">{{ user.profile.provider|upper }}_CONNECTED</span>
-              </div>
-              <a href="{% url 'user_logout' %}" class="logout-btn" title="Cerrar sesión">
-                <span class="power-icon">⏻</span>
-                <span class="btn-text">LOGOUT</span>
-              </a>
-            </div>
-          {% else %}
-            <button class="connect-provider-btn" id="openLoginModalBtn">
-              <span class="auth-icon">⚙</span>
-              <span>CONNECT_ACCOUNT</span>
-            </button>
-          {% endif %}
-        </div>
-      </div>
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/landing/analyzer.css' %}?v=6" />
+{% endblock %}
 
-      <div class="vizo-dashboard">
-        <!-- Columna Izquierda: Historial de Repositorios Analizados -->
-        <div class="left-column">
-          <div class="vizo-panel history-panel">
-            <div class="panel-header">
-              <span class="panel-status-dot"></span>
-              <h2>PUBLIC_ARCHIVE</h2>
-            </div>
+{% block extra_js %}
+  <script src="{% static 'js/landing/analyzer.js' %}?v=6" defer></script>
+{% endblock %}
 
-            <div class="history-scroll-container">
-              {% if latest_sessions %}
-                <div class="repo-list">
-                  {% for session in latest_sessions %}
-                    <div class="repo-item">
-                      <div class="repo-info">
-                        <div class="repo-name">{{ session.repo.name }}</div>
-                        <div class="repo-meta">
-                          <span class="lang-badge lang-{{ session.repo.main_language|lower }}">{{ session.repo.main_language|upper|default:"UNKNOWN" }}</span>
-                          <span class="meta-item">📅 {{ session.analysis_date|date:"d/m/Y H:i" }}</span>
-                        </div>
-                        <div class="repo-metrics">
-                          {% if session.repo_summary %}
-                            <span>📂 {{ session.repo_summary.num_files }} arch.</span>
-                            <span>💻 {{ session.repo_summary.avg_nloc|floatformat:0 }} NLOC</span>
-                            <span>📊 CCN: {{ session.repo_summary.avg_ccn|floatformat:2 }}</span>
-                          {% endif %}
-                        </div>
-                      </div>
-                      <div class="repo-actions">
-                        {% if "gitlab.com" in session.repo.url %}
-                          <a href="{{ session.repo.url }}" target="_blank" class="view-repo-btn gitlab-btn" title="Ver en GitLab">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M23.95 12.14l-1.32-4.06a.71.71 0 0 0-.25-.37.75.75 0 0 0-.44-.14.74.74 0 0 0-.44.14.71.71 0 0 0-.25.37l-1.33 4.06H4.07L2.74 8.08a.71.71 0 0 0-.25-.37.76.76 0 0 0-.88 0 .71.71 0 0 0-.25.37L.04 12.14a.82.82 0 0 0 .09.64.84.84 0 0 0 .43.39l10.94 4.09 10.94-4.09a.84.84 0 0 0 .43-.39.82.82 0 0 0 .08-.64z"/></svg>
-                          </a>
-                        {% else %}
-                          <a href="{{ session.repo.url }}" target="_blank" class="view-repo-btn github-btn" title="Ver en GitHub">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
-                          </a>
-                        {% endif %}
-                        <a href="{% url 'show_visualization' session.id %}" class="enter-room-btn">
-                          SALA 3D <span>[ENTER]</span>
-                        </a>
-                      </div>
-                    </div>
-                  {% endfor %}
-                </div>
-              {% else %}
-                <div class="empty-history">
-                  <span class="blink">&gt;</span> ARCHIVO SIN REPOSITORIOS.<br />
-                  INICIE UN ANÁLISIS A LA DERECHA PARA INAUGURAR EL PORTAL.
-                </div>
-              {% endif %}
-            </div>
+{% block nav_analyzer_active %}active{% endblock %}
+
+{% block content %}
+  <div class="dashboard-wrapper">
+    <div class="vizo-dashboard">
+      <!-- Columna Izquierda: Historial de Repositorios Analizados -->
+      <div class="left-column">
+        <!-- Archivo Público -->
+        <div class="vizo-panel history-panel">
+          <div class="panel-header">
+            <span class="panel-status-dot"></span>
+            <h2 data-i18n="analyzer.panel.public">Archivo Público</h2>
           </div>
 
-          {% if user.is_authenticated %}
-          <div class="vizo-panel history-panel private-panel" style="margin-top: 2rem;">
+          <div class="history-scroll-container">
+            {% if latest_sessions %}
+              <div class="repo-list">
+                {% for session in latest_sessions %}
+                  <div class="repo-item">
+                    <div class="repo-info">
+                      <div class="repo-name">{{ session.repo.name }}</div>
+                      <div class="repo-meta">
+                        <span class="lang-badge lang-{{ session.repo.main_language|lower }}">{{ session.repo.main_language|upper|default:"UNKNOWN" }}</span>
+                        <span class="meta-item">📅 {{ session.analysis_date|date:"d/m/Y H:i" }}</span>
+                      </div>
+                      <div class="repo-metrics">
+                        {% if session.repo_summary %}
+                          <span>📂 {{ session.repo_summary.num_files }} arch.</span>
+                          <span>💻 {{ session.repo_summary.avg_nloc|floatformat:0 }} NLOC</span>
+                          <span>📊 CCN: {{ session.repo_summary.avg_ccn|floatformat:2 }}</span>
+                        {% endif %}
+                      </div>
+                    </div>
+                    <div class="repo-actions">
+                      {% if "gitlab.com" in session.repo.url %}
+                        <a href="{{ session.repo.url }}" target="_blank" class="view-repo-btn gitlab-btn" title="Ver en GitLab">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M23.95 12.14l-1.32-4.06a.71.71 0 0 0-.25-.37.75.75 0 0 0-.44-.14.74.74 0 0 0-.44.14.71.71 0 0 0-.25.37l-1.33 4.06H4.07L2.74 8.08a.71.71 0 0 0-.25-.37.76.76 0 0 0-.88 0 .71.71 0 0 0-.25.37L.04 12.14a.82.82 0 0 0 .09.64.84.84 0 0 0 .43.39l10.94 4.09 10.94-4.09a.84.84 0 0 0 .43-.39.82.82 0 0 0 .08-.64z"/></svg>
+                        </a>
+                      {% else %}
+                        <a href="{{ session.repo.url }}" target="_blank" class="view-repo-btn github-btn" title="Ver en GitHub">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+                        </a>
+                      {% endif %}
+                      <a href="{% url 'show_visualization' session.id %}" class="enter-room-btn">
+                        <span data-i18n="analyzer.card.enter">Sala 3D</span> <span data-i18n="analyzer.card.enter_tag">[ENTER]</span>
+                      </a>
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <div class="empty-history" data-i18n="analyzer.empty.public">
+                Sin repositorios analizados. Inicie un análisis para inaugurar el portal.
+              </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Archivo Privado (Solo si está autenticado) -->
+        {% if user.is_authenticated %}
+          <div class="vizo-panel history-panel private-panel">
             <div class="panel-header">
               <span class="panel-status-dot private-dot"></span>
-              <h2>PRIVATE_ARCHIVE 🔒</h2>
+              <h2 data-i18n="analyzer.panel.private">Archivo Privado</h2>
             </div>
 
             <div class="history-scroll-container">
@@ -127,7 +83,7 @@
                   {% for session in private_sessions %}
                     <div class="repo-item private-item">
                       <div class="repo-info">
-                        <div class="repo-name">{{ session.repo.name }} <span class="private-badge">SECURE</span></div>
+                        <div class="repo-name">{{ session.repo.name }} <span class="private-badge" data-i18n="analyzer.card.secure">SEGURO</span></div>
                         <div class="repo-meta">
                           <span class="lang-badge lang-{{ session.repo.main_language|lower }}">{{ session.repo.main_language|upper|default:"UNKNOWN" }}</span>
                           <span class="meta-item">📅 {{ session.analysis_date|date:"d/m/Y H:i" }}</span>
@@ -151,206 +107,174 @@
                           </a>
                         {% endif %}
                         <a href="{% url 'show_visualization' session.id %}" class="enter-room-btn private-btn">
-                          SALA 3D <span>[ENTER]</span>
+                          <span data-i18n="analyzer.card.enter">Sala 3D</span> <span data-i18n="analyzer.card.enter_tag">[ENTER]</span>
                         </a>
                       </div>
                     </div>
                   {% endfor %}
                 </div>
               {% else %}
-                <div class="empty-history private-empty">
-                  <span class="blink">&gt;</span> ARCHIVO PRIVADO SIN REGISTROS.<br />
-                  ANALICE UN REPOSITORIO PROPIO CONFIGURADO COMO PRIVADO.
+                <div class="empty-history private-empty" data-i18n="analyzer.empty.private">
+                  Archivo privado sin registros. Analice un repositorio propio configurado como privado.
                 </div>
               {% endif %}
             </div>
           </div>
-          {% endif %}
+        {% endif %}
+      </div>
+
+      <!-- Columna Derecha: Formulario de Análisis -->
+      <div class="vizo-panel form-panel">
+        <div class="panel-header">
+          <span class="panel-status-dot pulse"></span>
+          <h2 data-i18n="analyzer.panel.analysis">Nuevo Análisis</h2>
         </div>
 
-        <!-- Columna Derecha: Formulario de Análisis -->
-        <div class="vizo-panel form-panel">
-          <div class="panel-header">
-            <span class="panel-status-dot pulse"></span>
-            <h2>NEW_CORE_ANALYSIS</h2>
-          </div>
-
-          {% if messages %}
+        {% if messages %}
           <div class="messages-container">
             {% for message in messages %}
-            <div class="message {{ message.tags }}">
-              {{ message }}
-              <span class="close-msg-btn">&times;</span>
-            </div>
+              <div class="message {{ message.tags }}">
+                {{ message }}
+                <span class="close-msg-btn">&times;</span>
+              </div>
             {% endfor %}
           </div>
-          {% endif %}
+        {% endif %}
 
-          <form id="analyzerForm" action="{% url 'index' %}" method="post">
-            {% csrf_token %}
-            <div class="form-group">
-              <label for="repoUrl">Target Repository URL</label>
-              <div class="input-wrapper">
-                <input
-                  type="url"
-                  id="repoUrl"
-                  name="repoUrl"
-                  placeholder="https://github.com/... o https://gitlab.com/..."
-                  required
-                  autocomplete="off"
-                />
-                <svg
-                  class="input-icon"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <path
-                    d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"
-                  ></path>
-                </svg>
-              </div>
-              <p class="helper-text" id="helperText">
-                <span id="statusIcon">⚡</span>
-                <span id="statusInfo">Esperando flujo de datos externo...</span>
-              </p>
+        <form id="analyzerForm" action="{% url 'index' %}" method="post">
+          {% csrf_token %}
+          <div class="form-group">
+            <label for="repoUrl" data-i18n="analyzer.form.url_label">URL del Repositorio</label>
+            <div class="input-wrapper">
+              <input
+                type="url"
+                id="repoUrl"
+                name="repoUrl"
+                placeholder="https://github.com/... o https://gitlab.com/..."
+                data-i18n="analyzer.form.url_placeholder"
+                required
+                autocomplete="off"
+              />
+              <svg
+                class="input-icon"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"
+                ></path>
+              </svg>
             </div>
-
-            <!-- Privacy Toggle Section -->
-            <div class="form-group privacy-toggle-group">
-              <label class="checkbox-container">
-                <input type="checkbox" id="isPrivate" name="isPrivate" value="true" {% if not user.is_authenticated %}disabled{% endif %} />
-                <span class="custom-checkbox">
-                  <span class="checkbox-glow"></span>
-                </span>
-                <span class="checkbox-label">
-                  ANALIZAR REPOSITORIO COMO PRIVADO 🔒
-                  {% if not user.is_authenticated %}
-                    <span class="lock-hint">(CONECTA GITHUB PARA ACTIVAR)</span>
-                  {% endif %}
-                </span>
-              </label>
-            </div>
-
-            <div class="form-group">
-              <label id="depthLabel">Profundidad de Análisis (Historial de Commits)</label>
-              
-              <!-- Mode Tabs -->
-              <div class="mode-tabs">
-                <button type="button" class="mode-tab active" data-mode="commits">ANALIZAR POR COMMITS</button>
-                <button type="button" class="mode-tab" data-mode="releases">ANALIZAR POR RELEASES</button>
-              </div>
-              <input type="hidden" id="analysisModeInput" name="analysis_mode" value="commits" />
-              <input type="hidden" id="depthInput" name="depth" value="150" />
-              
-              <div class="features" id="depthFeatures">
-                <div class="feature" data-depth="50" id="featureFast">
-                  <div class="feature-icon" id="iconFast">⚡</div>
-                  <div class="feature-title" id="titleFast">FAST FLOW</div>
-                  <div class="feature-desc" id="descFast" style="font-size: 0.65rem; color: var(--text-dim); opacity: 0.8; margin-top: 6px;">50 COMMITS</div>
-                </div>
-                <div class="feature active" data-depth="150" id="featureBalanced">
-                  <div class="feature-icon" id="iconBalanced">📊</div>
-                  <div class="feature-title" id="titleBalanced">BALANCED FLOW</div>
-                  <div class="feature-desc" id="descBalanced" style="font-size: 0.65rem; color: var(--cyan); opacity: 0.8; margin-top: 6px;">150 COMMITS</div>
-                </div>
-                <div class="feature" data-depth="300" id="featureDeep">
-                  <div class="feature-icon" id="iconDeep">🔍</div>
-                  <div class="feature-title" id="titleDeep">DEEP FLOW</div>
-                  <div class="feature-desc" id="descDeep" style="font-size: 0.65rem; color: var(--text-dim); opacity: 0.8; margin-top: 6px;">300 COMMITS</div>
-                </div>
-                <div class="feature" data-depth="all" id="featureAll">
-                  <div class="feature-icon" id="iconAll">🪐</div>
-                  <div class="feature-title" id="titleAll">ALL FLOW</div>
-                  <div class="feature-desc" id="descAll" style="font-size: 0.65rem; color: var(--text-dim); opacity: 0.8; margin-top: 6px;">TODOS LOS COMMITS</div>
-                </div>
-              </div>
-            </div>
-
-            <button type="submit" id="submitBtn" style="margin-top: 1rem;">Iniciar Análisis</button>
-          </form>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── Floating Holographic Progress HUD ── -->
-    <div id="vizo-progress-hud" class="vizo-progress-hud">
-      <div class="hud-header">
-        <span class="hud-status-dot pulse"></span>
-        <span class="hud-title">VZ_PROCESS_MONITOR</span>
-        <button id="closeHudBtn" class="hud-close">&times;</button>
-      </div>
-      <div class="hud-body">
-        <div class="hud-target-repo">
-          <span class="hud-label">TARGET:</span>
-          <span id="hudRepoName" class="hud-value">Ninguno</span>
-        </div>
-        <div class="hud-status-text" id="hudStatusText">
-          Inicializando secuencia de análisis...
-        </div>
-        <div class="hud-bar-container">
-          <div class="hud-bar" id="hudBar"></div>
-        </div>
-        
-        <!-- Simulación de logs retro de neón en terminal miniatura -->
-        <div class="hud-terminal" id="hudTerminal">
-          <div class="terminal-line">&gt; INICIANDO SISTEMA VIZO_MONITOR_01...</div>
-          <div class="terminal-line">&gt; ESCUCHANDO FLUJO DE DATOS...</div>
-        </div>
-
-        <!-- Botón de cancelar análisis en curso -->
-        <div class="hud-cancel-container" id="hudCancelContainer" style="margin-top: 10px; display: none;">
-          <button id="cancelAnalysisBtn" class="hud-cancel-btn" style="width: 100%; padding: 8px; background: rgba(255, 107, 107, 0.15); border: 1px solid #ff6b6b; color: #ff6b6b; font-family: monospace; font-size: 0.75rem; cursor: pointer; transition: all 0.2s ease;">
-            CANCELAR_ANÁLISIS [ABORT_PROCESS]
-          </button>
-        </div>
-
-        <div class="hud-actions" id="hudActions" style="display: none;">
-          <a href="#" id="enterRoomBtn" class="hud-action-btn">SALA 3D PREPARADA [ENTER_ROOM]</a>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── Floating Reopen HUD Button ── -->
-    <button id="vizo-reopen-hud-btn" class="vizo-reopen-hud-btn">
-      <span class="pulse-dot"></span>
-      <span class="btn-text">VZ_MONITOR</span>
-    </button>
-
-    <!-- ── Login Provider Modal ── -->
-    <div id="vizoLoginModal" class="login-modal-overlay">
-      <div class="login-modal-content">
-        <div class="login-modal-header">
-          <h3>VIZO // SELECT PROVIDER</h3>
-          <button class="login-modal-close" id="closeLoginModalBtn">&times;</button>
-        </div>
-        <div class="login-modal-body">
-          <p class="login-modal-desc">> SELECCIONA TU PROVEEDOR DE CONTROL DE VERSIONES:</p>
-          <div class="provider-options">
-            <a href="{% url 'github_login' %}" class="provider-option-btn github-provider">
-              <span class="provider-icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
-                </svg>
-              </span>
-              <span>CONTINUAR CON GITHUB</span>
-            </a>
-            <a href="{% url 'gitlab_login' %}" class="provider-option-btn gitlab-provider">
-              <span class="provider-icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M22.65 14.39L12 22 1.35 14.39a.83.83 0 0 1-.3-.94l2.87-8.83a.83.83 0 0 1 .78-.58h.08a.83.83 0 0 1 .79.58l2.09 6.43h8.68l2.09-6.43a.83.83 0 0 1 .79-.58h.08a.83.83 0 0 1 .78.58l2.87 8.83a.83.83 0 0 1-.3.94z"></path>
-                </svg>
-              </span>
-              <span>CONTINUAR CON GITLAB</span>
-            </a>
+            <p class="helper-text" id="helperText">
+              <span id="statusIcon">⚡</span>
+              <span id="statusInfo" data-i18n="analyzer.form.helper_default">Introduce la URL completa del repositorio (GitHub, GitLab, etc.)</span>
+            </p>
           </div>
-        </div>
+
+          <!-- Privacy Toggle Section -->
+          <div class="form-group privacy-toggle-group">
+            <label class="checkbox-container">
+              <input type="checkbox" id="isPrivate" name="isPrivate" value="true" {% if not user.is_authenticated %}disabled{% endif %} />
+              <span class="custom-checkbox">
+                <span class="checkbox-glow"></span>
+              </span>
+              <span class="checkbox-label">
+                <span data-i18n="analyzer.private.label">Analizar repositorio como privado</span> 🔒
+                {% if not user.is_authenticated %}
+                  <span class="lock-hint" data-i18n="analyzer.private.hint">(Conecta GitHub para activar)</span>
+                {% endif %}
+              </span>
+            </label>
+          </div>
+
+          <div class="form-group">
+            <label id="depthLabel" data-i18n="analyzer.depth.label_commits">Profundidad de Análisis (Historial de Commits)</label>
+            
+            <!-- Mode Tabs -->
+            <div class="mode-tabs">
+              <button type="button" class="mode-tab active" data-mode="commits" data-i18n="analyzer.mode.commits">Analizar por Commits</button>
+              <button type="button" class="mode-tab" data-mode="releases" data-i18n="analyzer.mode.releases">Analizar por Releases</button>
+            </div>
+            <input type="hidden" id="analysisModeInput" name="analysis_mode" value="commits" />
+            <input type="hidden" id="depthInput" name="depth" value="150" />
+            
+            <div class="features" id="depthFeatures">
+              <div class="feature" data-depth="50" id="featureFast">
+                <div class="feature-icon" id="iconFast">⚡</div>
+                <div class="feature-title" id="titleFast" data-i18n="analyzer.depth.fast">Rápido</div>
+                <div class="feature-desc" id="descFast" style="font-size: 0.65rem; color: var(--text-muted); opacity: 0.8; margin-top: 6px;">50 COMMITS</div>
+              </div>
+              <div class="feature active" data-depth="150" id="featureBalanced">
+                <div class="feature-icon" id="iconBalanced">📊</div>
+                <div class="feature-title" id="titleBalanced" data-i18n="analyzer.depth.balanced">Equilibrado</div>
+                <div class="feature-desc" id="descBalanced" style="font-size: 0.65rem; color: var(--accent-text); opacity: 0.8; margin-top: 6px;">150 COMMITS</div>
+              </div>
+              <div class="feature" data-depth="300" id="featureDeep">
+                <div class="feature-icon" id="iconDeep">🔍</div>
+                <div class="feature-title" id="titleDeep" data-i18n="analyzer.depth.deep">Profundo</div>
+                <div class="feature-desc" id="descDeep" style="font-size: 0.65rem; color: var(--text-muted); opacity: 0.8; margin-top: 6px;">300 COMMITS</div>
+              </div>
+              <div class="feature" data-depth="all" id="featureAll">
+                <div class="feature-icon" id="iconAll">🪐</div>
+                <div class="feature-title" id="titleAll" data-i18n="analyzer.depth.all">Completo</div>
+                <div class="feature-desc" id="descAll" data-i18n="analyzer.depth.all_commits" style="font-size: 0.65rem; color: var(--text-muted); opacity: 0.8; margin-top: 6px;">TODOS LOS COMMITS</div>
+              </div>
+            </div>
+          </div>
+
+          <button type="submit" id="submitBtn" style="margin-top: 1rem;" data-i18n="analyzer.form.submit">Iniciar Análisis</button>
+        </form>
       </div>
     </div>
-  </body>
-</html>
+  </div>
+
+  <!-- ── Floating Progress HUD ── -->
+  <div id="vizo-progress-hud" class="vizo-progress-hud">
+    <div class="hud-header">
+      <span class="hud-status-dot pulse"></span>
+      <span class="hud-title" data-i18n="hud.title">Monitor de Proceso</span>
+      <button id="closeHudBtn" class="hud-close">&times;</button>
+    </div>
+    <div class="hud-body">
+      <div class="hud-target-repo">
+        <span class="hud-label" data-i18n="hud.target">OBJETIVO:</span>
+        <span id="hudRepoName" class="hud-value" data-i18n="hud.none">Ninguno</span>
+      </div>
+      <div class="hud-status-text" id="hudStatusText" data-i18n="hud.init">
+        Inicializando secuencia de análisis...
+      </div>
+      <div class="hud-bar-container">
+        <div class="hud-bar" id="hudBar"></div>
+      </div>
+      
+      <!-- terminal miniatura -->
+      <div class="hud-terminal" id="hudTerminal">
+        <div class="terminal-line" data-i18n="hud.terminal_init_1">> INICIANDO SISTEMA VIZO...</div>
+        <div class="terminal-line" data-i18n="hud.terminal_init_2">> ESCUCHANDO FLUJO DE DATOS...</div>
+      </div>
+
+      <!-- Cancelar análisis -->
+      <div class="hud-cancel-container" id="hudCancelContainer" style="margin-top: 10px; display: none;">
+        <button id="cancelAnalysisBtn" class="hud-cancel-btn" data-i18n="hud.cancel">
+          Cancelar Análisis
+        </button>
+      </div>
+
+      <div class="hud-actions" id="hudActions" style="display: none;">
+        <a href="#" id="enterRoomBtn" class="hud-action-btn" data-i18n="hud.room_ready">Sala 3D Preparada — Entrar</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Floating Reopen HUD Button ── -->
+  <button id="vizo-reopen-hud-btn" class="vizo-reopen-hud-btn">
+    <span class="pulse-dot"></span>
+    <span class="btn-text" data-i18n="hud.reopen">Monitor</span>
+  </button>
+{% endblock %}

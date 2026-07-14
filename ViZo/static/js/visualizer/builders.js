@@ -1,8 +1,10 @@
 // builders.js - Contains the logic to create 3D components for ViZo
 
+const PODIUM_HEIGHT = 0.4;
+
 // Posiciones fijas por número de dashboards
 const POSITIONS = [
-  { x: 0, y: 0.1, z: 20 }, // Slot 0: BOATS
+  { x: 0, y: PODIUM_HEIGHT, z: 14 }, // Slot 0: BOATS
 ];
 
 /**
@@ -11,12 +13,12 @@ const POSITIONS = [
  * @param {number} total - Cantidad total de satélites activos.
  */
 function calculateSatellitePosition(index, total) {
-  if (total <= 0) return { x: 0, y: 0.1, z: 20, rotY: 0 };
+  if (total <= 0) return { x: 0, y: PODIUM_HEIGHT, z: 14, rotY: 0 };
 
   const COLUMNS = 3;
-  const X_SPACING = 11.0;
-  const Z_SPACING = 9.0;
-  const Z_START = 10.0; // Detrás de la ciudad (Z=20)
+  const X_SPACING = 8.5;
+  const Z_SPACING = 7.0;
+  const Z_START = 7.0; // Detrás de la ciudad (Z=14)
 
   const row = Math.floor(index / COLUMNS);
   const totalRows = Math.ceil(total / COLUMNS);
@@ -37,7 +39,7 @@ function calculateSatellitePosition(index, total) {
   const posZ = Z_START - row * Z_SPACING;
   const rotY = 0; // Encarando al sur hacia la ciudad/jugador
 
-  return { x: posX, y: 0.1, z: posZ, rotY: rotY };
+  return { x: posX, y: PODIUM_HEIGHT, z: posZ, rotY: rotY };
 }
 
 // Local proxy to delegate to the modular control-panel script
@@ -84,8 +86,8 @@ function buildCity(scene, dash, loaderId, pos) {
   const m = dash.mappings;
   const vizEl = document.createElement("a-entity");
   vizEl.setAttribute("id", "vizo-viz-" + dash.id);
-  vizEl.setAttribute("position", pos.x + " 0.1 " + pos.z);
-  vizEl.setAttribute("scale", "0.3 0.3 0.3");
+  vizEl.setAttribute("position", pos.x + " " + PODIUM_HEIGHT + " " + pos.z);
+  vizEl.setAttribute("scale", "0.24 0.24 0.24");
 
   vizEl.setAttribute(
     "babia-boats",
@@ -128,10 +130,10 @@ function buildCyls(scene, dash, loaderId, pos) {
     dash.dataset === "top_complex_files" ||
     (dash.id && dash.id.includes("complex"))
   ) {
-    posX -= 2.5;
+    posX -= 2.0;
   }
-  vizEl.setAttribute("position", posX + " 0.1 " + pos.z);
-  vizEl.setAttribute("scale", "0.15 0.15 0.15");
+  vizEl.setAttribute("position", posX + " " + PODIUM_HEIGHT + " " + pos.z);
+  vizEl.setAttribute("scale", "0.12 0.12 0.12");
   vizEl.setAttribute("rotation", `0 ${pos.rotY} 0`);
   vizEl.setAttribute(
     "babia-cyls",
@@ -163,9 +165,9 @@ function buildDoughnut(scene, dash, loaderId, pos) {
   const m = dash.mappings;
   const vizEl = document.createElement("a-entity");
   vizEl.setAttribute("id", "vizo-viz-" + dash.id);
-  vizEl.setAttribute("position", pos.x + " 1.2 " + pos.z);
+  vizEl.setAttribute("position", pos.x + " " + (PODIUM_HEIGHT + 0.8) + " " + pos.z);
   vizEl.setAttribute("rotation", `90 ${pos.rotY} 0`);
-  vizEl.setAttribute("scale", "0.6 0.6 0.6");
+  vizEl.setAttribute("scale", "0.5 0.5 0.5");
   vizEl.setAttribute(
     "babia-doughnut",
     [
@@ -192,8 +194,8 @@ function buildBarsmap(scene, dash, loaderId, pos) {
   const m = dash.mappings;
   const vizEl = document.createElement("a-entity");
   vizEl.setAttribute("id", "vizo-viz-" + dash.id);
-  vizEl.setAttribute("position", pos.x + " 0.1 " + pos.z);
-  vizEl.setAttribute("scale", "0.2 0.2 0.2");
+  vizEl.setAttribute("position", pos.x + " " + PODIUM_HEIGHT + " " + pos.z);
+  vizEl.setAttribute("scale", "0.16 0.16 0.16");
   vizEl.setAttribute("rotation", `0 ${pos.rotY} 0`);
   vizEl.setAttribute(
     "babia-barsmap",
@@ -222,7 +224,7 @@ function buildNetwork(scene, dash, nodesLoaderId, linksLoaderId, pos) {
   plinthEl.setAttribute("id", "vizo-plinth-" + dash.id);
   plinthEl.setAttribute("position", pos.x + " 0.5 " + pos.z);
   plinthEl.setAttribute("rotation", `0 ${pos.rotY} 0`);
-  plinthEl.setAttribute("lounge-plinth", "width: 3; depth: 3");
+  plinthEl.setAttribute("lounge-plinth", "width: 2.4; depth: 2.4");
   plinthEl.setAttribute("lounge-staydown", "");
 
   // 2. Crear la entidad de babia-network propiamente dicha dentro del plinth
@@ -230,7 +232,7 @@ function buildNetwork(scene, dash, nodesLoaderId, linksLoaderId, pos) {
   vizEl.setAttribute("id", "vizo-viz-" + dash.id);
   vizEl.setAttribute("position", "0 1.5 0");
   vizEl.setAttribute("rotation", "0 0 -90");
-  vizEl.setAttribute("scale", "0.04 0.04 0.04");
+  vizEl.setAttribute("scale", "0.032 0.032 0.032");
   vizEl.setAttribute(
     "babia-network",
     [
@@ -266,8 +268,8 @@ function buildBars(scene, dash, loaderId, pos) {
   const m = dash.mappings;
   const vizEl = document.createElement("a-entity");
   vizEl.setAttribute("id", "vizo-viz-" + dash.id);
-  vizEl.setAttribute("position", pos.x + " 0.1 " + pos.z);
-  vizEl.setAttribute("scale", "0.25 0.25 0.25");
+  vizEl.setAttribute("position", pos.x + " " + PODIUM_HEIGHT + " " + pos.z);
+  vizEl.setAttribute("scale", "0.2 0.2 0.2");
   vizEl.setAttribute("rotation", `0 ${pos.rotY} 0`);
   vizEl.setAttribute(
     "babia-bars",
@@ -297,7 +299,7 @@ function buildStatsTrophies(scene, summary) {
   const forksCount = parseInt(summary.forks) || 0;
 
   // 1. --- TROFEO DE STARS (Derecha de la ciudad) ---
-  const posStars = { x: 10.5, y: 0.1, z: 24 };
+  const posStars = { x: 8.0, y: 0.1, z: 15 };
   const starsTrophyEl = document.createElement("a-entity");
   starsTrophyEl.setAttribute("id", "vizo-stars-trophy");
   starsTrophyEl.setAttribute(
@@ -307,17 +309,17 @@ function buildStatsTrophies(scene, summary) {
   starsTrophyEl.setAttribute("visible", "true");
 
   const pedStars = document.createElement("a-cylinder");
-  pedStars.setAttribute("radius", "0.6");
-  pedStars.setAttribute("height", "0.6");
+  pedStars.setAttribute("radius", "0.5");
+  pedStars.setAttribute("height", "0.5");
   pedStars.setAttribute("color", "#081329");
   pedStars.setAttribute("material", "metalness: 0.8; roughness: 0.2");
   starsTrophyEl.appendChild(pedStars);
 
   const ringStars = document.createElement("a-ring");
-  ringStars.setAttribute("radius-inner", "0.61");
-  ringStars.setAttribute("radius-outer", "0.66");
+  ringStars.setAttribute("radius-inner", "0.51");
+  ringStars.setAttribute("radius-outer", "0.56");
   ringStars.setAttribute("rotation", "-90 0 0");
-  ringStars.setAttribute("position", "0 0.301 0");
+  ringStars.setAttribute("position", "0 0.251 0");
   ringStars.setAttribute("color", "#ffd700");
   ringStars.setAttribute(
     "material",
@@ -327,8 +329,8 @@ function buildStatsTrophies(scene, summary) {
 
   // Estrella amarilla normal de 5 puntas (Escala fija)
   const starGeomEl = document.createElement("a-entity");
-  starGeomEl.setAttribute("position", "0 1.2 0");
-  starGeomEl.setAttribute("scale", "0.75 0.75 0.75");
+  starGeomEl.setAttribute("position", "0 1.0 0");
+  starGeomEl.setAttribute("scale", "0.6 0.6 0.6");
   starGeomEl.setAttribute(
     "animation",
     "property: rotation; to: 0 360 0; loop: true; dur: 8000; easing: linear",
@@ -336,7 +338,7 @@ function buildStatsTrophies(scene, summary) {
 
   // Esfera central
   const coreStar = document.createElement("a-sphere");
-  coreStar.setAttribute("radius", "0.2");
+  coreStar.setAttribute("radius", "0.16");
   coreStar.setAttribute("color", "#ffd700");
   coreStar.setAttribute("emissive", "#ffd700");
   coreStar.setAttribute("emissive-intensity", "1.5");
@@ -346,14 +348,14 @@ function buildStatsTrophies(scene, summary) {
   for (let i = 0; i < 5; i++) {
     const angleRad = (i * 72 * Math.PI) / 180;
     const punta = document.createElement("a-cone");
-    punta.setAttribute("radius-bottom", "0.13");
-    punta.setAttribute("height", "0.45");
+    punta.setAttribute("radius-bottom", "0.1");
+    punta.setAttribute("height", "0.36");
     punta.setAttribute("color", "#ffd700");
     punta.setAttribute("emissive", "#ffd700");
     punta.setAttribute("emissive-intensity", "1.2");
     punta.setAttribute("material", "metalness: 0.5; roughness: 0.2");
 
-    const dist = 0.15;
+    const dist = 0.12;
     const px = Math.sin(angleRad) * dist;
     const py = Math.cos(angleRad) * dist;
     punta.setAttribute("position", `${px} ${py} 0`);
@@ -368,12 +370,12 @@ function buildStatsTrophies(scene, summary) {
 
   const textStars = document.createElement("a-text");
   textStars.setAttribute("value", `${starsCount}\nSTARS`);
-  textStars.setAttribute("position", "0 2.2 0");
+  textStars.setAttribute("position", "0 1.8 0");
   textStars.setAttribute("align", "center");
   textStars.setAttribute("color", "#ffd700");
   textStars.setAttribute("emissive", "#ffd700");
   textStars.setAttribute("emissive-intensity", "1.2");
-  textStars.setAttribute("width", "4.0");
+  textStars.setAttribute("width", "3.2");
   textStars.setAttribute("side", "double");
   textStars.setAttribute("font", "https://cdn.aframe.io/fonts/Exo2Bold.fnt");
   starsTrophyEl.appendChild(textStars);
@@ -381,7 +383,7 @@ function buildStatsTrophies(scene, summary) {
   scene.appendChild(starsTrophyEl);
 
   // 2. --- TROFEO DE FORKS (Izquierda de la ciudad) ---
-  const posForks = { x: -10.5, y: 0.1, z: 24 };
+  const posForks = { x: -8.0, y: 0.1, z: 15 };
   const forksTrophyEl = document.createElement("a-entity");
   forksTrophyEl.setAttribute("id", "vizo-forks-trophy");
   forksTrophyEl.setAttribute(
@@ -391,17 +393,17 @@ function buildStatsTrophies(scene, summary) {
   forksTrophyEl.setAttribute("visible", "true");
 
   const pedForks = document.createElement("a-cylinder");
-  pedForks.setAttribute("radius", "0.6");
-  pedForks.setAttribute("height", "0.6");
+  pedForks.setAttribute("radius", "0.5");
+  pedForks.setAttribute("height", "0.5");
   pedForks.setAttribute("color", "#081329");
   pedForks.setAttribute("material", "metalness: 0.8; roughness: 0.2");
   forksTrophyEl.appendChild(pedForks);
 
   const ringForks = document.createElement("a-ring");
-  ringForks.setAttribute("radius-inner", "0.61");
-  ringForks.setAttribute("radius-outer", "0.66");
+  ringForks.setAttribute("radius-inner", "0.51");
+  ringForks.setAttribute("radius-outer", "0.56");
   ringForks.setAttribute("rotation", "-90 0 0");
-  ringForks.setAttribute("position", "0 0.301 0");
+  ringForks.setAttribute("position", "0 0.251 0");
   ringForks.setAttribute("color", "#00d4ff");
   ringForks.setAttribute(
     "material",
@@ -411,8 +413,8 @@ function buildStatsTrophies(scene, summary) {
 
   // Figura de Fork simple: Bifurcación simétrica en "Y" (Escala fija)
   const forkGeomEl = document.createElement("a-entity");
-  forkGeomEl.setAttribute("position", "0 1.1 0");
-  forkGeomEl.setAttribute("scale", "1 1 1");
+  forkGeomEl.setAttribute("position", "0 0.9 0");
+  forkGeomEl.setAttribute("scale", "0.8 0.8 0.8");
   forkGeomEl.setAttribute(
     "animation",
     "property: rotation; to: 0 -360 0; loop: true; dur: 8000; easing: linear",
@@ -420,9 +422,9 @@ function buildStatsTrophies(scene, summary) {
 
   // Tronco central (abajo)
   const tronco = document.createElement("a-cylinder");
-  tronco.setAttribute("radius", "0.045");
-  tronco.setAttribute("height", "0.38");
-  tronco.setAttribute("position", "0 -0.18 0");
+  tronco.setAttribute("radius", "0.036");
+  tronco.setAttribute("height", "0.3");
+  tronco.setAttribute("position", "0 -0.14 0");
   tronco.setAttribute("color", "#00d4ff");
   tronco.setAttribute("emissive", "#00d4ff");
   tronco.setAttribute("emissive-intensity", "1.2");
@@ -431,7 +433,7 @@ function buildStatsTrophies(scene, summary) {
 
   // Esfera de unión central
   const unionNode = document.createElement("a-sphere");
-  unionNode.setAttribute("radius", "0.075");
+  unionNode.setAttribute("radius", "0.06");
   unionNode.setAttribute("position", "0 0 0");
   unionNode.setAttribute("color", "#00d4ff");
   unionNode.setAttribute("emissive", "#00d4ff");
@@ -440,9 +442,9 @@ function buildStatsTrophies(scene, summary) {
 
   // Rama Izquierda (30 grados a la izquierda)
   const ramaIzq = document.createElement("a-cylinder");
-  ramaIzq.setAttribute("radius", "0.035");
-  ramaIzq.setAttribute("height", "0.4");
-  ramaIzq.setAttribute("position", "-0.11 0.17 0");
+  ramaIzq.setAttribute("radius", "0.028");
+  ramaIzq.setAttribute("height", "0.32");
+  ramaIzq.setAttribute("position", "-0.088 0.136 0");
   ramaIzq.setAttribute("rotation", "0 0 30");
   ramaIzq.setAttribute("color", "#00d4ff");
   ramaIzq.setAttribute("emissive", "#00d4ff");
@@ -452,8 +454,8 @@ function buildStatsTrophies(scene, summary) {
 
   // Esfera extrema izquierda
   const nodeIzq = document.createElement("a-sphere");
-  nodeIzq.setAttribute("radius", "0.08");
-  nodeIzq.setAttribute("position", "-0.21 0.34 0");
+  nodeIzq.setAttribute("radius", "0.064");
+  nodeIzq.setAttribute("position", "-0.168 0.272 0");
   nodeIzq.setAttribute("color", "#4af7a0"); // Verde neón
   nodeIzq.setAttribute("emissive", "#4af7a0");
   nodeIzq.setAttribute("emissive-intensity", "1.6");
@@ -461,9 +463,9 @@ function buildStatsTrophies(scene, summary) {
 
   // Rama Derecha (30 grados a la derecha)
   const ramaDer = document.createElement("a-cylinder");
-  ramaDer.setAttribute("radius", "0.035");
-  ramaDer.setAttribute("height", "0.4");
-  ramaDer.setAttribute("position", "0.11 0.17 0");
+  ramaDer.setAttribute("radius", "0.028");
+  ramaDer.setAttribute("height", "0.32");
+  ramaDer.setAttribute("position", "0.088 0.136 0");
   ramaDer.setAttribute("rotation", "0 0 -30");
   ramaDer.setAttribute("color", "#00d4ff");
   ramaDer.setAttribute("emissive", "#00d4ff");
@@ -473,8 +475,8 @@ function buildStatsTrophies(scene, summary) {
 
   // Esfera extrema derecha
   const nodeDer = document.createElement("a-sphere");
-  nodeDer.setAttribute("radius", "0.08");
-  nodeDer.setAttribute("position", "0.21 0.34 0");
+  nodeDer.setAttribute("radius", "0.064");
+  nodeDer.setAttribute("position", "0.168 0.272 0");
   nodeDer.setAttribute("color", "#4af7a0"); // Verde neón
   nodeDer.setAttribute("emissive", "#4af7a0");
   nodeDer.setAttribute("emissive-intensity", "1.6");
@@ -484,12 +486,12 @@ function buildStatsTrophies(scene, summary) {
 
   const textForks = document.createElement("a-text");
   textForks.setAttribute("value", `${forksCount}\nFORKS`);
-  textForks.setAttribute("position", "0 2.2 0");
+  textForks.setAttribute("position", "0 1.8 0");
   textForks.setAttribute("align", "center");
   textForks.setAttribute("color", "#00d4ff");
   textForks.setAttribute("emissive", "#00d4ff");
   textForks.setAttribute("emissive-intensity", "1.2");
-  textForks.setAttribute("width", "4.0");
+  textForks.setAttribute("width", "3.2");
   textForks.setAttribute("font", "https://cdn.aframe.io/fonts/Exo2Bold.fnt");
   textForks.setAttribute("side", "double");
   forksTrophyEl.appendChild(textForks);
@@ -507,9 +509,9 @@ function buildPie(scene, dash, loaderId, pos) {
   const m = dash.mappings || {};
   const vizEl = document.createElement("a-entity");
   vizEl.setAttribute("id", "vizo-viz-" + dash.id);
-  vizEl.setAttribute("position", pos.x + " 1.2 " + pos.z);
+  vizEl.setAttribute("position", pos.x + " " + (PODIUM_HEIGHT + 0.8) + " " + pos.z);
   vizEl.setAttribute("rotation", `90 ${pos.rotY} 0`);
-  vizEl.setAttribute("scale", "0.6 0.6 0.6");
+  vizEl.setAttribute("scale", "0.5 0.5 0.5");
   vizEl.setAttribute(
     "babia-pie",
     [

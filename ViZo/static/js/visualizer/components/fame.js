@@ -124,8 +124,8 @@
       const plate = document.createElement("a-plane");
       plate.setAttribute("width", r.width);
       plate.setAttribute("height", r.height);
-      plate.setAttribute("color", "#031737");
-      plate.setAttribute("material", "opacity: 0.82; transparent: true; roughness: 0.2; metalness: 0.8");
+      plate.setAttribute("color", "#0c0c12");
+      plate.setAttribute("material", "opacity: 0.85; transparent: true; roughness: 0.5; metalness: 0.1");
       plate.setAttribute("class", "clickable");
       cardEl.appendChild(plate);
 
@@ -199,8 +199,8 @@
       line.setAttribute("width", r.width - 0.4);
       line.setAttribute("height", "0.015");
       line.setAttribute("depth", "0.01");
-      line.setAttribute("color", "#00a8cc");
-      line.setAttribute("emissive", "#00a8cc");
+      line.setAttribute("color", "#8B0A2E");
+      line.setAttribute("emissive", "#8B0A2E");
       line.setAttribute("emissive-intensity", "0.5");
       cardEl.appendChild(line);
 
@@ -220,7 +220,7 @@
       commitsVal.setAttribute("value", `${p.commits} (${pct}%)`);
       commitsVal.setAttribute("position", `${r.width / 2 - 0.35} ${statsYStart} 0.02`);
       commitsVal.setAttribute("align", "right");
-      commitsVal.setAttribute("color", "#4af7a0");
+      commitsVal.setAttribute("color", "#2bc27c");
       commitsVal.setAttribute("width", "3.0");
       commitsVal.setAttribute("font", "https://cdn.aframe.io/fonts/Exo2Bold.fnt");
       cardEl.appendChild(commitsVal);
@@ -256,7 +256,7 @@
       deletedVal.setAttribute("value", `-${p.deleted.toLocaleString()}`);
       deletedVal.setAttribute("position", `${r.width / 2 - 0.35} ${statsYStart - 0.9} 0.02`);
       deletedVal.setAttribute("align", "right");
-      deletedVal.setAttribute("color", "#ff6b6b");
+      deletedVal.setAttribute("color", "#e05252");
       deletedVal.setAttribute("width", "3.0");
       deletedVal.setAttribute("font", "https://cdn.aframe.io/fonts/Exo2Bold.fnt");
       cardEl.appendChild(deletedVal);
@@ -281,7 +281,7 @@
       plate.addEventListener("click", function () {
         // Feedback de click
         const originalColor = plate.getAttribute("color");
-        plate.setAttribute("color", "#001025");
+        plate.setAttribute("color", "#2b1016");
         setTimeout(function () {
           plate.setAttribute("color", originalColor);
         }, 120);

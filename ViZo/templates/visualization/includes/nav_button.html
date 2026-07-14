@@ -1,65 +1,65 @@
 <!-- Interfaz interactiva para volver al analizador -->
 <a-entity
   id="nav-analyzer-btn"
-  nav-button="href: /"
-  position="0 2.5 38"
-  rotation="0 180 0"
+  nav-button="href: /analyzer/"
+  position="15.7 2.5 15"
+  rotation="0 -90 0"
 >
-  <!-- Futuristic holographic plate behind the button -->
+  <!-- Backplate behind the button -->
   <a-plane
     position="0 0 -0.02"
     width="5.5"
     height="3.5"
-    color="#021530"
-    material="opacity: 0.6; transparent: true; roughness: 0.1; metalness: 0.9"
+    color="#0c0c12"
+    material="opacity: 0.8; transparent: true; roughness: 0.5; metalness: 0.1"
   ></a-plane>
 
-  <!-- Glowing neon cyan outline frame for the plate -->
+  <!-- Glowing bordeaux outline frame for the plate -->
   <a-box
     position="0 1.75 -0.01"
     width="5.54"
     height="0.04"
     depth="0.02"
-    color="#00d4ff"
-    emissive="#00d4ff"
-    emissive-intensity="1.5"
+    color="#8B0A2E"
+    emissive="#8B0A2E"
+    emissive-intensity="1.2"
   ></a-box>
   <a-box
     position="0 -1.75 -0.01"
     width="5.54"
     height="0.04"
     depth="0.02"
-    color="#00d4ff"
-    emissive="#00d4ff"
-    emissive-intensity="1.5"
+    color="#8B0A2E"
+    emissive="#8B0A2E"
+    emissive-intensity="1.2"
   ></a-box>
   <a-box
     position="-2.77 0 -0.01"
     width="0.04"
     height="3.5"
     depth="0.02"
-    color="#00d4ff"
-    emissive="#00d4ff"
-    emissive-intensity="1.5"
+    color="#8B0A2E"
+    emissive="#8B0A2E"
+    emissive-intensity="1.2"
   ></a-box>
   <a-box
     position="2.77 0 -0.01"
     width="0.04"
     height="3.5"
     depth="0.02"
-    color="#00d4ff"
-    emissive="#00d4ff"
-    emissive-intensity="1.5"
+    color="#8B0A2E"
+    emissive="#8B0A2E"
+    emissive-intensity="1.2"
   ></a-box>
 
-  <!-- Softer green/cyan holographic glow inside the panel -->
+  <!-- Titles on the panel -->
   <a-text
     value="VOLVER AL ANALIZADOR DE CODIGO"
     position="0 1.1 0.05"
     align="center"
-    color="#4af7a0"
-    emissive="#4af7a0"
-    emissive-intensity="1.8"
+    color="#D4364F"
+    emissive="#D4364F"
+    emissive-intensity="0.6"
     width="5.5"
     font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"
   ></a-text>
@@ -68,9 +68,9 @@
     value="PULSA EL BOTON PARA INICIAR UN NUEVO ANALISIS"
     position="0 -1.1 0.05"
     align="center"
-    color="#00d4ff"
-    emissive="#00d4ff"
-    emissive-intensity="1.2"
+    color="#FFF8EB"
+    emissive="#FFF8EB"
+    emissive-intensity="0.3"
     width="4.2"
     font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"
   ></a-text>
@@ -81,9 +81,9 @@
     rotation="90 0 0"
     radius="0.75"
     height="0.1"
-    color="#08111f"
-    metalness="0.9"
-    roughness="0.1"
+    color="#1a1a24"
+    metalness="0.5"
+    roughness="0.5"
   ></a-cylinder>
 
   <!-- El botón circular interactivo que sobresale -->
@@ -94,28 +94,28 @@
     rotation="90 0 0"
     radius="0.6"
     height="0.3"
-    color="#001a3a"
-    emissive="#001a3a"
-    emissive-intensity="1"
+    color="#2b1016"
+    emissive="#2b1016"
+    emissive-intensity="0.5"
     metalness="0.5"
-    roughness="0.2"
+    roughness="0.5"
   ></a-cylinder>
 
-  <!-- Icono central (decoración holográfica verde tipo "Play/Next" / flecha) -->
+  <!-- Icono central (flecha/triángulo blanco cálido) -->
   <a-triangle
     position="0 0 0.36"
     rotation="0 0 -90"
     vertex-a="0 0.25 0"
     vertex-b="-0.22 -0.18 0"
     vertex-c="0.22 -0.18 0"
-    color="#4af7a0"
-    emissive="#4af7a0"
-    emissive-intensity="1.8"
+    color="#ffffff"
+    emissive="#ffffff"
+    emissive-intensity="0.8"
   ></a-triangle>
 
   <!-- Luz puntual local para que el botón ilumine un poco la pared -->
   <a-entity
-    light="type: point; color: #00d4ff; intensity: 1.5; distance: 6; decay: 2"
+    light="type: point; color: #8B0A2E; intensity: 1.2; distance: 6; decay: 2"
     position="0 0 1.2"
   ></a-entity>
 </a-entity>

@@ -552,13 +552,13 @@
       }
 
       if (isActive) {
-        // Emerald Green Active State
-        base.setAttribute("color", "#00aa5d");
-        base.setAttribute("emissive", "#00aa5d");
+        // Burgundy and brand rose active state
+        base.setAttribute("color", "#59041A");
+        base.setAttribute("emissive", "#59041A");
         base.setAttribute("emissive-intensity", "0.8");
         if (border) {
-          border.setAttribute("color", "#00ff66");
-          border.setAttribute("emissive", "#00ff66");
+          border.setAttribute("color", "#D4364F");
+          border.setAttribute("emissive", "#D4364F");
           border.setAttribute("emissive-intensity", "1.5");
         }
         if (text) {
@@ -567,20 +567,20 @@
           text.setAttribute("emissive-intensity", "1.5");
         }
       } else {
-        // Sleek Inactive Cyber Blue State
+        // Steel black and bordeaux inactive state
         if (action === "set-height" || action === "set-color") {
-          base.setAttribute("color", "#002a5a");
-          base.setAttribute("emissive", "#002a5a");
-          base.setAttribute("emissive-intensity", "0.5");
+          base.setAttribute("color", "#1a1a24");
+          base.setAttribute("emissive", "#1a1a24");
+          base.setAttribute("emissive-intensity", "0.3");
           if (border) {
-            border.setAttribute("color", "#00d4ff");
-            border.setAttribute("emissive", "#00d4ff");
-            border.setAttribute("emissive-intensity", "1.2");
+            border.setAttribute("color", "#8B0A2E");
+            border.setAttribute("emissive", "#8B0A2E");
+            border.setAttribute("emissive-intensity", "0.8");
           }
           if (text) {
-            text.setAttribute("color", "#00d4ff");
-            text.setAttribute("emissive", "#00d4ff");
-            text.setAttribute("emissive-intensity", "1.5");
+            text.setAttribute("color", "#a0aec0");
+            text.setAttribute("emissive", "#a0aec0");
+            text.setAttribute("emissive-intensity", "0.5");
           }
         }
       }

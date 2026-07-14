@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}ViZo — Intelligent Repository Analysis & 3D Visualization{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/home/home.css' %}?v=1" />
+{% endblock %}
+
+{% block nav_home_active %}active{% endblock %}
+
+{% block content %}
+  <!-- Hero Section -->
+  <section class="hero-section">
+    <div class="hero-content">
+      <div class="hero-logo-wrap" style="margin-bottom: 2rem; display: flex; justify-content: center;">
+        <img src="{% static 'logo.png' %}" alt="ViZo Logo" style="width: 220px; height: auto;" />
+      </div>
+      <div class="hero-badge">
+        <span class="badge-dot"></span>
+        <span data-i18n="home.badge">Plataforma de Análisis de Código</span>
+      </div>
+      <h1 class="hero-title">
+        <span data-i18n="home.title_1">Análisis Inteligente</span><br />
+        <span class="accent" data-i18n="home.title_2">de Repositorios</span>
+      </h1>
+      <h2 class="hero-subtitle" data-i18n="home.subtitle">Visualización Inmersiva 3D / VR</h2>
+      <p class="hero-desc" data-i18n="home.desc">
+        Introduce cualquier repositorio Git público o privado y obtén un análisis profundo de complejidad, evolución y calidad del código, representado automáticamente en una escena 3D interactiva impulsada por IA.
+      </p>
+      <div class="hero-actions">
+        <a href="{% url 'index' %}" class="cta-btn">
+          <span data-i18n="home.cta">Analizar Repositorio</span>
+          <span class="arrow" data-i18n="home.cta_arrow">→</span>
+        </a>
+        <a href="#how-it-works" class="cta-secondary" data-i18n="home.cta_secondary">
+          Saber más
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it works Section -->
+  <section class="how-section" id="how-it-works">
+    <div class="section-header">
+      <span class="section-label" data-i18n="home.how.label">Cómo funciona</span>
+      <h2 class="section-title" data-i18n="home.how.title">Tres pasos para visualizar tu código</h2>
+      <p class="section-desc" data-i18n="home.how.desc">De la URL del repositorio a una sala 3D interactiva en minutos.</p>
+    </div>
+
+    <div class="steps-grid">
+      <div class="step-card">
+        <div class="step-number">01</div>
+        <div class="step-icon">🔗</div>
+        <h3 class="step-title" data-i18n="home.step1.title">Introduce la URL</h3>
+        <p class="step-desc" data-i18n="home.step1.desc">Pega la URL de cualquier repositorio público de GitHub o GitLab. Para repositorios privados, conecta tu cuenta OAuth.</p>
+      </div>
+
+      <div class="step-card">
+        <div class="step-number">02</div>
+        <div class="step-icon">⚙️</div>
+        <h3 class="step-title" data-i18n="home.step2.title">La IA Analiza</h3>
+        <p class="step-desc" data-i18n="home.step2.desc">Nuestro motor extrae métricas de complejidad (Lizard), evolución (PyDriller) y la IA decide los dashboards óptimos.</p>
+      </div>
+
+      <div class="step-card">
+        <div class="step-number">03</div>
+        <div class="step-icon">🕶️</div>
+        <h3 class="step-title" data-i18n="home.step3.title">Explora en 3D</h3>
+        <p class="step-desc" data-i18n="home.step3.desc">Accede a una sala VR con dashboards interactivos: ciudades de código, redes de colaboración, gráficos de barras 3D y más.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section class="features-section">
+    <div class="section-header">
+      <span class="section-label" data-i18n="home.features.label">Características</span>
+      <h2 class="section-title" data-i18n="home.features.title">Todo lo que necesitas para entender tu código</h2>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-card-icon">📊</div>
+        <h4 class="feature-card-title" data-i18n="home.feat1.title">Análisis de Complejidad</h4>
+        <p class="feature-card-desc" data-i18n="home.feat1.desc">Complejidad ciclomática, NLOC, funciones y peak CCN por archivo con Lizard.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-card-icon">📈</div>
+        <h4 class="feature-card-title" data-i18n="home.feat2.title">Evolución del Código</h4>
+        <p class="feature-card-desc" data-i18n="home.feat2.desc">Historial de commits o releases, actividad por autor y churn de archivos con PyDriller.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-card-icon">🤖</div>
+        <h4 class="feature-card-title" data-i18n="home.feat3.title">IA Integrada</h4>
+        <p class="feature-card-desc" data-i18n="home.feat3.desc">Un LLM local decide qué dashboards instanciar y explica los datos en tiempo real.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-card-icon">🌐</div>
+        <h4 class="feature-card-title" data-i18n="home.feat4.title">Visualización 3D / VR</h4>
+        <p class="feature-card-desc" data-i18n="home.feat4.desc">Escenas inmersivas con A-Frame y BabiaXR: ciudades de código, cilindros, barras 3D y redes.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-card-icon">🔒</div>
+        <h4 class="feature-card-title" data-i18n="home.feat5.title">Repositorios Privados</h4>
+        <p class="feature-card-desc" data-i18n="home.feat5.desc">Conecta GitHub o GitLab mediante OAuth para analizar repos privados de forma segura.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-card-icon">👥</div>
+        <h4 class="feature-card-title" data-i18n="home.feat6.title">Análisis de Comunidad</h4>
+        <p class="feature-card-desc" data-i18n="home.feat6.desc">Pull Requests, Issues, Code Reviews y estabilidad de releases con datos enriquecidos de API.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="home-footer">
+    <p data-i18n="home.footer">ViZo — Plataforma de Análisis Inteligente de Repositorios. Proyecto de TFG.</p>
+  </footer>
+{% endblock %}
