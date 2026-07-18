@@ -1,6 +1,6 @@
 # ai.py
 # -----
-# Lógica principal del servicio de IA de ViZo.
+# Lógica principal del servicio de IA de ViZzo.
 # Procesa peticiones para configuraciones dinámicas de dashboards y
 # explicaciones holográficas mediante modelos de lenguaje (OpenAI / local).
 
@@ -10,8 +10,17 @@ from colorama import Fore
 from dotenv import load_dotenv
 from openai import APIConnectionError, OpenAI
 
-from .prompts import _SYSTEM_PROMPT, _EXPLAIN_SYSTEM_PROMPT
-from .helpers import DEFAULT_AI_CONFIG, _extract_summary_and_json, _validate_and_fix_config
+from .prompts import (
+    _SYSTEM_PROMPT,
+    _SYSTEM_PROMPT_LOCAL,
+    _EXPLAIN_SYSTEM_PROMPT_BASE,
+    _DASHBOARD_DESCRIPTIONS,
+)
+from .helpers import (
+    DEFAULT_AI_CONFIG,
+    _extract_summary_and_json,
+    _validate_and_fix_config,
+)
 
 # Cargar variables de entorno
 load_dotenv()
@@ -29,39 +38,93 @@ client = OpenAI(
 )
 
 
-def get_ai_config(repo_summary: str) -> dict:
+def get_openai_client(base_url=None, api_key=None):
     """
-    Envía el resumen del análisis a LM Studio/OpenAI y devuelve la configuración de dashboards.
+    Crea una instancia local del cliente OpenAI con los parámetros suministrados,
+    haciendo fallback a los valores por defecto del sistema.
+    """
+    return OpenAI(
+        base_url=base_url or AI_BASE_URL,
+        api_key=api_key or AI_API_KEY,
+        timeout=None,
+        max_retries=0,
+    )
+
+
+def get_ai_config(
+    repo_summary: str, base_url: str = None, api_key: str = None, model: str = None
+) -> dict:
+    """
+    Envía el resumen del análisis a LM Studio/OpenAI/LLM personalizado y devuelve la configuración de dashboards.
+    Selecciona dinámicamente el prompt del sistema basado en la disponibilidad de datos de la API.
     """
     try:
-      print(Fore.YELLOW + "\n[AI] Generando configuración de dashboards con Qwen3-Coder...")
-      response = client.chat.completions.create(
-         model=AI_MODEL,
-         messages=[
-               {"role": "system", "content": _SYSTEM_PROMPT},
-               {"role": "user", "content": f"Resumen del repo: {repo_summary}"},
-         ],
-         temperature=0.3,
-      )
+        # Analizar disponibilidad de datos de API en el resumen
+        has_api_data = False
+        try:
+            summary_dict = json.loads(repo_summary)
+            code_reviews = summary_dict.get("code_reviews", {})
+            if code_reviews and (
+                code_reviews.get("nodes") or code_reviews.get("links")
+            ):
+                has_api_data = True
+            elif (
+                summary_dict.get("pull_requests")
+                or summary_dict.get("issues_health")
+                or summary_dict.get("releases_health")
+                or summary_dict.get("community_activity")
+            ):
+                has_api_data = True
+        except Exception:
+            pass
 
-      raw_content = response.choices[0].message.content.strip()
-      summary, json_str = _extract_summary_and_json(raw_content)
+        if has_api_data:
+            system_prompt = _SYSTEM_PROMPT
+            print(
+                Fore.CYAN
+                + "ViZzo // IA // Utilizando prompt de sistema ENRIQUECIDO (API de Comunidad)."
+            )
+        else:
+            system_prompt = _SYSTEM_PROMPT_LOCAL
+            print(
+                Fore.CYAN
+                + "ViZzo // IA // Utilizando prompt de sistema LOCAL (Sin API)."
+            )
 
-      # Imprimir resumen de la IA con estilo
-      print("\n" + Fore.MAGENTA + "=" * 60)
-      print(Fore.CYAN + "ESTRATEGIA DE LA IA:")
-      print(Fore.WHITE + summary)
-      print(Fore.MAGENTA + "=" * 60 + "\n")
+        ai_model = model or AI_MODEL
+        local_client = get_openai_client(base_url, api_key)
 
-      config = json.loads(json_str)
-      config = _validate_and_fix_config(config)
-      config["ai_status"] = "success"
+        print(
+            Fore.YELLOW
+            + f"\n[AI] Generando configuración de dashboards con {ai_model} (URL: {base_url or AI_BASE_URL})..."
+        )
+        response = local_client.chat.completions.create(
+            model=ai_model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"Resumen del repo: {repo_summary}"},
+            ],
+            temperature=0.3,
+        )
 
-      print(
-         Fore.GREEN
-         + f"[AI] Dashboards configurados: {[d['component'] for d in config['dashboards']]}"
-      )
-      return config
+        raw_content = response.choices[0].message.content.strip()
+        summary, json_str = _extract_summary_and_json(raw_content)
+
+        # Imprimir resumen de la IA con estilo
+        print("\n" + Fore.MAGENTA + "=" * 60)
+        print(Fore.CYAN + "ESTRATEGIA DE LA IA:")
+        print(Fore.WHITE + summary)
+        print(Fore.MAGENTA + "=" * 60 + "\n")
+
+        config = json.loads(json_str)
+        config = _validate_and_fix_config(config)
+        config["ai_status"] = "success"
+
+        print(
+            Fore.GREEN
+            + f"[AI] Dashboards configurados: {[d['component'] for d in config['dashboards']]}"
+        )
+        return config
 
     except APIConnectionError:
         print(
@@ -79,7 +142,7 @@ def get_offline_explanation(dashboard_type: str, repo_name: str) -> str:
     Devuelve explicaciones técnicas de calidad predefinidas si el LLM local está offline.
     """
     if dashboard_type in {"boats", "file_metrics"}:
-        return f"""[SISTEMA DE ANÁLISIS VIZO_01 - OFFLINE FALLBACK]
+        return f"""[SISTEMA DE ANÁLISIS VIZZO_01 - OFFLINE FALLBACK]
 REPORTE DE COMPLEJIDAD Y NLOC (CIUDAD 3D) - REPOSITORIO: {repo_name}
 
 1. ANÁLISIS ESTRUCTURAL DE ARCHIVOS:
@@ -97,7 +160,7 @@ REPORTE DE COMPLEJIDAD Y NLOC (CIUDAD 3D) - REPOSITORIO: {repo_name}
    - Implementar pruebas unitarias enfocadas en los hotspots identificados."""
 
     elif dashboard_type in {"cyls", "data_by_language"}:
-        return f"""[SISTEMA DE ANÁLISIS VIZO_01 - OFFLINE FALLBACK]
+        return f"""[SISTEMA DE ANÁLISIS VIZZO_01 - OFFLINE FALLBACK]
 REPORTE DE DISTRIBUCIÓN POR LENGUAJE (CILINDROS 3D) - REPOSITORIO: {repo_name}
 
 1. ANÁLISIS DE DIVERSIFICACIÓN TECNOLÓGICA:
@@ -115,7 +178,7 @@ REPORTE DE DISTRIBUCIÓN POR LENGUAJE (CILINDROS 3D) - REPOSITORIO: {repo_name}
    - Documentar adecuadamente la integración y comunicación entre las diferentes tecnologías detectadas."""
 
     elif dashboard_type == "doughnut":
-        return f"""[SISTEMA DE ANÁLISIS VIZO_01 - OFFLINE FALLBACK]
+        return f"""[SISTEMA DE ANÁLISIS VIZZO_01 - OFFLINE FALLBACK]
 REPORTE DE PARTICIPACIÓN POR LENGUAJE (TARTA 3D) - REPOSITORIO: {repo_name}
 
 1. ANÁLISIS DE PESO RELATIVO:
@@ -130,7 +193,7 @@ REPORTE DE PARTICIPACIÓN POR LENGUAJE (TARTA 3D) - REPOSITORIO: {repo_name}
    - Estandarizar linters y formateadores (Prettier, ESLint, Black) para cada lenguaje identificado."""
 
     elif dashboard_type in {"barsmap", "author_activity"}:
-        return f"""[SISTEMA DE ANÁLISIS VIZO_01 - OFFLINE FALLBACK]
+        return f"""[SISTEMA DE ANÁLISIS VIZZO_01 - OFFLINE FALLBACK]
 REPORTE DE ACTIVIDAD Y COHESIÓN DE AUTORES (BARRAS 3D) - REPOSITORIO: {repo_name}
 
 1. ANÁLISIS DE DESARROLLO COLABORATIVO:
@@ -148,7 +211,7 @@ REPORTE DE ACTIVIDAD Y COHESIÓN DE AUTORES (BARRAS 3D) - REPOSITORIO: {repo_nam
    - Documentar procesos clave en repositorios compartidos para reducir el riesgo asociado a la partida de desarrolladores principales."""
 
     elif dashboard_type == "file_ownership":
-        return f"""[SISTEMA DE ANÁLISIS VIZO_01 - OFFLINE FALLBACK]
+        return f"""[SISTEMA DE ANÁLISIS VIZZO_01 - OFFLINE FALLBACK]
 REPORTE DE PROPIEDAD DE ARCHIVOS (BUS FACTOR) - REPOSITORIO: {repo_name}
 
 1. ANÁLISIS DE FACTOR AUTOBÚS:
@@ -166,7 +229,7 @@ REPORTE DE PROPIEDAD DE ARCHIVOS (BUS FACTOR) - REPOSITORIO: {repo_name}
    - Realizar sesiones de Pair Programming en los archivos más críticos con alta concentración de propiedad."""
 
     elif dashboard_type == "age_distribution":
-        return f"""[SISTEMA DE ANÁLISIS VIZO_01 - OFFLINE FALLBACK]
+        return f"""[SISTEMA DE ANÁLISIS VIZZO_01 - OFFLINE FALLBACK]
 REPORTE DE EDAD DEL CÓDIGO (LEGACY CODE) - REPOSITORIO: {repo_name}
 
 1. ANÁLISIS DE ANTIGÜEDAD:
@@ -184,7 +247,7 @@ REPORTE DE EDAD DEL CÓDIGO (LEGACY CODE) - REPOSITORIO: {repo_name}
    - Garantizar que el código mantenido cuente con suficiente cobertura de tests antes de realizar modificaciones."""
 
     elif dashboard_type == "top_complex_files":
-        return f"""[SISTEMA DE ANÁLISIS VIZO_01 - OFFLINE FALLBACK]
+        return f"""[SISTEMA DE ANÁLISIS VIZZO_01 - OFFLINE FALLBACK]
 REPORTE DE COMPLEJIDAD PEAK CCN (TOP 10) - REPOSITORIO: {repo_name}
 
 1. ANÁLISIS DE COMPLEJIDAD EXTREMA:
@@ -201,7 +264,7 @@ REPORTE DE COMPLEJIDAD PEAK CCN (TOP 10) - REPOSITORIO: {repo_name}
    - Desacoplar grandes estructuras condicionales (if/switch) usando polimorfismo o patrones de diseño."""
 
     elif dashboard_type in {"network", "babia-network"}:
-        return f"""[SISTEMA DE ANÁLISIS VIZO_01 - OFFLINE FALLBACK]
+        return f"""[SISTEMA DE ANÁLISIS VIZZO_01 - OFFLINE FALLBACK]
 REPORTE DE RED DE COLABORACIÓN DE DESARROLLADORES (GRAFO 3D) - REPOSITORIO: {repo_name}
 
 1. ANÁLISIS DE INTERACCIÓN SOCIAL Y TRABAJO COMPARITDO:
@@ -218,13 +281,20 @@ REPORTE DE RED DE COLABORACIÓN DE DESARROLLADORES (GRAFO 3D) - REPOSITORIO: {re
    - Fomentar la transferencia de conocimiento de los nodos centrales muy conectados hacia los desarrolladores más aislados.
    - Identificar si las conexiones muy gruesas esconden un "hotspot" de acoplamiento de archivos (múltiples personas modificando constantemente el mismo archivo grande)."""
 
-    return f"""[SISTEMA DE ANÁLISIS VIZO_01 - OFFLINE FALLBACK]
+    return f"""[SISTEMA DE ANÁLISIS VIZZO_01 - OFFLINE FALLBACK]
 REPORTE TÉCNICO GENERAL - REPOSITORIO: {repo_name}
 
 Métricas generales disponibles en el pedestal correspondiente. Use los controles físicos o el menú holográfico de muñeca para alternar mapeos e interactuar con la visualización."""
 
 
-def get_ai_explanation(dashboard_type: str, dashboard_data: str, repo_name: str) -> str:
+def get_ai_explanation(
+    dashboard_type: str,
+    dashboard_data: str,
+    repo_name: str,
+    base_url: str = None,
+    api_key: str = None,
+    model: str = None,
+) -> str:
     """
     Envía los datos de un dashboard de visualización específico a la IA para
     obtener una explicación técnica de la salud y calidad del código.
@@ -240,25 +310,40 @@ def get_ai_explanation(dashboard_type: str, dashboard_data: str, repo_name: str)
             elif "commits" in first_item:
                 data_obj.sort(key=lambda x: float(x.get("commits") or 0), reverse=True)
             elif "ownership" in first_item:
-                data_obj.sort(key=lambda x: float(x.get("ownership") or 0), reverse=True)
-            
+                data_obj.sort(
+                    key=lambda x: float(x.get("ownership") or 0), reverse=True
+                )
+
             data_obj = data_obj[:15]
             dashboard_data = json.dumps(data_obj)
     except Exception:
         pass
+
+    desc = _DASHBOARD_DESCRIPTIONS.get(dashboard_type)
+    if not desc:
+        desc = f"Dashboard de tipo '{dashboard_type}'. Analiza los datos JSON provistos y explica su significado."
+
+    system_prompt = _EXPLAIN_SYSTEM_PROMPT_BASE.format(dashboard_description=desc)
 
     prompt_user = f"""
     Repositorio: {repo_name}
     Tipo de Dashboard: {dashboard_type}
     Datos del Dashboard (JSON):
     {dashboard_data[:3000]}
+
+    INSTRUCCIÓN CRÍTICA: Concéntrate EXCLUSIVAMENTE en el dashboard de tipo '{dashboard_type}' descrito en el mensaje del sistema. Ignora los demás dashboards de la base de datos de ViZzo. No repitas explicaciones ni menciones otros componentes.
     """
     try:
-        print(Fore.YELLOW + "[AI] Generando explicación de dashboard con Qwen3-Coder...")
-        response = client.chat.completions.create(
-            model=AI_MODEL,
+        ai_model = model or AI_MODEL
+        local_client = get_openai_client(base_url, api_key)
+        print(
+            Fore.YELLOW
+            + f"[AI] Generando explicación aislada para {dashboard_type} con {ai_model} (URL: {base_url or AI_BASE_URL})..."
+        )
+        response = local_client.chat.completions.create(
+            model=ai_model,
             messages=[
-                {"role": "system", "content": _EXPLAIN_SYSTEM_PROMPT},
+                {"role": "system", "content": system_prompt},
                 {"role": "user", "content": prompt_user},
             ],
             temperature=0.4,

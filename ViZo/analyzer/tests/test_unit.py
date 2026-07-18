@@ -69,6 +69,68 @@ class AIUtilsTestCase(TestCase):
         self.assertIsNotNone(cyls_dash.get("mappings"))
         self.assertEqual(cyls_dash["mappings"]["x_axis"], "language")
 
+    def test_validate_and_fix_config_new_community_datasets(self):
+        config = {
+            "dashboards": [
+                {
+                    "component": "babia-boats",
+                },
+                {
+                    "component": "babia-network",
+                    "dataset": "code_reviews"
+                },
+                {
+                    "component": "babia-bars",
+                    "dataset": "community_activity"
+                },
+                {
+                    "component": "babia-barsmap",
+                    "dataset": "releases_health"
+                },
+                {
+                    "component": "babia-pie",
+                    "dataset": "issues_health"
+                }
+            ]
+        }
+        fixed = _validate_and_fix_config(config)
+        
+        network_dash = next(d for d in fixed["dashboards"] if d["component"] == "babia-network")
+        self.assertEqual(network_dash["dataset"], "code_reviews")
+        self.assertEqual(network_dash["mappings"]["nodeVal"], "total_reviews_given")
+
+        bars_dash = next(d for d in fixed["dashboards"] if d["component"] == "babia-bars")
+        self.assertEqual(bars_dash["dataset"], "community_activity")
+        self.assertEqual(bars_dash["mappings"]["height"], "total_contributions")
+
+        barsmap_dash = next(d for d in fixed["dashboards"] if d["component"] == "babia-barsmap")
+        self.assertEqual(barsmap_dash["dataset"], "releases_health")
+        self.assertEqual(barsmap_dash["mappings"]["height"], "bugs_count")
+
+        pie_dash = next(d for d in fixed["dashboards"] if d["component"] == "babia-pie")
+        self.assertEqual(pie_dash["dataset"], "issues_health")
+
+    def test_validate_and_fix_config_duplicate_dashboards(self):
+        config = {
+            "dashboards": [
+                {
+                    "component": "babia-boats",
+                    "dataset": "file_metrics"
+                },
+                {
+                    "component": "babia-bars",
+                    "dataset": "community_activity"
+                },
+                {
+                    "component": "babia-bars",
+                    "dataset": "community_activity" # Duplicado!
+                }
+            ]
+        }
+        fixed = _validate_and_fix_config(config)
+        bars_dashes = [d for d in fixed["dashboards"] if d["component"] == "babia-bars" and d["dataset"] == "community_activity"]
+        self.assertEqual(len(bars_dashes), 1)
+
     def test_get_offline_explanation_network(self):
         from analyzer.core.AI.ai import get_offline_explanation
 
@@ -499,7 +561,7 @@ class PublicProviderTestCase(TestCase):
                 "number": 10,
                 "title": "Crash on startup",
                 "state": "closed",
-                "created_at": "2026-07-01T12:00:00Z",
+                "created_at": "2026-07-03T12:00:00Z",
                 "user": {"login": "user55"},
                 "comments": 5,
                 "labels": [{"name": "bug"}, {"name": "high"}]
@@ -532,12 +594,19 @@ class PublicProviderTestCase(TestCase):
             "stargazers_count": 50,
             "forks_count": 10
         }
+        mock_releases_data = [
+            {
+                "tag_name": "v1.0.0",
+                "created_at": "2026-07-02T12:00:00Z"
+            }
+        ]
 
-        # Configurar mock_urlopen para devolver detalles del repo, issues y pulls
+        # Configurar mock_urlopen para devolver detalles del repo, issues, pulls y releases
         mock_urlopen.side_effect = [
             MockResponse(json.dumps(mock_repo_details).encode("utf-8")),
             MockResponse(json.dumps(mock_issue_data).encode("utf-8")),
-            MockResponse(json.dumps(mock_pr_data).encode("utf-8"))
+            MockResponse(json.dumps(mock_pr_data).encode("utf-8")),
+            MockResponse(json.dumps(mock_releases_data).encode("utf-8"))
         ]
 
         meta = fetch_public_metadata("https://github.com/hydralauncher/hydra")
@@ -552,4 +621,21 @@ class PublicProviderTestCase(TestCase):
         self.assertEqual(meta["issues"][0]["id"], 10)
         self.assertEqual(meta["issues"][0]["state"], "closed")
         self.assertEqual(meta["issues"][0]["labels"], ["bug", "high"])
+
+        # Verificar nuevos datasets enriquecidos de comunidad
+        self.assertEqual(len(meta["releases_health"]), 1)
+        self.assertEqual(meta["releases_health"][0]["release_version"], "v1.0.0")
+        self.assertEqual(meta["releases_health"][0]["bugs_count"], 1) # 1 bug (id 10) creado en los 7 días posteriores
+        self.assertEqual(meta["releases_health"][0]["stability_index"], 85)
+
+        self.assertTrue(len(meta["issues_health"]) >= 1)
+        self.assertEqual(meta["issues_health"][0]["label"], "bug")
+
+        self.assertIn("nodes", meta["code_reviews"])
+        self.assertTrue(len(meta["code_reviews"]["nodes"]) >= 1)
+        
+        self.assertTrue(len(meta["community_activity"]) >= 2)
+        users = [item["user"] for item in meta["community_activity"]]
+        self.assertIn("coder123", users)
+        self.assertIn("user55", users)
 

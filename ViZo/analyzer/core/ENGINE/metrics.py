@@ -1,6 +1,6 @@
 # metrics.py
 # ──────────
-# Lógica encargada del procesamiento final y empaquetamiento de métricas locales en ViZo.
+# Lógica encargada del procesamiento final y empaquetamiento de métricas locales en ViZzo.
 
 import os
 from datetime import datetime
@@ -65,7 +65,11 @@ def _process_metrics(
 
         # Lizard metrics
         num_functions = len(file.function_list)
-        peak_ccn = float(max([func.cyclomatic_complexity for func in file.function_list])) if file.function_list else 0.0
+        peak_ccn = (
+            float(max([func.cyclomatic_complexity for func in file.function_list]))
+            if file.function_list
+            else 0.0
+        )
 
         # PyDriller age calculation
         last_mod_dt = evolution_data["file_last_modified"].get(rel_path)
@@ -103,11 +107,9 @@ def _process_metrics(
             # Records for all authors who touched this file
             for auth, auth_commits in author_counts.items():
                 pct = (auth_commits / total_file_commits) * 100.0
-                file_ownership.append({
-                    "author": auth,
-                    "file": basename,
-                    "ownership": round(pct, 2)
-                })
+                file_ownership.append(
+                    {"author": auth, "file": basename, "ownership": round(pct, 2)}
+                )
         else:
             ownership = 0.0
             owner_name = "N/A"
@@ -180,22 +182,16 @@ def _process_metrics(
     # Sort files by peak_ccn descending to get Top 10 complex files
     sorted_by_peak = sorted(file_metrics, key=lambda x: x["peak_ccn"], reverse=True)
     top_complex_files = [
-        {
-            "name": f["name"],
-            "peak_ccn": f["peak_ccn"],
-            "avg_ccn": round(f["ccn"], 2)
-        }
+        {"name": f["name"], "peak_ccn": f["peak_ccn"], "avg_ccn": round(f["ccn"], 2)}
         for f in sorted_by_peak[:10]
     ]
 
     # Sort files by commits descending to get Top 10 files with highest churn
-    sorted_by_churn = sorted(file_metrics, key=lambda x: x.get("commits", 0), reverse=True)
+    sorted_by_churn = sorted(
+        file_metrics, key=lambda x: x.get("commits", 0), reverse=True
+    )
     top_churn_files = [
-        {
-            "name": f["name"],
-            "commits": f["commits"],
-            "nloc": f["nloc"]
-        }
+        {"name": f["name"], "commits": f["commits"], "nloc": f["nloc"]}
         for f in sorted_by_churn[:10]
     ]
 
@@ -211,7 +207,9 @@ def _process_metrics(
 
     # Fallback si evolution_data["commits"] no estuviera disponible
     if not author_commits:
-        for rel_path, authors_dict in evolution_data.get("file_author_commits", {}).items():
+        for rel_path, authors_dict in evolution_data.get(
+            "file_author_commits", {}
+        ).items():
             for author, count in authors_dict.items():
                 if author != "Release":
                     author_commits[author] = author_commits.get(author, 0) + count
@@ -227,19 +225,26 @@ def _process_metrics(
         for author in authors_dict.keys():
             if author not in top_authors_set:
                 continue
-            
-            raw_size = author_commits.get(author, 1)
-            
-            file_network.append({
-                "author": author,
-                "file": rel_path,
-                "size": raw_size,
-                "commits": raw_size
-            })
 
-    print(Fore.CYAN + f"ViZo // Red de Colaboración:")
-    print(Fore.CYAN + f"  - Autores principales seleccionados (Top 10): {list(top_authors_set)}")
-    print(Fore.CYAN + f"  - Relaciones totales generadas en la red: {len(file_network)}")
+            raw_size = author_commits.get(author, 1)
+
+            file_network.append(
+                {
+                    "author": author,
+                    "file": rel_path,
+                    "size": raw_size,
+                    "commits": raw_size,
+                }
+            )
+
+    print(Fore.CYAN + "ViZzo // Red de Colaboración:")
+    print(
+        Fore.CYAN
+        + f"  - Autores principales seleccionados (Top 10): {list(top_authors_set)}"
+    )
+    print(
+        Fore.CYAN + f"  - Relaciones totales generadas en la red: {len(file_network)}"
+    )
     if file_network:
         print(Fore.YELLOW + "  - Muestra de los primeros 10 elementos de la red:")
         for idx, item in enumerate(file_network[:10]):
@@ -292,5 +297,7 @@ def _build_repo_summary(
         "total_lines_added": sum(c["insertions"] for c in evolution_data["commits"]),
         "total_lines_deleted": sum(c["deletions"] for c in evolution_data["commits"]),
         "analysis_mode": analysis_mode,
-        "num_releases": evolution_data.get("num_releases", 0) if analysis_mode == "releases" else 0,
+        "num_releases": evolution_data.get("num_releases", 0)
+        if analysis_mode == "releases"
+        else 0,
     }

@@ -1,6 +1,6 @@
 # orchestrator.py
 # ───────────────
-# Orquestador principal del flujo de análisis de ViZo.
+# Orquestador principal del flujo de análisis de ViZzo.
 # Controla la ejecución Cache-First, la concurrencia de hilos y llamadas al core de análisis e IA.
 
 import json
@@ -19,7 +19,7 @@ from .security import verify_and_build_clone_url
 init(autoreset=True)
 
 # Pool de hilos acotado global para limitar tareas concurrentes y proteger el procesador
-_ANALYSIS_EXECUTOR = ThreadPoolExecutor(max_workers=3, thread_name_prefix="vizo-task")
+_ANALYSIS_EXECUTOR = ThreadPoolExecutor(max_workers=3, thread_name_prefix="vizzo-task")
 
 
 def analyze_repository(url: str, max_commits: int = 150) -> dict | None:
@@ -60,7 +60,8 @@ def analyze_repository(url: str, max_commits: int = 150) -> dict | None:
 
 
 def start_async_analysis(
-    url: str, max_commits: int = 150, analysis_mode: str = "commits", user=None, is_private=False
+    url: str, max_commits: int = 150, analysis_mode: str = "commits", user=None, is_private=False,
+    llm_base_url: str = None, llm_api_key: str = None, llm_model: str = None
 ) -> tuple:
     """
     Inicia un flujo de análisis asíncrono optimizado mediante caché previa.
@@ -146,12 +147,24 @@ def start_async_analysis(
     )
 
     # Enviamos la tarea al ThreadPoolExecutor controlado
-    _ANALYSIS_EXECUTOR.submit(async_analysis_worker, session.id, clone_url, max_commits, analysis_mode)
+    _ANALYSIS_EXECUTOR.submit(
+        async_analysis_worker,
+        session.id,
+        clone_url,
+        max_commits,
+        analysis_mode,
+        llm_base_url,
+        llm_api_key,
+        llm_model
+    )
 
     return session.id, False
 
 
-def async_analysis_worker(session_id: int, url: str, max_commits: int, analysis_mode: str = "commits"):
+def async_analysis_worker(
+    session_id: int, url: str, max_commits: int, analysis_mode: str = "commits",
+    llm_base_url: str = None, llm_api_key: str = None, llm_model: str = None
+):
     """
     Worker asíncrono que procesa el análisis y utiliza la persistencia de Django.
     """
@@ -171,7 +184,12 @@ def async_analysis_worker(session_id: int, url: str, max_commits: int, analysis_
             raise Exception("El análisis del motor analyzer_core ha fallado.")
 
         # Obtener configuración del dashboard con la IA
-        ai_config = get_ai_config(json.dumps(analysis_result["repo_summary"]))
+        ai_config = get_ai_config(
+            json.dumps(analysis_result["repo_summary"]),
+            base_url=llm_base_url,
+            api_key=llm_api_key,
+            model=llm_model
+        )
         if not ai_config:
             raise Exception(
                 "No se pudo obtener una configuración visual de la IA válida."

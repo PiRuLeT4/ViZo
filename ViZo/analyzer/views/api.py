@@ -3,6 +3,7 @@ api.py
 ──────
 Endpoints de la API para registrar, arrancar asíncronamente y sondear estados de análisis.
 """
+import json
 from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -64,6 +65,11 @@ def api_analyze(request):
                 status=401
             )
 
+    # Obtener credenciales de IA (priorizando cookies seguras HttpOnly)
+    llm_base_url = request.COOKIES.get("vizzo_llm_base_url", "").strip() or request.POST.get("llm_base_url", "").strip() or None
+    llm_api_key = request.COOKIES.get("vizzo_llm_api_key", "").strip() or request.POST.get("llm_api_key", "").strip() or None
+    llm_model = request.COOKIES.get("vizzo_llm_model", "").strip() or request.POST.get("llm_model", "").strip() or None
+
     try:
         # Iniciar flujo asíncrono con control de hilos, usuario, privacidad y caché inteligente
         session_id, is_cache_hit = start_async_analysis(
@@ -71,7 +77,10 @@ def api_analyze(request):
             max_commits=max_commits,
             analysis_mode=analysis_mode,
             user=request.user,
-            is_private=is_private
+            is_private=is_private,
+            llm_base_url=llm_base_url,
+            llm_api_key=llm_api_key,
+            llm_model=llm_model,
         )
     except PermissionError as e:
         if str(e) == "PRIVATE_REPO_WITHOUT_SHIELD":
@@ -115,3 +124,46 @@ def api_cancel_analysis(request, session_id):
         return JsonResponse({"status": "success", "message": "Análisis cancelado con éxito."})
 
     return JsonResponse({"error": "No se puede cancelar un análisis que no está activo."}, status=400)
+
+
+@csrf_exempt
+def api_save_ai_config(request):
+    """
+    Endpoint POST para guardar las credenciales personalizadas de IA en cookies seguras.
+    """
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    try:
+        data = json.loads(request.body)
+        llm_base_url = data.get("llm_base_url", "").strip()
+        llm_api_key = data.get("llm_api_key", "").strip()
+        llm_model = data.get("llm_model", "").strip()
+        llm_is_local = data.get("llm_is_local", True)
+        
+        response = JsonResponse({"status": "success"})
+        
+        # Si la URL está vacía, eliminamos las cookies (se desactiva la IA personalizada)
+        if not llm_base_url:
+            response.delete_cookie("vizzo_llm_base_url")
+            response.delete_cookie("vizzo_llm_api_key")
+            response.delete_cookie("vizzo_llm_model")
+            response.delete_cookie("vizzo_llm_is_local")
+            return response
+            
+        # De lo contrario, configuramos las cookies
+        response.set_cookie("vizzo_llm_base_url", llm_base_url, max_age=30*24*60*60, samesite="Lax")
+        response.set_cookie("vizzo_llm_model", llm_model, max_age=30*24*60*60, samesite="Lax")
+        response.set_cookie("vizzo_llm_is_local", "true" if llm_is_local else "false", max_age=30*24*60*60, samesite="Lax")
+        
+        # Si el api_key es el valor ficticio '••••••••••••••••', no lo sobreescribimos
+        if llm_api_key and llm_api_key != "••••••••••••••••":
+            response.set_cookie("vizzo_llm_api_key", llm_api_key, max_age=30*24*60*60, httponly=True, samesite="Lax")
+        elif not llm_api_key:
+            # Si se deja vacío, eliminamos la cookie de la API Key
+            response.delete_cookie("vizzo_llm_api_key")
+            
+        return response
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)

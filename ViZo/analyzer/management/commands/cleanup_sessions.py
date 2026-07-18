@@ -4,7 +4,7 @@ from datetime import timedelta
 from analyzer.models import AnalysisSession, Repository
 
 class Command(BaseCommand):
-    help = "Limpia las sesiones de análisis antiguas de la base de datos de ViZo."
+    help = "Limpia las sesiones de análisis antiguas de la base de datos de ViZzo."
 
     def add_arguments(self, parser):
         parser.add_argument(

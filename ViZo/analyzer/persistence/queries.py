@@ -1,7 +1,7 @@
 """
 queries.py
 ──────────
-Funciones de persistencia y consultas para la base de datos de ViZo.
+Funciones de persistencia y consultas para la base de datos de ViZzo.
 SSOT (Single Source of Truth) para la persistencia del análisis.
 """
 from colorama import Fore

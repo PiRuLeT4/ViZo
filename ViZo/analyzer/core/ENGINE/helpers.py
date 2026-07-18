@@ -1,7 +1,7 @@
 # helpers.py
 # ----------
 # Funciones auxiliares y operaciones del sistema operativo / Git
-# utilizadas por el motor de análisis de repositorios en ViZo.
+# utilizadas por el motor de análisis de repositorios en ViZzo.
 
 import gc
 import os
@@ -9,6 +9,9 @@ import shutil
 import stat
 import subprocess
 import time
+import queue
+import multiprocessing
+import lizard
 from datetime import datetime
 from colorama import Fore
 
@@ -238,3 +241,111 @@ def _get_diff_stats(target_dir: str, rev_prev: str, rev_curr: str) -> tuple:
     except Exception:
         pass
     return 0, 0
+
+
+# ── Variables y helpers para el análisis con Lizard ──
+
+_LIZARD_EXCLUDE_PATTERNS = [
+    "*/node_modules/*",
+    "*/vendor/*",
+    "*/3rdparty/*",
+    "*/third_party/*",
+    "*/bin/*",
+    "*/build/*",
+    "*/dist/*",
+    "*/target/*",
+    "*/.git/*",
+    "*/venv/*",
+    "*/env/*",
+    "*/.venv/*",
+    "*/.env/*",
+    "*/htmlcov/*",
+    "*/out/*",
+    "*/media/*",
+    "*/regression/*",
+    "*/os/*",
+    "*/.github/*",
+    "*/.gitlab/*",
+    "*/cmake/*",
+]
+
+_LIZARD_INCLUDE_FOLDERS = [
+    # --- Genéricos y ya existentes ---
+    "src", "lib", "app", "source", "core", "components", "pkg", "cmd", "include", "apps", "sources", "build", "tools",
+    
+    # --- Django / Python / Backends Web ---
+    "api",
+    "modules",
+    "services",
+    "controllers",
+    "routes",
+    "models",
+    "views",
+    "backend",
+    "server",
+    
+    # --- Frontend / Web Apps ---
+    "frontend",
+    "client",
+    "pages",
+    "public/js",
+    "assets/js",
+    "scripts",
+    
+    # --- Lenguajes de Sistemas (Rust, Go, C++, C#) ---
+    "internal",
+    "common",
+    "utils",
+    "plugins",
+    "handlers",
+]
+
+
+def is_minified_or_obfuscated(filepath: str) -> bool:
+    """
+    Comprueba si un archivo es código minificado, empaquetado u ofuscado
+    basándose en patrones de nombre y la longitud máxima de línea.
+    """
+    basename = os.path.basename(filepath).lower()
+    
+    # 1. Patrones comunes de compresión en nombres
+    if any(pat in basename for pat in [".min.", ".bundle.", ".prod.", "-min.", ".esm."]):
+        return True
+        
+    # 2. Heurístico de longitud de línea (primeras 20 líneas)
+    try:
+        with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
+            for _ in range(20):
+                line = f.readline()
+                if not line:
+                    break
+                if len(line) > 1000:
+                    return True
+    except Exception:
+        pass
+        
+    return False
+
+
+def _lizard_worker_process(queue_out, files: list, exclude_patterns: list, threads_count: int):
+    """
+    Función de ejecución en subproceso aislado. Convierte a lista el generador de Lizard
+    para resolverlo en el subproceso y lo envía a la cola.
+    """
+    try:
+        res = list(
+            lizard.analyze(
+                files,
+                exclude_pattern=exclude_patterns,
+                threads=threads_count
+            )
+        )
+        queue_out.put(("success", res))
+    except Exception as e:
+        queue_out.put(("error", str(e)))
+    finally:
+        try:
+            queue_out.close()
+            queue_out.join_thread()
+        except Exception:
+            pass

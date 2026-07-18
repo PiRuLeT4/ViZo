@@ -1,14 +1,11 @@
-import re
 import urllib.request
 import json
+import re
 from datetime import datetime, timedelta
 from colorama import Fore
 
 def parse_repo_url(url: str) -> tuple:
-    """
-    Parsea la URL de un repositorio y devuelve (platform, owner, repo_name).
-    Soporta GitHub y GitLab.
-    """
+    """Parsea la URL y devuelve (platform, owner, repo_name)."""
     clean_url = url.strip().rstrip("/")
     if clean_url.endswith(".git"):
         clean_url = clean_url[:-4]
@@ -34,10 +31,10 @@ def _parse_date(date_str: str) -> datetime:
     except Exception:
         return None
 
-def fetch_public_metadata(repo_url: str) -> dict:
+def fetch_private_metadata(repo_url: str, token: str) -> dict:
     """
-    Descarga metadatos públicos de un repositorio e implementa la estructuración
-    completa de los 4 datasets de comunidad para análisis de ViZzo.
+    Descarga metadatos enriquecidos de la API usando el token OAuth.
+    Optimiza el consumo del Rate Limit haciendo consultas masivas en lote.
     """
     result = {
         "pull_requests": [],
@@ -49,18 +46,39 @@ def fetch_public_metadata(repo_url: str) -> dict:
         "releases_health": [],
         "community_activity": []
     }
-    
+
+    if not token:
+        print(Fore.YELLOW + "ViZzo // [Warning] private_provider invocado sin token. Retornando vacío.")
+        return result
+
     platform, owner, repo = parse_repo_url(repo_url)
     if not platform:
-        print(Fore.YELLOW + f"ViZzo // URL no compatible con API pública de GitHub/GitLab: {repo_url}")
         return result
-        
-    print(Fore.YELLOW + f"ViZzo // Consultando API pública de {platform.upper()} para {owner}/{repo}...")
-    
+
+    print(Fore.CYAN + f"ViZzo // Iniciando extracción autenticada ({platform.upper()}) para {owner}/{repo}...")
+
+    # Helper HTTP GET con token inyectado
+    def _http_get_auth(url: str):
+        headers = {"User-Agent": "ViZzo-Analysis-Suite"}
+        if platform == "github":
+            headers["Authorization"] = f"token {token}"
+            headers["Accept"] = "application/vnd.github.v3+json"
+        elif platform == "gitlab":
+            headers["Authorization"] = f"Bearer {token}"
+            
+        req = urllib.request.Request(url, headers=headers)
+        try:
+            with urllib.request.urlopen(req, timeout=12) as response:
+                if response.status == 200:
+                    return json.loads(response.read().decode("utf-8"))
+        except Exception as e:
+            print(Fore.RED + f"ViZzo // Error en llamada autenticada ({url}): {e}")
+        return None
+
     if platform == "github":
-        # 0. Descargar estadísticas generales (stars y forks)
-        repo_details_url = f"https://api.github.com/repos/{owner}/{repo}"
-        repo_details = _http_get_json(repo_details_url)
+        # 1. Detalles del Repositorio (Stars & Forks)
+        repo_url_api = f"https://api.github.com/repos/{owner}/{repo}"
+        repo_details = _http_get_auth(repo_url_api)
         if isinstance(repo_details, dict):
             result["stars"] = repo_details.get("stargazers_count", 0)
             result["forks"] = repo_details.get("forks_count", 0)
@@ -72,16 +90,16 @@ def fetch_public_metadata(repo_url: str) -> dict:
         pr_creators = {}
         comments_map = {}
 
-        # 1. Descargar Issues y PRs desde el endpoint de issues para obtener los contadores de comentarios
+        # 2. Issues (Últimos 100 de cualquier estado para agrupar salud)
         issues_url = f"https://api.github.com/repos/{owner}/{repo}/issues?state=all&per_page=100"
-        issues = _http_get_json(issues_url)
+        raw_issues = _http_get_auth(issues_url) or []
         
-        if isinstance(issues, list):
+        if isinstance(raw_issues, list):
             health_categories = {}
-            for item in issues:
+            for item in raw_issues:
+                is_pr = "pull_request" in item
                 num = item.get("number")
                 comments_map[num] = item.get("comments", 0)
-                is_pr = "pull_request" in item
                 creator = item.get("user", {}).get("login", "Unknown") if item.get("user") else "Unknown"
                 
                 # Inicializar estadísticas del colaborador
@@ -93,7 +111,7 @@ def fetch_public_metadata(repo_url: str) -> dict:
                     pr_creators[num] = creator
                     if creator != "Unknown":
                         community_stats[creator]["prs"] += 1
-                    
+                        
                     # Relaciones de asignación de PR
                     assignees = item.get("assignees", []) or []
                     if item.get("assignee"):
@@ -105,13 +123,13 @@ def fetch_public_metadata(repo_url: str) -> dict:
                             review_matrix[key] = review_matrix.get(key, 0) + 1
                             user_reviews[ass_name] = user_reviews.get(ass_name, 0) + 1
                     continue
-                
+                    
                 # Si es un issue real:
                 if creator != "Unknown":
                     community_stats[creator]["issues"] += 1
                 
-                # Clasificar etiquetas para issues_health
-                labels = item.get("labels", []) or []
+                # Clasificación de etiquetas de salud
+                labels = item.get("labels", [])
                 label_names = [l.get("name") for l in labels if l.get("name")] if isinstance(labels, list) else []
                 
                 category = "general"
@@ -126,9 +144,9 @@ def fetch_public_metadata(repo_url: str) -> dict:
                     category = "refactor"
                 elif label_names:
                     category = label_names[0][:15]
-                
+
                 health_categories[category] = health_categories.get(category, 0) + 1
-                
+
                 # Relaciones de asignación de Issue
                 assignees = item.get("assignees", []) or []
                 if item.get("assignee"):
@@ -139,7 +157,7 @@ def fetch_public_metadata(repo_url: str) -> dict:
                         key = (creator, ass_name)
                         review_matrix[key] = review_matrix.get(key, 0) + 1
                         user_reviews[ass_name] = user_reviews.get(ass_name, 0) + 1
-                
+
                 result["issues"].append({
                     "id": num,
                     "title": item.get("title", ""),
@@ -151,16 +169,16 @@ def fetch_public_metadata(repo_url: str) -> dict:
                 })
             
             result["issues_health"] = [{"label": cat, "count": cnt} for cat, cnt in health_categories.items()]
-                
-        # 2. Descargar Pull Requests (últimos 100) y cruzar comentarios/reviewers correctos
+
+        # 3. Pull Requests (Últimos 100 de cualquier estado para latencia de merge)
         pulls_url = f"https://api.github.com/repos/{owner}/{repo}/pulls?state=all&per_page=100"
-        pulls = _http_get_json(pulls_url)
-        if isinstance(pulls, list):
-            for pr in pulls:
-                pr_number = pr.get("number")
+        raw_pulls = _http_get_auth(pulls_url) or []
+        if isinstance(raw_pulls, list):
+            for pr in raw_pulls:
+                num = pr.get("number")
                 creator = pr.get("user", {}).get("login", "Unknown") if pr.get("user") else "Unknown"
                 
-                # Revisor de PR solicitado
+                # Revisor solicitado de PR
                 revs = pr.get("requested_reviewers", []) or []
                 for rev in revs:
                     rev_name = rev.get("login") if isinstance(rev, dict) else None
@@ -183,17 +201,37 @@ def fetch_public_metadata(repo_url: str) -> dict:
                 m_date = _parse_date(pr.get("merged_at"))
                 if c_date and m_date:
                     latency_hours = round((m_date - c_date).total_seconds() / 3600, 1)
-                
+
                 result["pull_requests"].append({
-                    "id": pr_number,
+                    "id": num,
                     "title": pr.get("title", ""),
                     "state": pr.get("state", "open"),
                     "created_at": pr.get("created_at", ""),
                     "user": creator,
-                    "comments": comments_map.get(pr_number, 0),
+                    "comments": comments_map.get(num, 0),
                     "merge_latency_hours": latency_hours
                 })
+
+        # 4. Code Reviews (Matriz de revisiones en una sola llamada por lote + comentarios)
+        comments_url = f"https://api.github.com/repos/{owner}/{repo}/pulls/comments?per_page=100"
+        raw_comments = _http_get_auth(comments_url) or []
+        
+        if isinstance(raw_comments, list):
+            for comment in raw_comments:
+                revisor = comment.get("user", {}).get("login", "Unknown") if comment.get("user") else "Unknown"
+                pr_url = comment.get("pull_request_url", "")
                 
+                try:
+                    pr_num = int(pr_url.split("/")[-1])
+                except Exception:
+                    continue
+                
+                creador = pr_creators.get(pr_num)
+                if creador and creador != revisor:
+                    key = (creador, revisor)
+                    review_matrix[key] = review_matrix.get(key, 0) + 1
+                    user_reviews[revisor] = user_reviews.get(revisor, 0) + 1
+
         # Construir nodos de red
         nodes = []
         for usr, count in user_reviews.items():
@@ -219,9 +257,9 @@ def fetch_public_metadata(repo_url: str) -> dict:
             })
         result["code_reviews"] = {"nodes": nodes, "links": links}
 
-        # 3. Releases públicas y estabilidad de despliegues
+        # 5. Releases y Bugs (Lanzamientos vs Estabilidad)
         releases_url = f"https://api.github.com/repos/{owner}/{repo}/releases?per_page=10"
-        raw_releases = _http_get_json(releases_url) or []
+        raw_releases = _http_get_auth(releases_url) or []
         if isinstance(raw_releases, list):
             for rel in raw_releases:
                 tag = rel.get("tag_name", "vUnknown")
@@ -244,7 +282,7 @@ def fetch_public_metadata(repo_url: str) -> dict:
                     "stability_index": 100 - min(100, bugs_count * 15)
                 })
 
-        # 4. Actividad de la comunidad
+        # 6. Actividad de la comunidad
         result["community_activity"] = []
         for user, stats in community_stats.items():
             total = stats["issues"] + stats["prs"]
@@ -257,11 +295,10 @@ def fetch_public_metadata(repo_url: str) -> dict:
                 })
         result["community_activity"].sort(key=lambda x: x["total_contributions"], reverse=True)
         result["community_activity"] = result["community_activity"][:15]
-                
+
     elif platform == "gitlab":
-        # 0. Descargar estadísticas generales (stars y forks)
-        repo_details_url = f"https://gitlab.com/api/v4/projects/{owner}%2F{repo}"
-        repo_details = _http_get_json(repo_details_url)
+        repo_url_api = f"https://gitlab.com/api/v4/projects/{owner}%2F{repo}"
+        repo_details = _http_get_auth(repo_url_api)
         if isinstance(repo_details, dict):
             result["stars"] = repo_details.get("star_count", 0)
             result["forks"] = repo_details.get("forks_count", 0)
@@ -272,11 +309,11 @@ def fetch_public_metadata(repo_url: str) -> dict:
         community_stats = {}
         pr_creators = {}
 
-        # 1. Descargar Merge Requests (GitLab's PRs)
+        # Merge Requests
         pulls_url = f"https://gitlab.com/api/v4/projects/{owner}%2F{repo}/merge_requests?per_page=100"
-        pulls = _http_get_json(pulls_url)
-        if isinstance(pulls, list):
-            for pr in pulls:
+        raw_pulls = _http_get_auth(pulls_url) or []
+        if isinstance(raw_pulls, list):
+            for pr in raw_pulls:
                 num = pr.get("iid")
                 creator = pr.get("author", {}).get("username", "Unknown") if pr.get("author") else "Unknown"
                 pr_creators[num] = creator
@@ -321,13 +358,13 @@ def fetch_public_metadata(repo_url: str) -> dict:
                     "comments": pr.get("user_notes_count", 0),
                     "merge_latency_hours": latency_hours
                 })
-                
-        # 2. Descargar Issues
+
+        # Issues
         issues_url = f"https://gitlab.com/api/v4/projects/{owner}%2F{repo}/issues?per_page=100"
-        issues = _http_get_json(issues_url)
-        if isinstance(issues, list):
+        raw_issues = _http_get_auth(issues_url) or []
+        if isinstance(raw_issues, list):
             health_categories = {}
-            for issue in issues:
+            for issue in raw_issues:
                 num = issue.get("iid")
                 creator = issue.get("author", {}).get("username", "Unknown") if issue.get("author") else "Unknown"
                 
@@ -336,7 +373,7 @@ def fetch_public_metadata(repo_url: str) -> dict:
                         community_stats[creator] = {"issues": 0, "prs": 0}
                     community_stats[creator]["issues"] += 1
                 
-                labels = issue.get("labels", []) or []
+                labels = issue.get("labels", [])
                 category = "general"
                 joined_labels = "".join(labels).lower()
                 if any(x in joined_labels for x in ["bug", "error"]):
@@ -397,7 +434,7 @@ def fetch_public_metadata(repo_url: str) -> dict:
 
         # Releases y estabilidad
         releases_url = f"https://gitlab.com/api/v4/projects/{owner}%2F{repo}/releases?per_page=10"
-        raw_releases = _http_get_json(releases_url) or []
+        raw_releases = _http_get_auth(releases_url) or []
         if isinstance(raw_releases, list):
             for rel in raw_releases:
                 tag = rel.get("tag_name", "vUnknown")
@@ -433,20 +470,6 @@ def fetch_public_metadata(repo_url: str) -> dict:
                 })
         result["community_activity"].sort(key=lambda x: x["total_contributions"], reverse=True)
         result["community_activity"] = result["community_activity"][:15]
-                
-    print(Fore.CYAN + f"ViZzo // API Metadata: {len(result['pull_requests'])} PRs, {len(result['issues'])} Issues, {result['stars']} Stars, {len(result['releases_health'])} Releases, {len(result['community_activity'])} Colaboradores.")
-    return result
 
-def _http_get_json(url: str):
-    """Realiza una petición HTTP GET segura y devuelve el JSON parseado."""
-    req = urllib.request.Request(
-        url,
-        headers={"User-Agent": "ViZzo-Analysis-Suite"}
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=10) as response:
-            if response.status == 200:
-                return json.loads(response.read().decode("utf-8"))
-    except Exception as e:
-        print(Fore.RED + f"ViZzo // Error en petición API pública ({url}): {e}")
-    return None
+    print(Fore.CYAN + f"ViZzo // Extracción autenticada finalizada: {len(result['pull_requests'])} PRs, {len(result['issues'])} Issues, {result['stars']} Stars, {len(result['releases_health'])} Releases analizadas.")
+    return result

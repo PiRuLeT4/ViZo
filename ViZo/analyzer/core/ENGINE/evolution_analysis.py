@@ -2,17 +2,14 @@
 # ──────────────────────
 # Lógica dedicada a recorrer el historial de commits y versiones de Git/PyDriller.
 
-import os
 import traceback
 import subprocess
-from datetime import datetime
 from colorama import Fore
 from pydriller import Repository as DrillRepo
 
 from .helpers import (
     _get_total_commits,
     _clean_git_path,
-    _parse_git_date,
     _get_diff_stats,
     _get_clean_git_env,
 )
@@ -67,7 +64,10 @@ def _run_git_history(target_dir: str, max_commits: int = 150) -> dict:
                     deletions = commit.deletions
                     modified_files_list = list(commit.modified_files)
                 except Exception as e:
-                    print(Fore.YELLOW + f"ViZo // Omitiendo estadísticas de diff para commit límite {commit.hash[:8]}: {e}")
+                    print(
+                        Fore.YELLOW
+                        + f"ViZzo // Omitiendo estadísticas de diff para commit límite {commit.hash[:8]}: {e}"
+                    )
                     insertions = 0
                     deletions = 0
                     modified_files_list = []
@@ -90,7 +90,9 @@ def _run_git_history(target_dir: str, max_commits: int = 150) -> dict:
                             file_last_modified[rel_path] = commit.author_date
                         if rel_path not in file_author_commits:
                             file_author_commits[rel_path] = {}
-                        file_author_commits[rel_path][author_name] = file_author_commits[rel_path].get(author_name, 0) + 1
+                        file_author_commits[rel_path][author_name] = (
+                            file_author_commits[rel_path].get(author_name, 0) + 1
+                        )
 
                     info["modified_files"].append(
                         {
@@ -177,7 +179,10 @@ def _run_git_history(target_dir: str, max_commits: int = 150) -> dict:
         traceback.print_exc()
 
     num_processed = len(evolution_data["commits"])
-    print(Fore.CYAN + f"Total de commits procesados: {evolution_data['total_commits']} ({num_processed} analizados)")
+    print(
+        Fore.CYAN
+        + f"Total de commits procesados: {evolution_data['total_commits']} ({num_processed} analizados)"
+    )
     return evolution_data
 
 
@@ -197,20 +202,20 @@ def _run_releases_history(target_dir: str, tags: list) -> dict:
         "file_author_commits": {},
         "file_last_modified": {},
     }
-    
+
     tags_chrono = list(reversed(tags))
     file_author_commits = {}
     file_last_modified = {}
     activity_dict = {}
-    
+
     for idx, tag in enumerate(tags_chrono):
         tag_name = tag["name"]
         tag_hash = tag["hash"]
         tag_date_obj = tag["date_obj"]
         date_str = tag_date_obj.strftime("%Y-%m-%d")
-        
+
         if idx > 0:
-            tag_prev = tags_chrono[idx-1]["name"]
+            tag_prev = tags_chrono[idx - 1]["name"]
         else:
             check_parent = subprocess.run(
                 ["git", "rev-parse", f"{tag_name}~1"],
@@ -219,28 +224,34 @@ def _run_releases_history(target_dir: str, tags: list) -> dict:
                 encoding="utf-8",
                 errors="replace",
                 cwd=target_dir,
-                env=_get_clean_git_env()
+                env=_get_clean_git_env(),
             )
             if check_parent.returncode == 0:
                 tag_prev = f"{tag_name}~1"
             else:
                 tag_prev = "4b825dc642cb6eb9a0accbf124f547182729c224"
-        
+
         insertions, deletions = _get_diff_stats(target_dir, tag_prev, tag_name)
-        
+
         log_res = subprocess.run(
-            ["git", "log", f"{tag_prev}..{tag_name}", "--numstat", "--pretty=format:AUTHOR:%an|%cI"],
+            [
+                "git",
+                "log",
+                f"{tag_prev}..{tag_name}",
+                "--numstat",
+                "--pretty=format:AUTHOR:%an|%cI",
+            ],
             capture_output=True,
             text=True,
             encoding="utf-8",
             errors="replace",
             cwd=target_dir,
-            env=_get_clean_git_env()
+            env=_get_clean_git_env(),
         )
-        
+
         current_author = "Unknown"
         release_commits_count = 0
-        
+
         if log_res.returncode == 0 and log_res.stdout and log_res.stdout.strip():
             lines = log_res.stdout.strip().splitlines()
             for line in lines:
@@ -252,7 +263,7 @@ def _run_releases_history(target_dir: str, tags: list) -> dict:
                     current_author = parts[0] if parts else "Unknown"
                     evolution_data["authors"].add(current_author)
                     release_commits_count += 1
-                    
+
                     key = (current_author, date_str)
                     if key not in activity_dict:
                         activity_dict[key] = {
@@ -270,28 +281,41 @@ def _run_releases_history(target_dir: str, tags: list) -> dict:
                             deleted = int(parts[1]) if parts[1] != "-" else 0
                         except ValueError:
                             added, deleted = 0, 0
-                        
+
                         path = parts[2]
                         rel_path = _clean_git_path(path).replace("\\", "/")
-                        
-                        evolution_data["file_churn"][rel_path] = evolution_data["file_churn"].get(rel_path, 0) + 1
-                        evolution_data["file_lines_added"][rel_path] = evolution_data["file_lines_added"].get(rel_path, 0) + added
-                        evolution_data["file_lines_deleted"][rel_path] = evolution_data["file_lines_deleted"].get(rel_path, 0) + deleted
-                        
+
+                        evolution_data["file_churn"][rel_path] = (
+                            evolution_data["file_churn"].get(rel_path, 0) + 1
+                        )
+                        evolution_data["file_lines_added"][rel_path] = (
+                            evolution_data["file_lines_added"].get(rel_path, 0) + added
+                        )
+                        evolution_data["file_lines_deleted"][rel_path] = (
+                            evolution_data["file_lines_deleted"].get(rel_path, 0)
+                            + deleted
+                        )
+
                         if rel_path not in file_author_commits:
                             file_author_commits[rel_path] = {}
-                        file_author_commits[rel_path][current_author] = file_author_commits[rel_path].get(current_author, 0) + 1
+                        file_author_commits[rel_path][current_author] = (
+                            file_author_commits[rel_path].get(current_author, 0) + 1
+                        )
                         file_last_modified[rel_path] = tag_date_obj
-        
-        evolution_data["commits"].append({
-            "hash": tag_hash,
-            "author": "Release",
-            "date": date_str,
-            "message": f"Release {tag_name} ({release_commits_count} commits)",
-            "insertions": insertions,
-            "deletions": deletions,
-        })
-        evolution_data["timeline"][date_str] = evolution_data["timeline"].get(date_str, 0) + 1
+
+        evolution_data["commits"].append(
+            {
+                "hash": tag_hash,
+                "author": "Release",
+                "date": date_str,
+                "message": f"Release {tag_name} ({release_commits_count} commits)",
+                "insertions": insertions,
+                "deletions": deletions,
+            }
+        )
+        evolution_data["timeline"][date_str] = (
+            evolution_data["timeline"].get(date_str, 0) + 1
+        )
 
     author_activity = list(activity_dict.values())
     all_dates = sorted(
@@ -304,5 +328,5 @@ def _run_releases_history(target_dir: str, tags: list) -> dict:
     ]
     evolution_data["file_author_commits"] = file_author_commits
     evolution_data["file_last_modified"] = file_last_modified
-    
+
     return evolution_data

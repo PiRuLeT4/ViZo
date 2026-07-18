@@ -1,7 +1,7 @@
 """
 index.py
 ────────
-Vista para el portal principal (Landing Page) de ViZo.
+Vista para el portal principal (Landing Page) de ViZzo.
 """
 from django.shortcuts import redirect, render
 from analyzer.persistence.queries import get_latest_active_sessions, get_user_active_sessions
