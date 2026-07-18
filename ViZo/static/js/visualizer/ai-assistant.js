@@ -1,6 +1,6 @@
 (function () {
   // =============================================================================
-  // ViZo // ai-assistant.js  —  AI Explanation & Terminal Manager
+  // ViZzo // ai-assistant.js  —  AI Explanation & Terminal Manager
   // =============================================================================
 
   // Caché de explicaciones ya obtenidas para evitar peticiones repetidas
@@ -36,9 +36,9 @@
     }
 
     // 2. Actualizar botones 3D de A-Frame (Pedestales y Menú de Muñeca)
-    const scene3dBtns = document.querySelectorAll("[vizo-control-btn]");
+    const scene3dBtns = document.querySelectorAll("[vizzo-control-btn]");
     scene3dBtns.forEach((btnEl) => {
-      const comp = btnEl.getAttribute("vizo-control-btn");
+      const comp = btnEl.getAttribute("vizzo-control-btn");
       if (comp) {
         let isMatch = false;
         if (typeof comp === "string") {
@@ -70,13 +70,13 @@
             textEl.setAttribute("emissive", "#4af7a0");
           }
 
-          const baseEl = btnEl.querySelector(".vizo-btn-base");
+          const baseEl = btnEl.querySelector(".vizzo-btn-base");
           if (baseEl) {
             baseEl.setAttribute("color", "#003b21");
             baseEl.setAttribute("emissive", "#4af7a0");
             baseEl.setAttribute("emissive-intensity", "0.8");
           }
-          const borderEl = btnEl.querySelector(".vizo-btn-border");
+          const borderEl = btnEl.querySelector(".vizzo-btn-border");
           if (borderEl) {
             borderEl.setAttribute("color", "#4af7a0");
             borderEl.setAttribute("emissive", "#4af7a0");
@@ -91,9 +91,9 @@
    * Cambia el estado del botón a CARGANDO...
    */
   function setButtonLoading(dashboardType) {
-    const scene3dBtns = document.querySelectorAll("[vizo-control-btn]");
+    const scene3dBtns = document.querySelectorAll("[vizzo-control-btn]");
     scene3dBtns.forEach((btnEl) => {
-      const comp = btnEl.getAttribute("vizo-control-btn");
+      const comp = btnEl.getAttribute("vizzo-control-btn");
       if (comp) {
         let isMatch = false;
         if (typeof comp === "string") {
@@ -113,13 +113,13 @@
             textEl.setAttribute("emissive", "#ffaa00");
           }
 
-          const baseEl = btnEl.querySelector(".vizo-btn-base");
+          const baseEl = btnEl.querySelector(".vizzo-btn-base");
           if (baseEl) {
             baseEl.setAttribute("color", "#4a2a00");
             baseEl.setAttribute("emissive", "#ffaa00");
             baseEl.setAttribute("emissive-intensity", "0.8");
           }
-          const borderEl = btnEl.querySelector(".vizo-btn-border");
+          const borderEl = btnEl.querySelector(".vizzo-btn-border");
           if (borderEl) {
             borderEl.setAttribute("color", "#ffaa00");
             borderEl.setAttribute("emissive", "#ffaa00");
@@ -134,9 +134,9 @@
    * Resetea el botón de la IA a su estado original "EXPLICAR"
    */
   function resetButtonToExplain(dashboardType) {
-    const scene3dBtns = document.querySelectorAll("[vizo-control-btn]");
+    const scene3dBtns = document.querySelectorAll("[vizzo-control-btn]");
     scene3dBtns.forEach((btnEl) => {
-      const comp = btnEl.getAttribute("vizo-control-btn");
+      const comp = btnEl.getAttribute("vizzo-control-btn");
       if (comp) {
         let isMatch = false;
         if (typeof comp === "string") {
@@ -156,13 +156,13 @@
             textEl.setAttribute("emissive", "#00d4ff");
           }
 
-          const baseEl = btnEl.querySelector(".vizo-btn-base");
+          const baseEl = btnEl.querySelector(".vizzo-btn-base");
           if (baseEl) {
             baseEl.setAttribute("color", "#002a5a");
             baseEl.setAttribute("emissive", "#002a5a");
             baseEl.setAttribute("emissive-intensity", "0.5");
           }
-          const borderEl = btnEl.querySelector(".vizo-btn-border");
+          const borderEl = btnEl.querySelector(".vizzo-btn-border");
           if (borderEl) {
             borderEl.setAttribute("color", "#00d4ff");
             borderEl.setAttribute("emissive", "#00d4ff");
@@ -180,14 +180,14 @@
    * Solicita y muestra la explicación de la IA en la terminal holográfica
    */
   function showExplanation(dashboardType, targetEl) {
-    console.log("ViZo // Solicitando explicación IA para:", dashboardType);
+    console.log("ViZzo // Solicitando explicación IA para:", dashboardType);
 
-    const modal = document.getElementById("vizo-terminal-modal");
+    const modal = document.getElementById("vizzo-terminal-modal");
     const contentEl = document.getElementById("terminal-content");
 
     if (!modal || !contentEl) {
       console.error(
-        "ViZo // Modal o terminal content no encontrado en el DOM.",
+        "ViZzo // Modal o terminal content no encontrado en el DOM.",
       );
       return;
     }
@@ -201,12 +201,12 @@
     // Si ya existe en caché, mostrar inmediatamente sin fetch
     if (explanationCache[dashboardType]) {
       console.log(
-        "ViZo // Obteniendo explicación desde caché para:",
+        "ViZzo // Obteniendo explicación desde caché para:",
         dashboardType,
       );
       modal.classList.add("active");
       updateButtonLabels(dashboardType);
-      window.ViZoHelpers.typewriterEffect(contentEl, explanationCache[dashboardType]);
+      window.ViZzoHelpers.typewriterEffect(contentEl, explanationCache[dashboardType]);
       return;
     }
 
@@ -285,8 +285,8 @@
         }
       }
 
-      if (fromStr && fromStr.startsWith("vizo-loader-")) {
-        datasetKey = fromStr.replace("vizo-loader-", "");
+      if (fromStr && fromStr.startsWith("vizzo-loader-")) {
+        datasetKey = fromStr.replace("vizzo-loader-", "");
       }
     }
 
@@ -299,26 +299,28 @@
       else if (dashboardType === "bars") datasetKey = "pull_requests";
     }
 
-    const state = window.ViZoState;
+    const state = window.ViZzoState;
     dashboardData = state.dataMap[datasetKey] || {};
 
     // Obtener el nombre del repositorio
-    const statusEl = document.querySelector(".vizo-status");
+    const statusEl = document.querySelector(".vizzo-status");
     const repoName = statusEl
       ? statusEl.getAttribute("data-repo")
       : "LIVE_DATA";
 
-    // Petición AJAX al backend
+    // Las credenciales de IA viajan automáticamente en cookies seguras HttpOnly
+    const payload = {
+      dashboard_type: datasetKey || dashboardType,
+      dashboard_data: dashboardData || {},
+      repo_name: repoName,
+    };
+
     fetch("/api/explain/", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        dashboard_type: datasetKey || dashboardType,
-        dashboard_data: dashboardData || {},
-        repo_name: repoName,
-      }),
+      body: JSON.stringify(payload),
     })
       .then((res) => {
         if (!res.ok) throw new Error("Server returned status " + res.status);
@@ -329,10 +331,10 @@
           data.explanation || "No se pudo obtener explicación de la IA.";
         explanationCache[dashboardType] = text;
         updateButtonLabels(dashboardType);
-        window.ViZoHelpers.typewriterEffect(contentEl, text);
+        window.ViZzoHelpers.typewriterEffect(contentEl, text);
       })
       .catch((err) => {
-        console.error("ViZo // Error al obtener la explicación de la IA:", err);
+        console.error("ViZzo // Error al obtener la explicación de la IA:", err);
         resetButtonToExplain(dashboardType);
         contentEl.textContent =
           ">>> ERROR: ERROR DE CONEXIÓN CON EL SERVIDOR DE IA.\n" + err.message;
@@ -343,7 +345,7 @@
    * Cierra el modal de la terminal
    */
   function closeExplanation() {
-    const modal = document.getElementById("vizo-terminal-modal");
+    const modal = document.getElementById("vizzo-terminal-modal");
     if (modal) {
       modal.classList.remove("active");
     }
@@ -354,15 +356,15 @@
   }
 
   // Registrar en el espacio de nombres global
-  window.ViZo = window.ViZo || {};
-  window.ViZo.ui = {
+  window.ViZzo = window.ViZzo || {};
+  window.ViZzo.ui = {
     showExplanation: showExplanation,
     closeExplanation: closeExplanation,
   };
 
   // Implementar disparador global para clicks desde el HUD 2D
-  window.ViZoTrigger = function (action, vizType) {
-    console.log("ViZoTrigger // Acción:", action, "Visualizador:", vizType);
+  window.ViZzoTrigger = function (action, vizType) {
+    console.log("ViZzoTrigger // Acción:", action, "Visualizador:", vizType);
 
     let targetEl = null;
     if (vizType === "boats") targetEl = document.querySelector("[babia-boats]");
@@ -376,7 +378,7 @@
     if (!targetEl) {
       if (action !== "explain-ai") {
         console.warn(
-          "ViZoTrigger // No se encontró el componente visualizador de tipo:",
+          "ViZzoTrigger // No se encontró el componente visualizador de tipo:",
           vizType,
         );
       }
@@ -384,11 +386,11 @@
     }
 
     if (action === "wireframe") {
-      window.ViZoHelpers.toggleWireframe(targetEl, vizType);
+      window.ViZzoHelpers.toggleWireframe(targetEl, vizType);
     } else if (action === "swap-mappings") {
-      window.ViZoHelpers.swapMappings(targetEl, vizType);
+      window.ViZzoHelpers.swapMappings(targetEl, vizType);
     } else if (action === "cycle-height") {
-      window.ViZoHelpers.cycleHeight(targetEl, vizType);
+      window.ViZzoHelpers.cycleHeight(targetEl, vizType);
     } else if (action === "explain-ai") {
       showExplanation(vizType, targetEl);
     }

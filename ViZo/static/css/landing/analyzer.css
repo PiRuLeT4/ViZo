@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════
-   analyzer.css  —  ViZo Lab · Professional Dark Theme
+   analyzer.css  —  ViZzo Lab · Professional Dark Theme
    Paleta: Oscuro + Burdeos #59041A
    ═══════════════════════════════════════════════════════ */
 
@@ -12,7 +12,7 @@
   animation: fadeIn 0.6s var(--ease-out);
 }
 
-.vizo-dashboard {
+.vizzo-dashboard {
   display: grid;
   grid-template-columns: 1.1fr 0.9fr;
   gap: 2.5rem;
@@ -30,7 +30,7 @@
 }
 
 /* ── Panel Styling (Professional Dark Card) ── */
-.vizo-panel {
+.vizzo-panel {
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
@@ -41,7 +41,7 @@
   overflow: hidden;
 }
 
-.vizo-panel::before {
+.vizzo-panel::before {
   content: "";
   position: absolute;
   top: 0;
@@ -52,7 +52,7 @@
   opacity: 0.6;
 }
 
-.vizo-panel:hover {
+.vizzo-panel:hover {
   border-color: rgba(89, 4, 26, 0.3);
   box-shadow: var(--shadow-elevated), 0 0 20px rgba(89, 4, 26, 0.05);
 }
@@ -575,7 +575,7 @@ input[type="url"].invalid {
 }
 
 /* ── Progress HUD ── */
-.vizo-progress-hud {
+.vizzo-progress-hud {
   position: fixed;
   bottom: 2rem;
   right: -450px;
@@ -590,7 +590,7 @@ input[type="url"].invalid {
   z-index: 1050;
 }
 
-.vizo-progress-hud.active {
+.vizzo-progress-hud.active {
   right: 2rem;
 }
 
@@ -730,17 +730,17 @@ input[type="url"].invalid {
 }
 
 /* Status variants */
-.vizo-progress-hud.status-pending { border-top-color: var(--warning); }
-.vizo-progress-hud.status-pending .hud-bar { background: var(--warning); }
-.vizo-progress-hud.status-completed { border-top-color: var(--success); }
-.vizo-progress-hud.status-completed .hud-bar { background: var(--success); }
-.vizo-progress-hud.status-completed .terminal-line { color: #a7f3d0; }
-.vizo-progress-hud.status-failed { border-top-color: var(--error); }
-.vizo-progress-hud.status-failed .hud-bar { background: var(--error); }
-.vizo-progress-hud.status-failed .terminal-line { color: #fca5a5; }
+.vizzo-progress-hud.status-pending { border-top-color: var(--warning); }
+.vizzo-progress-hud.status-pending .hud-bar { background: var(--warning); }
+.vizzo-progress-hud.status-completed { border-top-color: var(--success); }
+.vizzo-progress-hud.status-completed .hud-bar { background: var(--success); }
+.vizzo-progress-hud.status-completed .terminal-line { color: #a7f3d0; }
+.vizzo-progress-hud.status-failed { border-top-color: var(--error); }
+.vizzo-progress-hud.status-failed .hud-bar { background: var(--error); }
+.vizzo-progress-hud.status-failed .terminal-line { color: #fca5a5; }
 
 /* Reopen button */
-.vizo-reopen-hud-btn {
+.vizzo-reopen-hud-btn {
   position: fixed;
   bottom: 2rem;
   right: -250px;
@@ -763,17 +763,17 @@ input[type="url"].invalid {
   transition: all 0.4s var(--ease-out) !important;
 }
 
-.vizo-reopen-hud-btn.active {
+.vizzo-reopen-hud-btn.active {
   right: 2rem;
 }
 
-.vizo-reopen-hud-btn:hover {
+.vizzo-reopen-hud-btn:hover {
   border-color: var(--border-accent) !important;
   color: var(--text-primary) !important;
   transform: translateY(-1px) !important;
 }
 
-.vizo-reopen-hud-btn .pulse-dot {
+.vizzo-reopen-hud-btn .pulse-dot {
   width: 5px;
   height: 5px;
   background-color: var(--accent-text);
@@ -784,7 +784,7 @@ input[type="url"].invalid {
 
 /* Responsive grid */
 @media (max-width: 992px) {
-  .vizo-dashboard {
+  .vizzo-dashboard {
     grid-template-columns: 1fr;
     gap: 2rem;
   }
@@ -794,7 +794,7 @@ input[type="url"].invalid {
   .dashboard-wrapper {
     padding: 2rem 1rem;
   }
-  .vizo-panel {
+  .vizzo-panel {
     padding: 1.5rem;
   }
   .features {
@@ -809,4 +809,159 @@ input[type="url"].invalid {
     margin-left: 0;
     justify-content: flex-end;
   }
+}
+
+/* ── Custom LLM Form Panel Inputs ── */
+#customLlmPanel input[type="url"],
+#customLlmPanel input[type="password"],
+#customLlmPanel input[type="text"] {
+  width: 100%;
+  padding: 0.9rem 1.1rem;
+  background: var(--bg-input);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-family: inherit;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+#customLlmPanel input[type="url"]::placeholder,
+#customLlmPanel input[type="password"]::placeholder,
+#customLlmPanel input[type="text"]::placeholder {
+  color: var(--text-muted);
+}
+
+#customLlmPanel input[type="url"]:focus,
+#customLlmPanel input[type="password"]:focus,
+#customLlmPanel input[type="text"]:focus {
+  border-color: var(--accent);
+  background: rgba(89, 4, 26, 0.05);
+  box-shadow: 0 0 0 1px var(--accent-soft);
+}
+
+
+/* ── Global AI Config Modal ── */
+.vizzo-modal-backdrop {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 9999;
+  justify-content: center;
+  align-items: center;
+  backdrop-filter: blur(5px);
+}
+
+.vizzo-modal-content {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 2.5rem;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 10px 40px rgba(0, 255, 204, 0.1);
+  animation: fadeIn 0.3s ease-out;
+}
+
+.ai-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.ai-modal-header h3 {
+  color: var(--text-bright);
+  margin: 0;
+  font-size: 1.2rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.ai-modal-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1.8rem;
+  transition: color 0.2s ease;
+  line-height: 1;
+}
+
+.ai-modal-close:hover {
+  color: var(--error);
+}
+
+.ai-modal-input {
+  width: 100%;
+  background: var(--bg-dark);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-bright);
+  padding: 0.8rem;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+}
+
+.ai-modal-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent-soft);
+  outline: none;
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.8rem 1.2rem;
+  background: var(--accent);
+  border: 1px solid var(--border-accent);
+  border-radius: var(--radius-sm);
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover);
+  box-shadow: var(--shadow-accent);
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.8rem 1.2rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--accent);
+  color: #fff;
+  box-shadow: 0 0 12px rgba(89, 4, 26, 0.15);
+}
+
+.ai-modal-btn {
+  width: 100%;
 }

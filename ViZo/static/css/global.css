@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════
-   global.css  —  ViZo · Professional Dark Design System
+   global.css  —  ViZzo · Professional Dark Design System
    Paleta: Oscuro + Burdeos #59041A
    ═══════════════════════════════════════════════════════ */
 
@@ -138,7 +138,7 @@ img {
 /* ════════════════════════════════════════════════════
    NAVBAR — Barra de navegación superior fija
    ════════════════════════════════════════════════════ */
-.vizo-navbar {
+.vizzo-navbar {
   position: fixed;
   top: 0;
   left: 0;
@@ -156,7 +156,7 @@ img {
   transition: background 0.3s var(--ease-smooth);
 }
 
-.vizo-navbar.scrolled {
+.vizzo-navbar.scrolled {
   background: rgba(10, 10, 15, 0.95);
   box-shadow: var(--shadow-sm);
 }
@@ -636,7 +636,7 @@ img {
    RESPONSIVE NAVBAR
    ════════════════════════════════════════════════════ */
 @media (max-width: 768px) {
-  .vizo-navbar {
+  .vizzo-navbar {
     padding: 0 1rem;
   }
 

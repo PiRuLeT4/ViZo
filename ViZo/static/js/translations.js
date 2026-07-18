@@ -1,5 +1,5 @@
 /**
- * translations.js — ViZo i18n System (ES/EN)
+ * translations.js — ViZzo i18n System (ES/EN)
  * Client-side translation with data-i18n attributes.
  */
 
@@ -50,7 +50,7 @@ const TRANSLATIONS = {
     "home.feat6.desc": "Pull Requests, Issues, Code Reviews y estabilidad de releases con datos enriquecidos de API.",
 
     // Footer
-    "home.footer": "ViZo — Plataforma de Análisis Inteligente de Repositorios. Proyecto de TFG.",
+    "home.footer": "ViZzo — Plataforma de Análisis Inteligente de Repositorios. Proyecto de TFG.",
 
     // ── Analyzer Page ──
     "analyzer.panel.public": "Archivo Público",
@@ -73,7 +73,19 @@ const TRANSLATIONS = {
     "analyzer.depth.deep": "Profundo",
     "analyzer.depth.all": "Completo",
     "analyzer.private.label": "Analizar repositorio como privado",
-    "analyzer.private.hint": "(Conecta GitHub para activar)",
+    "analyzer.private.hint": "(Inicia sesion para activar)",
+    "analyzer.custom_llm.toggle": "Personalizar conexión de IA (Opcional)",
+    "analyzer.custom_llm.is_local": "Modelo Local (Sin API Key)",
+    "analyzer.custom_llm.url_label": "API Base URL del LLM",
+    "analyzer.custom_llm.url_placeholder": "Ej: http://localhost:11434/v1 para Ollama",
+    "analyzer.custom_llm.key_label": "API Key",
+    "analyzer.custom_llm.key_placeholder": "Clave opcional (Ej: lm-studio u ollama)",
+    "analyzer.custom_llm.model_label": "Nombre del Modelo",
+    "analyzer.custom_llm.model_placeholder": "Ej: llama3 o qwen2.5-coder",
+    "analyzer.custom_llm.modal_title": "Configuración de IA",
+    "analyzer.custom_llm.btn_reset": "Restablecer Defecto",
+    "analyzer.custom_llm.btn_save": "Guardar y Cerrar",
+    "analyzer.custom_llm.title_hint": "Configurar Motor de IA",
     "analyzer.empty.public": "Sin repositorios analizados. Inicie un análisis para inaugurar el portal.",
     "analyzer.empty.private": "Archivo privado sin registros. Analice un repositorio propio configurado como privado.",
     "analyzer.card.enter": "Sala 3D",
@@ -85,7 +97,7 @@ const TRANSLATIONS = {
     "hud.init": "Inicializando secuencia de análisis...",
     "hud.target": "OBJETIVO:",
     "hud.none": "Ninguno",
-    "hud.terminal_init_1": "> INICIANDO SISTEMA VIZO...",
+    "hud.terminal_init_1": "> INICIANDO SISTEMA VIZZO...",
     "hud.terminal_init_2": "> ESCUCHANDO FLUJO DE DATOS...",
     "hud.cancel": "Cancelar Análisis",
     "hud.room_ready": "Sala 3D Preparada — Entrar",
@@ -144,7 +156,7 @@ const TRANSLATIONS = {
     "home.feat6.desc": "Pull Requests, Issues, Code Reviews and release stability with enriched API data.",
 
     // Footer
-    "home.footer": "ViZo — Intelligent Repository Analysis Platform. BSc Thesis Project.",
+    "home.footer": "ViZzo — Intelligent Repository Analysis Platform. BSc Thesis Project.",
 
     // ── Analyzer Page ──
     "analyzer.panel.public": "Public Archive",
@@ -167,7 +179,19 @@ const TRANSLATIONS = {
     "analyzer.depth.deep": "Deep",
     "analyzer.depth.all": "Full",
     "analyzer.private.label": "Analyze repository as private",
-    "analyzer.private.hint": "(Connect GitHub to enable)",
+    "analyzer.private.hint": "(Connect account to enable)",
+    "analyzer.custom_llm.toggle": "Customize AI Connection (Optional)",
+    "analyzer.custom_llm.is_local": "Local Model (No API Key)",
+    "analyzer.custom_llm.url_label": "LLM API Base URL",
+    "analyzer.custom_llm.url_placeholder": "e.g. http://localhost:11434/v1 for Ollama",
+    "analyzer.custom_llm.key_label": "API Key",
+    "analyzer.custom_llm.key_placeholder": "Optional Key (e.g. lm-studio or ollama)",
+    "analyzer.custom_llm.model_label": "Model Name",
+    "analyzer.custom_llm.model_placeholder": "e.g. llama3 or qwen2.5-coder",
+    "analyzer.custom_llm.modal_title": "AI Configuration",
+    "analyzer.custom_llm.btn_reset": "Reset Default",
+    "analyzer.custom_llm.btn_save": "Save & Close",
+    "analyzer.custom_llm.title_hint": "Configure AI Engine",
     "analyzer.empty.public": "No analyzed repositories. Start an analysis to begin.",
     "analyzer.empty.private": "Private archive empty. Analyze a private repository to begin.",
     "analyzer.card.enter": "3D Room",
@@ -179,7 +203,7 @@ const TRANSLATIONS = {
     "hud.init": "Initializing analysis sequence...",
     "hud.target": "TARGET:",
     "hud.none": "None",
-    "hud.terminal_init_1": "> STARTING VIZO SYSTEM...",
+    "hud.terminal_init_1": "> STARTING VIZZO SYSTEM...",
     "hud.terminal_init_2": "> LISTENING FOR DATA STREAM...",
     "hud.cancel": "Cancel Analysis",
     "hud.room_ready": "3D Room Ready — Enter",
@@ -200,7 +224,7 @@ const TRANSLATIONS = {
 function setLanguage(lang) {
   if (!TRANSLATIONS[lang]) lang = 'es';
   
-  localStorage.setItem('vizo_lang', lang);
+  localStorage.setItem('vizzo_lang', lang);
   document.documentElement.lang = lang;
 
   document.querySelectorAll('[data-i18n]').forEach(el => {
@@ -212,6 +236,15 @@ function setLanguage(lang) {
       } else {
         el.textContent = translation;
       }
+    }
+  });
+
+  // Translate tooltips and titles
+  document.querySelectorAll('[data-i18n-title]').forEach(el => {
+    const key = el.getAttribute('data-i18n-title');
+    const translation = TRANSLATIONS[lang][key];
+    if (translation !== undefined) {
+      el.title = translation;
     }
   });
 
@@ -233,7 +266,7 @@ function setLanguage(lang) {
  * @returns {string}
  */
 function t(key) {
-  const lang = localStorage.getItem('vizo_lang') || 'es';
+  const lang = localStorage.getItem('vizzo_lang') || 'es';
   return TRANSLATIONS[lang]?.[key] || TRANSLATIONS['es']?.[key] || key;
 }
 
@@ -241,11 +274,11 @@ function t(key) {
  * Initialize i18n system on DOMContentLoaded.
  */
 document.addEventListener('DOMContentLoaded', () => {
-  const savedLang = localStorage.getItem('vizo_lang') || 'es';
+  const savedLang = localStorage.getItem('vizzo_lang') || 'es';
   setLanguage(savedLang);
 
   // ── Language dropdown toggle ──
-  const langToggle = document.querySelector('.lang-toggle-btn');
+  const langToggle = document.querySelector('.lang-selector .lang-toggle-btn');
   const langDropdown = document.querySelector('.lang-dropdown');
 
   if (langToggle && langDropdown) {
@@ -272,7 +305,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ── Login modal handlers (global) ──
-  const loginModal = document.getElementById('vizoLoginModal');
+  const loginModal = document.getElementById('vizzoLoginModal');
   const openLoginModalBtn = document.getElementById('openLoginModalBtn');
   const closeLoginModalBtn = document.getElementById('closeLoginModalBtn');
 
@@ -312,7 +345,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // ── Navbar scroll effect ──
-  const navbar = document.querySelector('.vizo-navbar');
+  const navbar = document.querySelector('.vizzo-navbar');
   if (navbar) {
     window.addEventListener('scroll', () => {
       navbar.classList.toggle('scrolled', window.scrollY > 10);
