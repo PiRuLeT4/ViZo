@@ -25,9 +25,10 @@ from .helpers import (
 # Cargar variables de entorno
 load_dotenv()
 
-AI_BASE_URL = os.getenv("AI_BASE_URL", "http://localhost:1234/v1")
-AI_API_KEY = os.getenv("AI_API_KEY", "lm-studio")
-AI_MODEL = os.getenv("AI_MODEL", "qwen/qwen3-coder-30b")
+# POR DEFECTO SE USARA MI PLAN DE DEEPSEEK COMO IA DE LA APLICACION.
+AI_BASE_URL = os.getenv("DEEPSEEK_BASE_URL")
+AI_API_KEY = os.getenv("DEEPSEEK_API_KEY")
+AI_MODEL = os.getenv("DEEPSEEK_MODEL")
 
 # Conexión local con LM Studio / OpenAI
 client = OpenAI(
