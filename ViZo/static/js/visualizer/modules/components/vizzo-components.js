@@ -1,12 +1,24 @@
 /**
- * vizo-components.js
- * ------------------
- * Custom A-Frame components for ViZo:
+ * vizzo-components.js
+ * -------------------
+ * Custom A-Frame components for ViZzo:
  * - room-bounds: keeps player inside the room walls.
  * - solid-box: registers an AABB collider.
  * - object-collide: pushes player out of solids.
  * - nav-button: hover + click logic for UI panels.
  */
+
+import {
+  toggleWireframe,
+  cycleHeight,
+  swapMappings,
+  setHeight,
+  setColor,
+  updateButtonStates,
+} from '../helpers.js';
+
+import { getRandomPalette } from '../builders.js';
+import { showExplanation } from '../../ai-assistant.js';
 
 window.SOLID_BOXES = [];
 
@@ -36,8 +48,8 @@ AFRAME.registerComponent("room-bounds", {
   },
 });
 
-/* ── vizo-opacity-control: adjusts material opacity of target elements ── */
-AFRAME.registerComponent("vizo-opacity-control", {
+/* ── vizzo-opacity-control: adjusts material opacity of target elements ── */
+AFRAME.registerComponent("vizzo-opacity-control", {
   schema: {
     target: { type: "string" },
     action: { type: "string" },
@@ -93,6 +105,76 @@ AFRAME.registerComponent("vizo-opacity-control", {
       this.el.setAttribute("emissive-intensity", "0.0");
     });
   }
+});
+
+/* ── vizzo-room-toggle: toggles room walls, ceiling, floor opacity and lights visibility ── */
+AFRAME.registerComponent("vizzo-room-toggle", {
+  init: function () {
+    this.roomVisible = true;
+
+    // Hover effects
+    this.el.addEventListener("mouseenter", () => {
+      this.el.setAttribute("color", "#8b0a2d");
+      this.el.setAttribute("emissive", "#8b0a2d");
+      this.el.setAttribute("emissive-intensity", "0.8");
+    });
+    this.el.addEventListener("mouseleave", () => {
+      this.el.setAttribute("color", "#1a1a24");
+      this.el.setAttribute("emissive", "#1a1a24");
+      this.el.setAttribute("emissive-intensity", "0.0");
+    });
+
+    // Click toggle action
+    this.el.addEventListener("click", () => {
+      this.roomVisible = !this.roomVisible;
+      const op = this.roomVisible ? 1.0 : 0.0;
+
+      // Define standard visibilities for walls and other elements
+      const elements = {
+        "#floor-plane": op,
+        "#floor-grid": this.roomVisible ? 0.20 : 0.0,
+        "#ceiling-plane": op,
+        "#left-wall": this.roomVisible ? 0.5 : 0.0,
+        "#right-wall": this.roomVisible ? 0.5 : 0.0,
+      };
+
+      for (const selector in elements) {
+        const targetEl = document.querySelector(selector);
+        if (targetEl) {
+          targetEl.setAttribute("material", {
+            transparent: true,
+            opacity: elements[selector],
+          });
+          targetEl.setAttribute("opacity", elements[selector]);
+
+          // Sync indicator text values on surface opacity controller panel
+          if (selector === "#floor-plane") {
+            const ind = document.getElementById("val-floor");
+            if (ind) ind.setAttribute("value", elements[selector].toFixed(1));
+          } else if (selector === "#left-wall") {
+            const ind = document.getElementById("val-left");
+            if (ind) ind.setAttribute("value", elements[selector].toFixed(1));
+          } else if (selector === "#right-wall") {
+            const ind = document.getElementById("val-right");
+            if (ind) ind.setAttribute("value", elements[selector].toFixed(1));
+          }
+        }
+      }
+
+      // Hide or show ceiling lights
+      const lights = document.getElementById("ceiling-lights");
+      if (lights) {
+        lights.setAttribute("visible", this.roomVisible);
+      }
+
+      // Visual feedback on button text
+      const text = this.el.querySelector("a-text");
+      if (text) {
+        text.setAttribute("value", this.roomVisible ? "ROOM: ON" : "ROOM: OFF");
+        text.setAttribute("color", this.roomVisible ? "#4af7a0" : "#ff3b30");
+      }
+    });
+  },
 });
 
 /* ── solid-box: registers an AABB collider (attach to any entity) ── */
@@ -179,9 +261,9 @@ AFRAME.registerComponent("nav-button", {
         // Save original on first hover just in case elements are dynamic
         if (!child.dataset.origEmissive) {
           child.dataset.origEmissive =
-            child.getAttribute("emissive") || "#000000";
+              child.getAttribute("emissive") || "#000000";
           child.dataset.origEmissiveInt =
-            child.getAttribute("emissive-intensity") || "0";
+              child.getAttribute("emissive-intensity") || "0";
         }
         child.setAttribute("emissive", "#ffffff");
         child.setAttribute("emissive-intensity", "3");
@@ -194,8 +276,8 @@ AFRAME.registerComponent("nav-button", {
         if (child.dataset.origEmissive) {
           child.setAttribute("emissive", child.dataset.origEmissive);
           child.setAttribute(
-            "emissive-intensity",
-            child.dataset.origEmissiveInt,
+              "emissive-intensity",
+              child.dataset.origEmissiveInt,
           );
         }
       });
@@ -208,11 +290,11 @@ AFRAME.registerComponent("nav-button", {
   },
 });
 
-/* ── vizo-control-btn: interactive 3D buttons for custom dashboard configuration ── */
-AFRAME.registerComponent("vizo-control-btn", {
+/* ── vizzo-control-btn: interactive 3D buttons for custom dashboard configuration ── */
+AFRAME.registerComponent("vizzo-control-btn", {
   schema: {
     action: { type: "string" }, // "wireframe", "cycle-height", "cycle-area", "set-height", "set-color"
-    targetId: { type: "string" }, // ID of the visualizer (e.g., "vizo-viz-boats-complexity")
+    targetId: { type: "string" }, // ID of the visualizer (e.g., "vizzo-viz-boats-complexity")
     vizType: { type: "string" }, // "boats", "cyls", "doughnut", "barsmap"
     value: { type: "string", default: "" }, // mapping field value (e.g., "nloc", "ccn")
   },
@@ -227,31 +309,33 @@ AFRAME.registerComponent("vizo-control-btn", {
         targetEl = document.querySelector("[babia-boats]");
       }
       if (targetEl) {
-        var panelEl = el.closest("[id^='vizo-panel-']");
+        var panelEl = el.closest("[id^='vizzo-panel-']");
         if (panelEl) {
-          window.ViZoHelpers.updateButtonStates(panelEl, targetEl, data.vizType);
+          updateButtonStates(panelEl, targetEl, data.vizType);
         }
       }
     }, 600);
 
-    // Hover effects (glowing scaling)
+    // Hover effects (clean minimal styling)
     el.addEventListener("mouseenter", function () {
       el.setAttribute("scale", "1.12 1.12 1.12");
       var text = el.querySelector("a-text");
       if (text) {
-        text.setAttribute("color", "#ffffff");
-        text.setAttribute("emissive-intensity", "2");
+        text.setAttribute("color", "#0f172a");
+        text.removeAttribute("emissive");
+        text.removeAttribute("emissive-intensity");
       }
-      var base = el.querySelector(".vizo-btn-base");
-      var border = el.querySelector(".vizo-btn-border");
+      var base = el.querySelector(".vizzo-btn-base");
+      var border = el.querySelector(".vizzo-btn-border");
       if (base) {
-        base.setAttribute("emissive", "#8B0A2E");
-        base.setAttribute("emissive-intensity", "1.8");
+        base.setAttribute("color", "#e2e8f0");
+        base.removeAttribute("emissive");
+        base.removeAttribute("emissive-intensity");
       }
       if (border) {
-        border.setAttribute("color", "#ffffff");
-        border.setAttribute("emissive", "#8B0A2E");
-        border.setAttribute("emissive-intensity", "3.0");
+        border.setAttribute("color", "#94a3b8");
+        border.removeAttribute("emissive");
+        border.removeAttribute("emissive-intensity");
       }
     });
 
@@ -259,14 +343,21 @@ AFRAME.registerComponent("vizo-control-btn", {
       el.setAttribute("scale", "1 1 1");
       var text = el.querySelector("a-text");
       if (text) {
-        text.setAttribute("color", "#a0aec0");
-        text.setAttribute("emissive-intensity", "0.5");
+        text.removeAttribute("emissive");
+        text.removeAttribute("emissive-intensity");
       }
-      var base = el.querySelector(".vizo-btn-base");
-      var border = el.querySelector(".vizo-btn-border");
+      var base = el.querySelector(".vizzo-btn-base");
+      var border = el.querySelector(".vizzo-btn-border");
       if (base) {
+        base.removeAttribute("emissive");
+        base.removeAttribute("emissive-intensity");
+        if (border) {
+          border.removeAttribute("emissive");
+          border.removeAttribute("emissive-intensity");
+        }
+
         // Restore standard colors depending on active state
-        var panelEl = el.closest("[id^='vizo-panel-']");
+        var panelEl = el.closest("[id^='vizzo-panel-']");
         var targetEl = document.getElementById(data.targetId);
         if (!targetEl && data.vizType === "boats") {
           targetEl = document.querySelector("[babia-boats]");
@@ -276,35 +367,28 @@ AFRAME.registerComponent("vizo-control-btn", {
           targetEl &&
           (data.action === "set-height" || data.action === "set-color")
         ) {
-          window.ViZoHelpers.updateButtonStates(panelEl, targetEl, data.vizType);
+          updateButtonStates(panelEl, targetEl, data.vizType);
         } else {
-          // Check if button text color is white / border is brand rose (meaning it is active/highlighted)
+          // Check if button is active (e.g. text color is white / base is dark slate gray #475569)
           var isActive =
-            border &&
-            (border.getAttribute("color") === "#D4364F" ||
-              border.getAttribute("color") === "rgb(212, 54, 79)");
+            base &&
+            (base.getAttribute("color") === "#475569" ||
+              base.getAttribute("color") === "rgb(71, 85, 105)");
           if (isActive) {
-            base.setAttribute("color", "#59041A");
-            base.setAttribute("emissive", "#59041A");
-            base.setAttribute("emissive-intensity", "0.8");
+            base.setAttribute("color", "#475569");
             if (border) {
-              border.setAttribute("color", "#D4364F");
-              border.setAttribute("emissive", "#D4364F");
-              border.setAttribute("emissive-intensity", "1.5");
+              border.setAttribute("color", "#334155");
             }
             if (text) {
               text.setAttribute("color", "#ffffff");
-              text.setAttribute("emissive", "#ffffff");
-              text.setAttribute("emissive-intensity", "1.5");
             }
           } else {
-            base.setAttribute("color", "#1a1a24");
-            base.setAttribute("emissive", "#1a1a24");
-            base.setAttribute("emissive-intensity", "0.3");
+            base.setAttribute("color", "#ffffff");
             if (border) {
-              border.setAttribute("color", "#8B0A2E");
-              border.setAttribute("emissive", "#8B0A2E");
-              border.setAttribute("emissive-intensity", "0.8");
+              border.setAttribute("color", "#cbd5e1");
+            }
+            if (text) {
+              text.setAttribute("color", "#334155");
             }
           }
         }
@@ -327,7 +411,7 @@ AFRAME.registerComponent("vizo-control-btn", {
       }
 
       if (!targetEl) {
-        console.error("ViZo // Target visualizer not found: " + data.targetId);
+        console.error("ViZzo // Target visualizer not found: " + data.targetId);
         return;
       }
 
@@ -348,35 +432,35 @@ AFRAME.registerComponent("vizo-control-btn", {
 
       // Execute the requested action
       if (data.action === "wireframe") {
-        window.ViZoHelpers.toggleWireframe(targetEl, data.vizType);
+        toggleWireframe(targetEl, data.vizType);
       } else if (data.action === "cycle-height") {
-        window.ViZoHelpers.cycleHeight(targetEl, data.vizType);
+        cycleHeight(targetEl, data.vizType);
       } else if (data.action === "swap-mappings") {
-        window.ViZoHelpers.swapMappings(targetEl, data.vizType);
+        swapMappings(targetEl, data.vizType);
       } else if (data.action === "set-height") {
-        window.ViZoHelpers.setHeight(targetEl, data.vizType, data.value);
-        window.ViZoHelpers.updateButtonStates(
-          el.closest("[id^='vizo-panel-']"),
+        setHeight(targetEl, data.vizType, data.value);
+        updateButtonStates(
+          el.closest("[id^='vizzo-panel-']"),
           targetEl,
           data.vizType,
         );
       } else if (data.action === "set-color") {
-        window.ViZoHelpers.setColor(targetEl, data.vizType, data.value);
-        window.ViZoHelpers.updateButtonStates(
-          el.closest("[id^='vizo-panel-']"),
+        setColor(targetEl, data.vizType, data.value);
+        updateButtonStates(
+          el.closest("[id^='vizzo-panel-']"),
           targetEl,
           data.vizType,
         );
       } else if (data.action === "explain-ai") {
-        if (
-          window.ViZo &&
-          window.ViZo.ui &&
-          typeof window.ViZo.ui.showExplanation === "function"
-        ) {
-          window.ViZo.ui.showExplanation(data.vizType, targetEl);
-        } else {
-          console.warn("ViZo // Asistente Holográfico de UI no inicializado.");
+        showExplanation(data.vizType, targetEl);
+      } else if (data.action === "change-palette") {
+        var newPalette = getRandomPalette();
+        var compName = "babia-" + data.vizType;
+        if (data.vizType === "doughnut" && !targetEl.hasAttribute(compName) && targetEl.hasAttribute("babia-pie")) {
+          compName = "babia-pie";
         }
+        targetEl.setAttribute(compName, "palette", newPalette);
+        console.log("ViZzo // Paleta cambiada a:", newPalette, "en", compName);
       }
     });
   },

@@ -60,9 +60,9 @@ class VisualizationViewsTestCase(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         # Verificar que el HTML contiene la inyección del ID de sesión
-        self.assertContains(response, f'window.ViZoSessionId = "{self.session.id}";')
+        self.assertContains(response, f'window.ViZzoSessionId = "{self.session.id}";')
         # Verificar que no están presentes los divs antiguos con JSONs
-        self.assertNotContains(response, 'id="vizo-data-json"')
+        self.assertNotContains(response, 'id="vizzo-data-json"')
 
     def test_api_session_data_endpoint(self):
         # Probar que el nuevo endpoint REST de datos asíncronos responde correctamente

@@ -2,120 +2,71 @@
 <a-entity
   id="nav-analyzer-btn"
   nav-button="href: /analyzer/"
-  position="15.7 2.5 15"
-  rotation="0 -90 0"
+  position="-15.7 1.5 18.5"
+  rotation="0 90 0"
 >
-  <!-- Backplate behind the button -->
+  <!-- Sleek Backplate (Smaller, cleaner size) -->
   <a-plane
     position="0 0 -0.02"
-    width="5.5"
-    height="3.5"
+    width="1.6"
+    height="0.9"
     color="#0c0c12"
-    material="opacity: 0.8; transparent: true; roughness: 0.5; metalness: 0.1"
+    material="opacity: 0.85; transparent: true; roughness: 0.5; metalness: 0.1"
   ></a-plane>
 
-  <!-- Glowing bordeaux outline frame for the plate -->
-  <a-box
-    position="0 1.75 -0.01"
-    width="5.54"
-    height="0.04"
-    depth="0.02"
-    color="#8B0A2E"
-    emissive="#8B0A2E"
-    emissive-intensity="1.2"
-  ></a-box>
-  <a-box
-    position="0 -1.75 -0.01"
-    width="5.54"
-    height="0.04"
-    depth="0.02"
-    color="#8B0A2E"
-    emissive="#8B0A2E"
-    emissive-intensity="1.2"
-  ></a-box>
-  <a-box
-    position="-2.77 0 -0.01"
-    width="0.04"
-    height="3.5"
-    depth="0.02"
-    color="#8B0A2E"
-    emissive="#8B0A2E"
-    emissive-intensity="1.2"
-  ></a-box>
-  <a-box
-    position="2.77 0 -0.01"
-    width="0.04"
-    height="3.5"
-    depth="0.02"
-    color="#8B0A2E"
-    emissive="#8B0A2E"
-    emissive-intensity="1.2"
-  ></a-box>
+  <!-- Glowing bordeaux outline frame for the plate (half size) -->
+  <a-box position="0  0.45 0" width="1.64" height="0.02" depth="0.015" color="#8B0A2E" emissive="#8B0A2E" emissive-intensity="1.2"></a-box>
+  <a-box position="0 -0.45 0" width="1.64" height="0.02" depth="0.015" color="#8B0A2E" emissive="#8B0A2E" emissive-intensity="1.2"></a-box>
+  <a-box position="-0.82 0 0" width="0.02" height="0.90" depth="0.015" color="#8B0A2E" emissive="#8B0A2E" emissive-intensity="1.2"></a-box>
+  <a-box position=" 0.82 0 0" width="0.02" height="0.90" depth="0.015" color="#8B0A2E" emissive="#8B0A2E" emissive-intensity="1.2"></a-box>
 
-  <!-- Titles on the panel -->
+  <!-- Panel Header Title (half size) -->
   <a-text
-    value="VOLVER AL ANALIZADOR DE CODIGO"
-    position="0 1.1 0.05"
+    value="VOLVER AL ANALIZADOR"
+    position="0 0.28 0.02"
     align="center"
+    width="2.6"
     color="#D4364F"
     emissive="#D4364F"
     emissive-intensity="0.6"
-    width="5.5"
     font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"
   ></a-text>
 
   <a-text
-    value="PULSA EL BOTON PARA INICIAR UN NUEVO ANALISIS"
-    position="0 -1.1 0.05"
+    value="PULSA PARA INICIAR OTRO ANALISIS"
+    position="0 0.12 0.02"
     align="center"
-    color="#FFF8EB"
-    emissive="#FFF8EB"
-    emissive-intensity="0.3"
-    width="4.2"
+    width="1.6"
+    color="#a0aec0"
     font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"
   ></a-text>
 
-  <!-- Base del botón pegada a la pared (anillo oscuro) -->
-  <a-cylinder
-    position="0 0 0.05"
-    rotation="90 0 0"
-    radius="0.75"
-    height="0.1"
-    color="#1a1a24"
-    metalness="0.5"
-    roughness="0.5"
-  ></a-cylinder>
-
-  <!-- El botón circular interactivo que sobresale -->
-  <a-cylinder
+  <!-- Professional rectangular button (half size) -->
+  <a-box
     class="clickable"
     data-nav-panel
-    position="0 0 0.2"
-    rotation="90 0 0"
-    radius="0.6"
-    height="0.3"
-    color="#2b1016"
-    emissive="#2b1016"
-    emissive-intensity="0.5"
-    metalness="0.5"
-    roughness="0.5"
-  ></a-cylinder>
+    position="0 -0.22 0.02"
+    width="1.0"
+    height="0.25"
+    depth="0.03"
+    color="#1a1a24"
+    material="roughness: 0.5; metalness: 0.1"
+  >
+    <!-- Centered return text -->
+    <a-text
+      value="INICIO"
+      align="center"
+      baseline="center"
+      position="0 0 0.018"
+      width="2.6"
+      color="#ffffff"
+      font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"
+    ></a-text>
+  </a-box>
 
-  <!-- Icono central (flecha/triángulo blanco cálido) -->
-  <a-triangle
-    position="0 0 0.36"
-    rotation="0 0 -90"
-    vertex-a="0 0.25 0"
-    vertex-b="-0.22 -0.18 0"
-    vertex-c="0.22 -0.18 0"
-    color="#ffffff"
-    emissive="#ffffff"
-    emissive-intensity="0.8"
-  ></a-triangle>
-
-  <!-- Luz puntual local para que el botón ilumine un poco la pared -->
+  <!-- Subtle point light behind/around the panel -->
   <a-entity
-    light="type: point; color: #8B0A2E; intensity: 1.2; distance: 6; decay: 2"
-    position="0 0 1.2"
+    light="type: point; color: #8B0A2E; intensity: 0.4; distance: 3; decay: 2"
+    position="0 0 0.8"
   ></a-entity>
 </a-entity>

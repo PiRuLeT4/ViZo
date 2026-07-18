@@ -1,7 +1,7 @@
 """
 views.py
 ────────
-Vistas y endpoints correspondientes a la experiencia visual 3D/VR de ViZo.
+Vistas y endpoints correspondientes a la experiencia visual 3D/VR de ViZzo.
 """
 
 import json
@@ -71,6 +71,9 @@ def api_explain(request):
         dashboard_type = data.get("dashboard_type", "")
         dashboard_data = data.get("dashboard_data", {})
         repo_name = data.get("repo_name", "")
+        llm_base_url = request.COOKIES.get("vizzo_llm_base_url", "").strip() or data.get("llm_base_url", "").strip() or None
+        llm_api_key = request.COOKIES.get("vizzo_llm_api_key", "").strip() or data.get("llm_api_key", "").strip() or None
+        llm_model = request.COOKIES.get("vizzo_llm_model", "").strip() or data.get("llm_model", "").strip() or None
 
         if not dashboard_type or not repo_name:
             return JsonResponse(
@@ -81,9 +84,12 @@ def api_explain(request):
         from analyzer.core.AI.ai import client, AI_MODEL
 
         print(f"Generating explanation for dashboard type: {dashboard_type}")
-        print(f"Using AI client base_url: {client.base_url}, model: {AI_MODEL}")
+        print(f"Using AI client base_url: {llm_base_url or client.base_url}, model: {llm_model or AI_MODEL}")
         explanation = get_ai_explanation(
-            dashboard_type, json.dumps(dashboard_data), repo_name
+            dashboard_type, json.dumps(dashboard_data), repo_name,
+            base_url=llm_base_url,
+            api_key=llm_api_key,
+            model=llm_model
         )
         print("Explanation: Done")
         return JsonResponse({"explanation": explanation})

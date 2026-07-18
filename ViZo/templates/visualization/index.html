@@ -4,7 +4,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ViZo - Data Visualization Suite</title>
+    <title>ViZzo - Data Visualization Suite</title>
     <link rel="shortcut icon" href="{% static 'logo.png' %}" />
 
     <!-- A-Frame & Components -->
@@ -14,7 +14,7 @@
     <script src="https://unpkg.com/aframe-environment-component@1.5.x/dist/aframe-environment-component.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-particle-system-component@master/dist/aframe-particle-system-component.min.js"></script>
 
-    <!-- ViZo Styles -->
+    <!-- ViZzo Styles -->
     <link
       rel="stylesheet"
       href="{% static 'css/visualizer/visualization.css' %}"
@@ -24,20 +24,20 @@
       rel="stylesheet"
     />
 
-    <!-- A-Frame Components (ViZo Lab Physics & Logic) -->
+    <!-- A-Frame Components (ViZzo Lab Physics & Logic) -->
     <script src="{% static 'js/visualizer/helpers.js' %}"></script>
-    <script src="{% static 'js/visualizer/components/vizo-components.js' %}"></script>
+    <script src="{% static 'js/visualizer/components/vizzo-components.js' %}"></script>
     <script src="{% static 'js/visualizer/components/fame.js' %}"></script>
   </head>
   <body>
     <!-- HUD Overlay -->
     <div id="ui-overlay">
-      <div class="vizo-logo">VIZO_01</div>
-      <div class="vizo-status" data-repo="{{ repo_name|default:'LIVE_DATA' }}">
+      <div class="vizzo-logo">VIZZO_01</div>
+      <div class="vizzo-status" data-repo="{{ repo_name|default:'LIVE_DATA' }}">
         {{ repo_name|default:'LIVE_DATA_ANALYSIS'|upper }} // LOADING...
       </div>
       {% if ai_status == 'offline' %}
-      <div class="vizo-warning">
+      <div class="vizzo-warning">
         [AI_OFFLINE] Servidor de IA local no detectado. Visualización estándar
         activada.
       </div>
@@ -45,12 +45,12 @@
     </div>
 
     <!-- Holographic Terminal Modal -->
-    <div id="vizo-terminal-modal">
+    <div id="vizzo-terminal-modal">
       <div class="terminal-header">
-        <div class="terminal-title">VIZO_01 // ASISTENTE IA</div>
+        <div class="terminal-title">VIZZO_01 // ASISTENTE IA</div>
         <button
           class="terminal-close"
-          onclick="window.ViZo.ui.closeExplanation()"
+          onclick="window.ViZzo.ui.closeExplanation()"
         >
           CLOSE [X]
         </button>
@@ -97,39 +97,52 @@
           src="{% static 'images/chinese_garden.png' %}"
           crossorigin="anonymous"
         />
-        <img id="podio-texture" src="{% static 'images/texture.jpg'%}"/>
-        <img id="panel-texture" src="{% static 'images/texture_panel.jpg'%}"/>
+        <img id="podio-texture" src="{% static 'images/texture.jpg'%}" />
+        <img id="panel-texture" src="{% static 'images/texture_panel.jpg'%}" />
+        <img
+          id="vizzo-logo-img"
+          src="{% static 'logo.png' %}"
+          crossorigin="anonymous"
+        />
+        <img
+          id="marmol-texture"
+          src="{% static 'images/marmol_texture.jpg'%}"
+          crossorigin="anonymous"
+        />
+        <img
+          id="wood-texture"
+          src="{% static 'images/wood-texture.jpg'%}"
+          crossorigin="anonymous"
+        />
+        <img
+          id="button-texture"
+          src="{% static 'images/button-texture.jpg'%}"
+          crossorigin="anonymous"
+        />
       </a-assets>
 
       <!-- ══════════════════════════════════════
            LAB ENVIRONMENT & NAVIGATION
            ══════════════════════════════════════ -->
-      {% include 'visualization/includes/environment.html' %}  
+      {% include 'visualization/includes/environment.html' %}
       {% include 'visualization/includes/nav_button.html' %}
 
       <!-- Guardar el ID de sesión para la carga asíncrona -->
       <script>
-        window.ViZoSessionId = "{{ session_id }}";
+        window.ViZzoSessionId = "{{ session_id }}";
       </script>
 
       <!-- Cargador de datos BabiaXR -->
       <a-entity id="cargador"></a-entity>
 
-      <!-- Visualización dinámica generada por la IA -->
-      <script src="{% static 'js/visualizer/components/podio.js' %}"></script>
-      <script src="{% static 'js/visualizer/components/control-panel.js' %}"></script>
-      <script src="{% static 'js/visualizer/vr/vr-menu.js' %}"></script>
-      <script src="{% static 'js/visualizer/vr/vr-interaction.js' %}"></script>
-      <script src="{% static 'js/visualizer/ai-assistant.js' %}"></script>
-      <script src="{% static 'js/visualizer/builders.js' %}"></script>
-      <script src="{% static 'js/visualizer/visualization.js' %}"></script>
-      <script src="{% static 'js/visualizer/components/vizo-sky-switcher.js' %}"></script>
+      <!-- Visualización dinámica generada por la IA (Módulos ES6) -->
+      <script src="{% static 'js/visualizer/visualization.js' %}?v=3" type="module"></script>
 
       <!-- ── CAMERA (confined to room + object collisions) ── -->
       <a-entity
         id="rig"
         movement-controls
-        position="0 1.7 19"
+        position="0 1.1 19"
         room-bounds="minX: -15; maxX: 15; minY: 1; maxY: 8.5; minZ: -100"
         object-collide="radius: 0.4"
       >

@@ -1,10 +1,12 @@
-// vr-menu.js - Contains the logic to create 3D holographic wrist menu for VR controllers
+/**
+ * vr-menu.js - Contains the logic to create 3D holographic wrist menu for VR controllers
+ */
 
 /**
  * Genera dinámicamente un panel holográfico 3D de muñeca para VR anclado al mando izquierdo
  */
-function buildVRWristMenu(parentEl) {
-  console.log("ViZo // Generando Menú de Muñeca VR holográfico...");
+export function buildVRWristMenu(parentEl) {
+  console.log("ViZzo // Generando Menú de Muñeca VR holográfico...");
 
   // Base panel plate (semi-transparente, azul holográfico)
   var plate = document.createElement("a-plane");
@@ -108,8 +110,8 @@ function buildVRWristMenu(parentEl) {
     var btnEl = document.createElement("a-entity");
     btnEl.setAttribute("position", `${btn.x} ${btn.y} 0.02`);
     btnEl.setAttribute(
-      "vizo-control-btn",
-      `action: ${btn.action}; targetId: vizo-viz-dummy; vizType: ${btn.type}`,
+      "vizzo-control-btn",
+      `action: ${btn.action}; targetId: vizzo-viz-dummy; vizType: ${btn.type}`,
     );
 
     // Mini button base box
@@ -151,7 +153,3 @@ function buildVRWristMenu(parentEl) {
     parentEl.appendChild(btnEl);
   });
 }
-
-// Export for global access
-window.ViZoBuilders = window.ViZoBuilders || {};
-window.ViZoBuilders.buildVRWristMenu = buildVRWristMenu;

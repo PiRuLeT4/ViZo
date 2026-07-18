@@ -4,8 +4,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{% block title %}ViZo — Repository Analysis{% endblock %}</title>
-    <meta name="description" content="{% block meta_description %}ViZo: Intelligent Code Analysis & Immersive 3D/VR Visualization Platform{% endblock %}" />
+    <title>{% block title %}ViZzo — Repository Analysis{% endblock %}</title>
+    <meta name="description" content="{% block meta_description %}ViZzo: Intelligent Code Analysis & Immersive 3D/VR Visualization Platform{% endblock %}" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -15,16 +15,16 @@
     <link rel="stylesheet" href="{% static 'css/global.css' %}?v=1" />
     {% block extra_css %}{% endblock %}
     <link rel="icon" type="image/png" href="{% static 'logo.png' %}" />
-    <script src="{% static 'js/translations.js' %}?v=1" defer></script>
+    <script src="{% static 'js/translations.js' %}?v=3" defer></script>
     {% block extra_js %}{% endblock %}
   </head>
   <body>
     <!-- ═══ Navbar ═══ -->
-    <nav class="vizo-navbar" id="vizoNavbar">
+    <nav class="vizzo-navbar" id="vizzoNavbar">
       <!-- Brand / Logo -->
       <a href="{% url 'home' %}" class="navbar-brand">
         <img src="{% static 'logo.png' %}" class="navbar-logo" alt="VZ" style="object-fit: contain; background: none; border-radius: 0;" />
-        <span class="navbar-brand-text">VIZO</span>
+        <span class="navbar-brand-text">VIZZO</span>
       </a>
 
       <!-- Navigation Links -->
@@ -35,11 +35,11 @@
 
       <!-- Right Actions: Language + OAuth -->
       <div class="navbar-actions">
+        {% block navbar_extra %}{% endblock %}
         <!-- Language Selector -->
         <div class="lang-selector">
-          <button class="lang-toggle-btn" type="button" aria-label="Change language">
-            <span class="lang-icon">🌐</span>
-            <span class="lang-code">ES</span>
+          <button class="lang-toggle-btn" type="button" aria-label="Change language" style="padding: 0.4rem 0.6rem;">
+            <span class="lang-icon" style="margin: 0;">🌐</span>
           </button>
           <div class="lang-dropdown">
             <button class="lang-option active" data-lang="es" type="button">
@@ -92,7 +92,7 @@
     </main>
 
     <!-- ═══ Login Provider Modal ═══ -->
-    <div id="vizoLoginModal" class="login-modal-overlay">
+    <div id="vizzoLoginModal" class="login-modal-overlay">
       <div class="login-modal-content">
         <div class="login-modal-header">
           <h3 data-i18n="modal.title">Seleccionar Proveedor</h3>

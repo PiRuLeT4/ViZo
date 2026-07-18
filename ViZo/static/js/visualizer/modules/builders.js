@@ -1,18 +1,39 @@
-// builders.js - Contains the logic to create 3D components for ViZo
+/**
+ * ViZzo // builders.js  —  3D Object Builders for A-Frame Scene
+ */
 
-const PODIUM_HEIGHT = 0.4;
+import { ensureNetworkLoaders } from './helpers.js';
+import { buildControlPanel } from './components/control-panel.js';
+
+export const PODIUM_HEIGHT = 0.4;
+
+export const PALETTES = {
+  Pearl: "pearl",
+  Blues: "blues",
+  Icecream: "icecream",
+  Sunset: "sunset",
+  Flat: "flat",
+  Foxy: "foxy",
+  Ubuntu: "ubuntu",
+  Commerce: "commerce",
+  Bussiness: "bussiness",
+};
+
+export function getRandomPalette() {
+  const values = Object.values(PALETTES);
+  const randomIndex = Math.floor(Math.random() * values.length);
+  return values[randomIndex];
+}
 
 // Posiciones fijas por número de dashboards
-const POSITIONS = [
+export const POSITIONS = [
   { x: 0, y: PODIUM_HEIGHT, z: 14 }, // Slot 0: BOATS
 ];
 
 /**
  * Calcula dinámicamente la posición y rotación de un pedestal satélite en cuadrícula por filas.
- * @param {number} index - Índice del satélite.
- * @param {number} total - Cantidad total de satélites activos.
  */
-function calculateSatellitePosition(index, total) {
+export function calculateSatellitePosition(index, total) {
   if (total <= 0) return { x: 0, y: PODIUM_HEIGHT, z: 14, rotY: 0 };
 
   const COLUMNS = 3;
@@ -42,27 +63,13 @@ function calculateSatellitePosition(index, total) {
   return { x: posX, y: PODIUM_HEIGHT, z: posZ, rotY: rotY };
 }
 
-// Local proxy to delegate to the modular control-panel script
-function buildControlPanel(scene, dash, vizId, pos, type) {
-  if (
-    window.ViZoBuilders &&
-    typeof window.ViZoBuilders.buildControlPanel === "function"
-  ) {
-    window.ViZoBuilders.buildControlPanel(scene, dash, vizId, pos, type);
-  } else {
-    console.error(
-      "ViZo // buildControlPanel was called but window.ViZoBuilders.buildControlPanel is not defined.",
-    );
-  }
-}
-
 /**
  * babia-boats: necesita un babia-treebuilder intermedio.
  * Usa el campo "id" como jerarquía (path del archivo).
  */
-function buildCity(scene, dash, loaderId, pos) {
+export function buildCity(scene, dash, loaderId, pos) {
   // Calcular escala dinámica basada en cantidad de archivos para evitar edificios delgados en repos grandes
-  const dataEl = document.getElementById("vizo-data-json");
+  const dataEl = document.getElementById("vizzo-data-json");
   let fileCount = 50;
   if (dataEl && dataEl.textContent.trim()) {
     try {
@@ -77,7 +84,7 @@ function buildCity(scene, dash, loaderId, pos) {
     Math.max(4, Math.ceil(Math.sqrt(fileCount) * 0.6)),
   );
 
-  const treebuilderId = "vizo-tree-" + dash.id;
+  const treebuilderId = "vizzo-tree-" + dash.id;
   const treeEl = document.createElement("a-entity");
   treeEl.setAttribute("id", treebuilderId);
   treeEl.setAttribute("babia-treebuilder", "from: " + loaderId + "; field: id");
@@ -85,7 +92,7 @@ function buildCity(scene, dash, loaderId, pos) {
 
   const m = dash.mappings;
   const vizEl = document.createElement("a-entity");
-  vizEl.setAttribute("id", "vizo-viz-" + dash.id);
+  vizEl.setAttribute("id", "vizzo-viz-" + dash.id);
   vizEl.setAttribute("position", pos.x + " " + PODIUM_HEIGHT + " " + pos.z);
   vizEl.setAttribute("scale", "0.24 0.24 0.24");
 
@@ -106,25 +113,24 @@ function buildCity(scene, dash, loaderId, pos) {
       "color: " + (m.color || m.height || "nloc"),
       "autoscale: true",
       "autoscaleSizeX: " + dynamicSize,
-      // "autoscaleSizeZ: " + dynamicSize,
       "highlightQuarter: true",
       "highlightQuarterByClick: true",
     ].join("; "),
   );
 
   scene.appendChild(vizEl);
-  vizEl.setAttribute("vizo-podio", "");
-  console.log("ViZo // babia-boats creado sobre pedestal");
-  buildControlPanel(scene, dash, "vizo-viz-" + dash.id, pos, "boats");
+  vizEl.setAttribute("vizzo-podio", "");
+  console.log("ViZzo // babia-boats creado sobre pedestal");
+  buildControlPanel(scene, dash, "vizzo-viz-" + dash.id, pos, "boats");
 }
 
 /**
  * babia-cyls: cilindros, altura = nloc, radio = count (archivos por lenguaje).
  */
-function buildCyls(scene, dash, loaderId, pos) {
+export function buildCyls(scene, dash, loaderId, pos) {
   const m = dash.mappings;
   const vizEl = document.createElement("a-entity");
-  vizEl.setAttribute("id", "vizo-viz-" + dash.id);
+  vizEl.setAttribute("id", "vizzo-viz-" + dash.id);
   let posX = pos.x;
   if (
     dash.dataset === "top_complex_files" ||
@@ -147,25 +153,28 @@ function buildCyls(scene, dash, loaderId, pos) {
       "titlePosition: 18 8 0",
       "titleFont: #font",
       "titleColor: #00d4ff",
-      "palette: pearl",
+      "palette: " + getRandomPalette(),
     ].join("; "),
   );
 
   scene.appendChild(vizEl);
-  vizEl.setAttribute("vizo-podio", "");
-  console.log("ViZo // babia-cyls creado sobre pedestal");
+  vizEl.setAttribute("vizzo-podio", "");
+  console.log("ViZzo // babia-cyls creado sobre pedestal");
   const actualPos = { x: posX, y: pos.y, z: pos.z, rotY: pos.rotY };
-  buildControlPanel(scene, dash, "vizo-viz-" + dash.id, actualPos, "cyls");
+  buildControlPanel(scene, dash, "vizzo-viz-" + dash.id, actualPos, "cyls");
 }
 
 /**
  * babia-doughnut: distribución de archivos por lenguaje.
  */
-function buildDoughnut(scene, dash, loaderId, pos) {
+export function buildDoughnut(scene, dash, loaderId, pos) {
   const m = dash.mappings;
   const vizEl = document.createElement("a-entity");
-  vizEl.setAttribute("id", "vizo-viz-" + dash.id);
-  vizEl.setAttribute("position", pos.x + " " + (PODIUM_HEIGHT + 0.8) + " " + pos.z);
+  vizEl.setAttribute("id", "vizzo-viz-" + dash.id);
+  vizEl.setAttribute(
+    "position",
+    pos.x + " " + (PODIUM_HEIGHT + 0.8) + " " + pos.z,
+  );
   vizEl.setAttribute("rotation", `90 ${pos.rotY} 0`);
   vizEl.setAttribute("scale", "0.5 0.5 0.5");
   vizEl.setAttribute(
@@ -177,23 +186,23 @@ function buildDoughnut(scene, dash, loaderId, pos) {
       "legend: true",
       "animation: true",
       "titlePosition: 2 0 -3",
-      "palette: pearl",
+      "palette: " + getRandomPalette(),
     ].join("; "),
   );
 
   scene.appendChild(vizEl);
-  vizEl.setAttribute("vizo-podio", "");
-  console.log("ViZo // babia-doughnut creado sobre pedestal");
-  buildControlPanel(scene, dash, "vizo-viz-" + dash.id, pos, "doughnut");
+  vizEl.setAttribute("vizzo-podio", "");
+  console.log("ViZzo // babia-doughnut creado sobre pedestal");
+  buildControlPanel(scene, dash, "vizzo-viz-" + dash.id, pos, "doughnut");
 }
 
 /**
  * babia-barsmap: mapa de barras 2D por lenguaje/commits.
  */
-function buildBarsmap(scene, dash, loaderId, pos) {
+export function buildBarsmap(scene, dash, loaderId, pos) {
   const m = dash.mappings;
   const vizEl = document.createElement("a-entity");
-  vizEl.setAttribute("id", "vizo-viz-" + dash.id);
+  vizEl.setAttribute("id", "vizzo-viz-" + dash.id);
   vizEl.setAttribute("position", pos.x + " " + PODIUM_HEIGHT + " " + pos.z);
   vizEl.setAttribute("scale", "0.16 0.16 0.16");
   vizEl.setAttribute("rotation", `0 ${pos.rotY} 0`);
@@ -205,7 +214,7 @@ function buildBarsmap(scene, dash, loaderId, pos) {
       "z_axis: " + (m.z_axis || "language"),
       "height: " + (m.height || "commits"),
       "legend: true",
-      "palette: pearl",
+      "palette: " + getRandomPalette(),
       "titlePosition: -5 12 0",
       "axis_name: true",
       "animation: true",
@@ -213,15 +222,15 @@ function buildBarsmap(scene, dash, loaderId, pos) {
   );
 
   scene.appendChild(vizEl);
-  vizEl.setAttribute("vizo-podio", "");
-  console.log("ViZo // babia-barsmap creado sobre pedestal");
-  buildControlPanel(scene, dash, "vizo-viz-" + dash.id, pos, "barsmap");
+  vizEl.setAttribute("vizzo-podio", "");
+  console.log("ViZzo // babia-barsmap creado sobre pedestal");
+  buildControlPanel(scene, dash, "vizzo-viz-" + dash.id, pos, "barsmap");
 }
 
-function buildNetwork(scene, dash, nodesLoaderId, linksLoaderId, pos) {
+export function buildNetwork(scene, dash, nodesLoaderId, linksLoaderId, pos) {
   // 1. Crear el contenedor invisible del plinth para definir los límites de espacio
   const plinthEl = document.createElement("a-entity");
-  plinthEl.setAttribute("id", "vizo-plinth-" + dash.id);
+  plinthEl.setAttribute("id", "vizzo-plinth-" + dash.id);
   plinthEl.setAttribute("position", pos.x + " 0.5 " + pos.z);
   plinthEl.setAttribute("rotation", `0 ${pos.rotY} 0`);
   plinthEl.setAttribute("lounge-plinth", "width: 2.4; depth: 2.4");
@@ -229,7 +238,7 @@ function buildNetwork(scene, dash, nodesLoaderId, linksLoaderId, pos) {
 
   // 2. Crear la entidad de babia-network propiamente dicha dentro del plinth
   const vizEl = document.createElement("a-entity");
-  vizEl.setAttribute("id", "vizo-viz-" + dash.id);
+  vizEl.setAttribute("id", "vizzo-viz-" + dash.id);
   vizEl.setAttribute("position", "0 1.5 0");
   vizEl.setAttribute("rotation", "0 0 -90");
   vizEl.setAttribute("scale", "0.032 0.032 0.032");
@@ -254,20 +263,20 @@ function buildNetwork(scene, dash, nodesLoaderId, linksLoaderId, pos) {
 
   plinthEl.appendChild(vizEl);
   scene.appendChild(plinthEl);
-  vizEl.setAttribute("vizo-podio", "");
+  vizEl.setAttribute("vizzo-podio", "");
   console.log(
-    "ViZo // babia-network creado sobre pedestal con límites invisibles",
+    "ViZzo // babia-network creado sobre pedestal con límites invisibles",
   );
-  buildControlPanel(scene, dash, "vizo-viz-" + dash.id, pos, "network");
+  buildControlPanel(scene, dash, "vizzo-viz-" + dash.id, pos, "network");
 }
 
 /**
  * babia-bars: gráfico de barras 2D.
  */
-function buildBars(scene, dash, loaderId, pos) {
+export function buildBars(scene, dash, loaderId, pos) {
   const m = dash.mappings;
   const vizEl = document.createElement("a-entity");
-  vizEl.setAttribute("id", "vizo-viz-" + dash.id);
+  vizEl.setAttribute("id", "vizzo-viz-" + dash.id);
   vizEl.setAttribute("position", pos.x + " " + PODIUM_HEIGHT + " " + pos.z);
   vizEl.setAttribute("scale", "0.2 0.2 0.2");
   vizEl.setAttribute("rotation", `0 ${pos.rotY} 0`);
@@ -278,7 +287,7 @@ function buildBars(scene, dash, loaderId, pos) {
       "x_axis: " + (m.x_axis || "title"),
       "height: " + (m.height || m.size || m.comments || "comments"),
       "legend: true",
-      "palette: pearl",
+      "palette: " + getRandomPalette(),
       "titlePosition: -5 12 0",
       "axis_name: true",
       "animation: true",
@@ -286,22 +295,22 @@ function buildBars(scene, dash, loaderId, pos) {
   );
 
   scene.appendChild(vizEl);
-  vizEl.setAttribute("vizo-podio", "");
-  console.log("ViZo // babia-bars creado sobre pedestal");
-  buildControlPanel(scene, dash, "vizo-viz-" + dash.id, pos, "bars");
+  vizEl.setAttribute("vizzo-podio", "");
+  console.log("ViZzo // babia-bars creado sobre pedestal");
+  buildControlPanel(scene, dash, "vizzo-viz-" + dash.id, pos, "bars");
 }
 
 /**
  * Renderiza los trofeos 3D proporcionales de Stars y Forks a los lados de la ciudad
  */
-function buildStatsTrophies(scene, summary) {
+export function buildStatsTrophies(scene, summary) {
   const starsCount = parseInt(summary.stars) || 0;
   const forksCount = parseInt(summary.forks) || 0;
 
   // 1. --- TROFEO DE STARS (Derecha de la ciudad) ---
   const posStars = { x: 8.0, y: 0.1, z: 15 };
   const starsTrophyEl = document.createElement("a-entity");
-  starsTrophyEl.setAttribute("id", "vizo-stars-trophy");
+  starsTrophyEl.setAttribute("id", "vizzo-stars-trophy");
   starsTrophyEl.setAttribute(
     "position",
     `${posStars.x} ${posStars.y} ${posStars.z}`,
@@ -311,23 +320,11 @@ function buildStatsTrophies(scene, summary) {
   const pedStars = document.createElement("a-cylinder");
   pedStars.setAttribute("radius", "0.5");
   pedStars.setAttribute("height", "0.5");
-  pedStars.setAttribute("color", "#081329");
-  pedStars.setAttribute("material", "metalness: 0.8; roughness: 0.2");
+  pedStars.setAttribute("src", "#marmol-texture");
+  pedStars.setAttribute("material", "roughness: 0.3; metalness: 0.2");
   starsTrophyEl.appendChild(pedStars);
 
-  const ringStars = document.createElement("a-ring");
-  ringStars.setAttribute("radius-inner", "0.51");
-  ringStars.setAttribute("radius-outer", "0.56");
-  ringStars.setAttribute("rotation", "-90 0 0");
-  ringStars.setAttribute("position", "0 0.251 0");
-  ringStars.setAttribute("color", "#ffd700");
-  ringStars.setAttribute(
-    "material",
-    "shader: flat; transparent: true; opacity: 0.8",
-  );
-  starsTrophyEl.appendChild(ringStars);
-
-  // Estrella amarilla normal de 5 puntas (Escala fija)
+  // Estrella de metal dorado de 5 puntas (Escala fija, sin emisión)
   const starGeomEl = document.createElement("a-entity");
   starGeomEl.setAttribute("position", "0 1.0 0");
   starGeomEl.setAttribute("scale", "0.6 0.6 0.6");
@@ -336,12 +333,11 @@ function buildStatsTrophies(scene, summary) {
     "property: rotation; to: 0 360 0; loop: true; dur: 8000; easing: linear",
   );
 
-  // Esfera central
+  // Esfera central (Dorada)
   const coreStar = document.createElement("a-sphere");
   coreStar.setAttribute("radius", "0.16");
-  coreStar.setAttribute("color", "#ffd700");
-  coreStar.setAttribute("emissive", "#ffd700");
-  coreStar.setAttribute("emissive-intensity", "1.5");
+  coreStar.setAttribute("color", "#d4af37");
+  coreStar.setAttribute("material", "roughness: 0.15; metalness: 0.9");
   starGeomEl.appendChild(coreStar);
 
   // 5 conos radiales espaciados a 72 grados
@@ -350,10 +346,8 @@ function buildStatsTrophies(scene, summary) {
     const punta = document.createElement("a-cone");
     punta.setAttribute("radius-bottom", "0.1");
     punta.setAttribute("height", "0.36");
-    punta.setAttribute("color", "#ffd700");
-    punta.setAttribute("emissive", "#ffd700");
-    punta.setAttribute("emissive-intensity", "1.2");
-    punta.setAttribute("material", "metalness: 0.5; roughness: 0.2");
+    punta.setAttribute("color", "#d4af37");
+    punta.setAttribute("material", "metalness: 0.9; roughness: 0.15");
 
     const dist = 0.12;
     const px = Math.sin(angleRad) * dist;
@@ -372,9 +366,7 @@ function buildStatsTrophies(scene, summary) {
   textStars.setAttribute("value", `${starsCount}\nSTARS`);
   textStars.setAttribute("position", "0 1.8 0");
   textStars.setAttribute("align", "center");
-  textStars.setAttribute("color", "#ffd700");
-  textStars.setAttribute("emissive", "#ffd700");
-  textStars.setAttribute("emissive-intensity", "1.2");
+  textStars.setAttribute("color", "#334155");
   textStars.setAttribute("width", "3.2");
   textStars.setAttribute("side", "double");
   textStars.setAttribute("font", "https://cdn.aframe.io/fonts/Exo2Bold.fnt");
@@ -385,7 +377,7 @@ function buildStatsTrophies(scene, summary) {
   // 2. --- TROFEO DE FORKS (Izquierda de la ciudad) ---
   const posForks = { x: -8.0, y: 0.1, z: 15 };
   const forksTrophyEl = document.createElement("a-entity");
-  forksTrophyEl.setAttribute("id", "vizo-forks-trophy");
+  forksTrophyEl.setAttribute("id", "vizzo-forks-trophy");
   forksTrophyEl.setAttribute(
     "position",
     `${posForks.x} ${posForks.y} ${posForks.z}`,
@@ -395,23 +387,11 @@ function buildStatsTrophies(scene, summary) {
   const pedForks = document.createElement("a-cylinder");
   pedForks.setAttribute("radius", "0.5");
   pedForks.setAttribute("height", "0.5");
-  pedForks.setAttribute("color", "#081329");
-  pedForks.setAttribute("material", "metalness: 0.8; roughness: 0.2");
+  pedForks.setAttribute("src", "#marmol-texture");
+  pedForks.setAttribute("material", "roughness: 0.3; metalness: 0.2");
   forksTrophyEl.appendChild(pedForks);
 
-  const ringForks = document.createElement("a-ring");
-  ringForks.setAttribute("radius-inner", "0.51");
-  ringForks.setAttribute("radius-outer", "0.56");
-  ringForks.setAttribute("rotation", "-90 0 0");
-  ringForks.setAttribute("position", "0 0.251 0");
-  ringForks.setAttribute("color", "#00d4ff");
-  ringForks.setAttribute(
-    "material",
-    "shader: flat; transparent: true; opacity: 0.8",
-  );
-  forksTrophyEl.appendChild(ringForks);
-
-  // Figura de Fork simple: Bifurcación simétrica en "Y" (Escala fija)
+  // Figura de Fork simple: Bifurcación simétrica en "Y" (Escala fija, plateada)
   const forkGeomEl = document.createElement("a-entity");
   forkGeomEl.setAttribute("position", "0 0.9 0");
   forkGeomEl.setAttribute("scale", "0.8 0.8 0.8");
@@ -425,19 +405,16 @@ function buildStatsTrophies(scene, summary) {
   tronco.setAttribute("radius", "0.036");
   tronco.setAttribute("height", "0.3");
   tronco.setAttribute("position", "0 -0.14 0");
-  tronco.setAttribute("color", "#00d4ff");
-  tronco.setAttribute("emissive", "#00d4ff");
-  tronco.setAttribute("emissive-intensity", "1.2");
-  tronco.setAttribute("material", "metalness: 0.6; roughness: 0.2");
+  tronco.setAttribute("color", "#cbd5e1");
+  tronco.setAttribute("material", "metalness: 0.8; roughness: 0.2");
   forkGeomEl.appendChild(tronco);
 
   // Esfera de unión central
   const unionNode = document.createElement("a-sphere");
   unionNode.setAttribute("radius", "0.06");
   unionNode.setAttribute("position", "0 0 0");
-  unionNode.setAttribute("color", "#00d4ff");
-  unionNode.setAttribute("emissive", "#00d4ff");
-  unionNode.setAttribute("emissive-intensity", "1.5");
+  unionNode.setAttribute("color", "#cbd5e1");
+  unionNode.setAttribute("material", "metalness: 0.8; roughness: 0.2");
   forkGeomEl.appendChild(unionNode);
 
   // Rama Izquierda (30 grados a la izquierda)
@@ -446,19 +423,16 @@ function buildStatsTrophies(scene, summary) {
   ramaIzq.setAttribute("height", "0.32");
   ramaIzq.setAttribute("position", "-0.088 0.136 0");
   ramaIzq.setAttribute("rotation", "0 0 30");
-  ramaIzq.setAttribute("color", "#00d4ff");
-  ramaIzq.setAttribute("emissive", "#00d4ff");
-  ramaIzq.setAttribute("emissive-intensity", "1.2");
-  ramaIzq.setAttribute("material", "metalness: 0.6; roughness: 0.2");
+  ramaIzq.setAttribute("color", "#cbd5e1");
+  ramaIzq.setAttribute("material", "metalness: 0.8; roughness: 0.2");
   forkGeomEl.appendChild(ramaIzq);
 
   // Esfera extrema izquierda
   const nodeIzq = document.createElement("a-sphere");
   nodeIzq.setAttribute("radius", "0.064");
   nodeIzq.setAttribute("position", "-0.168 0.272 0");
-  nodeIzq.setAttribute("color", "#4af7a0"); // Verde neón
-  nodeIzq.setAttribute("emissive", "#4af7a0");
-  nodeIzq.setAttribute("emissive-intensity", "1.6");
+  nodeIzq.setAttribute("color", "#cbd5e1");
+  nodeIzq.setAttribute("material", "metalness: 0.8; roughness: 0.2");
   forkGeomEl.appendChild(nodeIzq);
 
   // Rama Derecha (30 grados a la derecha)
@@ -467,19 +441,16 @@ function buildStatsTrophies(scene, summary) {
   ramaDer.setAttribute("height", "0.32");
   ramaDer.setAttribute("position", "0.088 0.136 0");
   ramaDer.setAttribute("rotation", "0 0 -30");
-  ramaDer.setAttribute("color", "#00d4ff");
-  ramaDer.setAttribute("emissive", "#00d4ff");
-  ramaDer.setAttribute("emissive-intensity", "1.2");
-  ramaDer.setAttribute("material", "metalness: 0.6; roughness: 0.2");
+  ramaDer.setAttribute("color", "#cbd5e1");
+  ramaDer.setAttribute("material", "metalness: 0.8; roughness: 0.2");
   forkGeomEl.appendChild(ramaDer);
 
   // Esfera extrema derecha
   const nodeDer = document.createElement("a-sphere");
   nodeDer.setAttribute("radius", "0.064");
   nodeDer.setAttribute("position", "0.168 0.272 0");
-  nodeDer.setAttribute("color", "#4af7a0"); // Verde neón
-  nodeDer.setAttribute("emissive", "#4af7a0");
-  nodeDer.setAttribute("emissive-intensity", "1.6");
+  nodeDer.setAttribute("color", "#cbd5e1");
+  nodeDer.setAttribute("material", "metalness: 0.8; roughness: 0.2");
   forkGeomEl.appendChild(nodeDer);
 
   forksTrophyEl.appendChild(forkGeomEl);
@@ -488,9 +459,7 @@ function buildStatsTrophies(scene, summary) {
   textForks.setAttribute("value", `${forksCount}\nFORKS`);
   textForks.setAttribute("position", "0 1.8 0");
   textForks.setAttribute("align", "center");
-  textForks.setAttribute("color", "#00d4ff");
-  textForks.setAttribute("emissive", "#00d4ff");
-  textForks.setAttribute("emissive-intensity", "1.2");
+  textForks.setAttribute("color", "#334155");
   textForks.setAttribute("width", "3.2");
   textForks.setAttribute("font", "https://cdn.aframe.io/fonts/Exo2Bold.fnt");
   textForks.setAttribute("side", "double");
@@ -498,18 +467,21 @@ function buildStatsTrophies(scene, summary) {
 
   scene.appendChild(forksTrophyEl);
   console.log(
-    `ViZo // Trofeos creados: ${starsCount} Stars, ${forksCount} Forks.`,
+    `ViZzo // Trofeos creados: ${starsCount} Stars, ${forksCount} Forks.`,
   );
 }
 
 /**
  * babia-pie: gráfico de sectores/tarta 3D.
  */
-function buildPie(scene, dash, loaderId, pos) {
+export function buildPie(scene, dash, loaderId, pos) {
   const m = dash.mappings || {};
   const vizEl = document.createElement("a-entity");
-  vizEl.setAttribute("id", "vizo-viz-" + dash.id);
-  vizEl.setAttribute("position", pos.x + " " + (PODIUM_HEIGHT + 0.8) + " " + pos.z);
+  vizEl.setAttribute("id", "vizzo-viz-" + dash.id);
+  vizEl.setAttribute(
+    "position",
+    pos.x + " " + (PODIUM_HEIGHT + 0.8) + " " + pos.z,
+  );
   vizEl.setAttribute("rotation", `90 ${pos.rotY} 0`);
   vizEl.setAttribute("scale", "0.5 0.5 0.5");
   vizEl.setAttribute(
@@ -521,25 +493,12 @@ function buildPie(scene, dash, loaderId, pos) {
       "legend: true",
       "animation: true",
       "titlePosition: 2 0 -3",
-      "palette: pearl",
+      "palette: " + getRandomPalette(),
     ].join("; "),
   );
 
   scene.appendChild(vizEl);
-  vizEl.setAttribute("vizo-podio", "");
-  console.log("ViZo // babia-pie creado sobre pedestal");
-  buildControlPanel(scene, dash, "vizo-viz-" + dash.id, pos, "doughnut");
+  vizEl.setAttribute("vizzo-podio", "");
+  console.log("ViZzo // babia-pie creado sobre pedestal");
+  buildControlPanel(scene, dash, "vizzo-viz-" + dash.id, pos, "doughnut");
 }
-
-// Export for global access
-window.ViZoBuilders = window.ViZoBuilders || {};
-window.ViZoBuilders.POSITIONS = POSITIONS;
-window.ViZoBuilders.calculateSatellitePosition = calculateSatellitePosition;
-window.ViZoBuilders.buildCity = buildCity;
-window.ViZoBuilders.buildCyls = buildCyls;
-window.ViZoBuilders.buildDoughnut = buildDoughnut;
-window.ViZoBuilders.buildPie = buildPie;
-window.ViZoBuilders.buildBarsmap = buildBarsmap;
-window.ViZoBuilders.buildNetwork = buildNetwork;
-window.ViZoBuilders.buildBars = buildBars;
-window.ViZoBuilders.buildStatsTrophies = buildStatsTrophies;

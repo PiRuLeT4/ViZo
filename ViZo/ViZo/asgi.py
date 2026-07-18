@@ -1,5 +1,5 @@
 """
-ASGI config for ViZo project.
+ASGI config for ViZzo project.
 
 It exposes the ASGI callable as a module-level variable named ``application``.
 

@@ -1,22 +1,16 @@
-// podio.js - Crea un podio dinámico usando un componente de A-Frame seguro
-AFRAME.registerComponent("vizo-podio", {
+/**
+ * ViZzo // podio.js  —  Interactive 3D Pedestals
+ */
+
+// Crea un podio dinámico usando un componente de A-Frame seguro
+AFRAME.registerComponent("vizzo-podio", {
   init: function () {
     try {
       this.podiumEl = document.createElement("a-entity");
       this.podiumEl.setAttribute("id", "podio-for-" + this.el.id);
 
       this.base = document.createElement("a-box");
-      // this.base.setAttribute("color", "#2b1e19");
-      // this.base.setAttribute("material", "metalness: 0.1; roughness: 0.8");
-      this.base.setAttribute("src", "#podio-texture");
-
-      // this.border = document.createElement("a-plane");
-      // this.border.setAttribute("rotation", "-90 0 0");
-      // this.border.setAttribute("color", "#8B0A2E");
-      // this.border.setAttribute(
-      //   "material",
-      //   "shader: standard; transparent: true; opacity: 0.9; metalness: 0.1; roughness: 0.7",
-      // );
+      this.base.setAttribute("src", "#wood-texture");
 
       this.light = document.createElement("a-light");
       this.light.setAttribute("type", "point");
@@ -24,7 +18,6 @@ AFRAME.registerComponent("vizo-podio", {
       this.light.setAttribute("intensity", "0");
 
       this.podiumEl.appendChild(this.base);
-      // this.podiumEl.appendChild(this.border);
       this.podiumEl.appendChild(this.light);
 
       // Aseguramos que la escena exista usando querySelector
@@ -37,7 +30,7 @@ AFRAME.registerComponent("vizo-podio", {
       this.lastDepth = 0;
       this.lastCheckTime = 0;
     } catch (e) {
-      console.error("Error en vizo-podio init:", e);
+      console.error("Error en vizzo-podio init:", e);
     }
   },
 
@@ -84,10 +77,38 @@ AFRAME.registerComponent("vizo-podio", {
         this.base.setAttribute("depth", d);
         this.base.setAttribute("height", height);
 
-        if (this.border) {
-          this.border.setAttribute("width", w + 0.2);
-          this.border.setAttribute("height", d + 0.2);
-          this.border.setAttribute("position", `0 ${height / 2 - 0.01} 0`);
+        // Reposicionar dinámicamente el panel de control asociado fuera del podio
+        const dashId = this.el.id.replace("vizzo-viz-", "");
+        const panelEl = document.querySelector("#vizzo-panel-" + dashId);
+        if (panelEl) {
+          var rotY = this.el.getAttribute("rotation").y || 0;
+          var yawRad = (rotY * Math.PI) / 180;
+
+          // Colocar justo en la esquina frontal derecha exterior del podio de mármol
+          var forwardDist = (d / 2) + 0.25;
+          var rightDist = (w / 2) + 0.25;
+
+          var panelX = center.x + forwardDist * Math.sin(yawRad) + rightDist * Math.cos(yawRad);
+          var panelZ = center.z + forwardDist * Math.cos(yawRad) - rightDist * Math.sin(yawRad);
+
+          var currentPos = panelEl.getAttribute("position");
+          var currentRot = panelEl.getAttribute("rotation");
+
+          // Actualizar posición y rotación solo si varían para optimizar rendimiento
+          if (currentPos) {
+            if (Math.abs(currentPos.x - panelX) > 0.02 || Math.abs(currentPos.z - panelZ) > 0.02) {
+              panelEl.setAttribute("position", `${panelX} ${currentPos.y} ${panelZ}`);
+            }
+          } else {
+            panelEl.setAttribute("position", `${panelX} 0.45 ${panelZ}`);
+          }
+          if (currentRot) {
+            if (Math.abs(currentRot.y - rotY) > 0.5) {
+              panelEl.setAttribute("rotation", `0 ${rotY} 0`);
+            }
+          } else {
+            panelEl.setAttribute("rotation", `0 ${rotY} 0`);
+          }
         }
 
         this.light.setAttribute("distance", 0);

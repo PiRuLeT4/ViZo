@@ -1,29 +1,37 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}ViZo — Repository Analyzer{% endblock %}
+{% block title %}ViZzo — Repository Analyzer{% endblock %}
 
 {% block extra_css %}
-  <link rel="stylesheet" href="{% static 'css/landing/analyzer.css' %}?v=6" />
+  <link rel="stylesheet" href="{% static 'css/landing/analyzer.css' %}?v=17" />
 {% endblock %}
 
 {% block extra_js %}
-  <script src="{% static 'js/landing/analyzer.js' %}?v=6" defer></script>
+  <script src="{% static 'js/landing/analyzer.js' %}?v=17" type="module"></script>
 {% endblock %}
 
 {% block nav_analyzer_active %}active{% endblock %}
 
+{% block navbar_extra %}
+  <!-- AI Config Button -->
+  <button class="lang-toggle-btn" id="openAiModalBtn" type="button" data-i18n-title="analyzer.custom_llm.title_hint" title="Configurar IA" style="color: var(--text-bright); margin-right: 0.5rem; padding: 0.4rem 0.6rem;">
+    <span class="lang-icon" style="margin: 0;">⚙️</span>
+    <span id="navbarAiModelName" class="lang-code" style="margin-left: 0.3rem; display: none;"></span>
+  </button>
+{% endblock %}
+
 {% block content %}
   <div class="dashboard-wrapper">
-    <div class="vizo-dashboard">
+    <div class="vizzo-dashboard">
       <!-- Columna Izquierda: Historial de Repositorios Analizados -->
       <div class="left-column">
         <!-- Archivo Público -->
-        <div class="vizo-panel history-panel">
+        <div class="vizzo-panel history-panel">
           <div class="panel-header">
             <span class="panel-status-dot"></span>
             <h2 data-i18n="analyzer.panel.public">Archivo Público</h2>
-          </div>
+          </div> 
 
           <div class="history-scroll-container">
             {% if latest_sessions %}
@@ -71,7 +79,7 @@
 
         <!-- Archivo Privado (Solo si está autenticado) -->
         {% if user.is_authenticated %}
-          <div class="vizo-panel history-panel private-panel">
+          <div class="vizzo-panel history-panel private-panel">
             <div class="panel-header">
               <span class="panel-status-dot private-dot"></span>
               <h2 data-i18n="analyzer.panel.private">Archivo Privado</h2>
@@ -124,7 +132,7 @@
       </div>
 
       <!-- Columna Derecha: Formulario de Análisis -->
-      <div class="vizo-panel form-panel">
+      <div class="vizzo-panel form-panel">
         <div class="panel-header">
           <span class="panel-status-dot pulse"></span>
           <h2 data-i18n="analyzer.panel.analysis">Nuevo Análisis</h2>
@@ -153,7 +161,7 @@
                 placeholder="https://github.com/... o https://gitlab.com/..."
                 data-i18n="analyzer.form.url_placeholder"
                 required
-                autocomplete="off"
+                autocomplete="new-password"
               />
               <svg
                 class="input-icon"
@@ -187,11 +195,13 @@
               <span class="checkbox-label">
                 <span data-i18n="analyzer.private.label">Analizar repositorio como privado</span> 🔒
                 {% if not user.is_authenticated %}
-                  <span class="lock-hint" data-i18n="analyzer.private.hint">(Conecta GitHub para activar)</span>
+                  <span class="lock-hint" data-i18n="analyzer.private.hint">(Inicia sesion para activar)</span>
                 {% endif %}
               </span>
             </label>
           </div>
+
+          <!-- Las opciones de IA ahora se configuran globalmente desde la navbar superior -->
 
           <div class="form-group">
             <label id="depthLabel" data-i18n="analyzer.depth.label_commits">Profundidad de Análisis (Historial de Commits)</label>
@@ -235,7 +245,7 @@
   </div>
 
   <!-- ── Floating Progress HUD ── -->
-  <div id="vizo-progress-hud" class="vizo-progress-hud">
+  <div id="vizzo-progress-hud" class="vizzo-progress-hud">
     <div class="hud-header">
       <span class="hud-status-dot pulse"></span>
       <span class="hud-title" data-i18n="hud.title">Monitor de Proceso</span>
@@ -255,7 +265,7 @@
       
       <!-- terminal miniatura -->
       <div class="hud-terminal" id="hudTerminal">
-        <div class="terminal-line" data-i18n="hud.terminal_init_1">> INICIANDO SISTEMA VIZO...</div>
+        <div class="terminal-line" data-i18n="hud.terminal_init_1">> INICIANDO SISTEMA VIZZO...</div>
         <div class="terminal-line" data-i18n="hud.terminal_init_2">> ESCUCHANDO FLUJO DE DATOS...</div>
       </div>
 
@@ -273,8 +283,52 @@
   </div>
 
   <!-- ── Floating Reopen HUD Button ── -->
-  <button id="vizo-reopen-hud-btn" class="vizo-reopen-hud-btn">
+  <button id="vizzo-reopen-hud-btn" class="vizzo-reopen-hud-btn">
     <span class="pulse-dot"></span>
     <span class="btn-text" data-i18n="hud.reopen">Monitor</span>
   </button>
+
+  <!-- ── Global AI Config Modal ── -->
+  <div id="globalAiModal" class="vizzo-modal-backdrop">
+    <div class="vizzo-modal-content">
+      <div class="ai-modal-header">
+        <h3 data-i18n="analyzer.custom_llm.modal_title">Configuración de IA</h3>
+        <button id="closeAiModalBtn" class="ai-modal-close">&times;</button>
+      </div>
+
+      <!-- Custom LLM Form Panel -->
+      <div id="customLlmPanel" style="display: flex; flex-direction: column; gap: 1rem; padding: 1.2rem; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-subtle); border-radius: var(--radius-md);">
+        <!-- Local Model Checkbox Toggle -->
+        <div class="form-group-checkbox" style="margin-bottom: 0.2rem;">
+          <label class="checkbox-container">
+            <input type="checkbox" id="llmIsLocal" checked autocomplete="off" />
+            <span class="custom-checkbox"><span class="checkbox-glow"></span></span>
+            <span class="checkbox-label">
+              <span data-i18n="analyzer.custom_llm.is_local">Modelo Local (Sin API Key)</span>
+            </span>
+          </label>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="llmBaseUrl" data-i18n="analyzer.custom_llm.url_label" style="display: block; margin-bottom: 6px; font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">API Base URL del LLM</label>
+          <input type="url" id="llmBaseUrl" class="ai-modal-input" data-i18n="analyzer.custom_llm.url_placeholder" placeholder="Ej: http://localhost:11434/v1 para Ollama" />
+        </div>
+        
+        <div class="form-group" id="llmApiKeyGroup" style="margin-bottom: 0; display: none;">
+          <label for="llmApiKey" data-i18n="analyzer.custom_llm.key_label" style="display: block; margin-bottom: 6px; font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">API Key</label>
+          <input type="password" id="llmApiKey" class="ai-modal-input" data-i18n="analyzer.custom_llm.key_placeholder" placeholder="Clave" autocomplete="new-password" />
+        </div>
+
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="llmModel" data-i18n="analyzer.custom_llm.model_label" style="display: block; margin-bottom: 6px; font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Nombre del Modelo</label>
+          <input type="text" id="llmModel" class="ai-modal-input" data-i18n="analyzer.custom_llm.model_placeholder" placeholder="Ollama: llama3 | LMStudio:qwen2.5-coder" autocomplete="new-password" />
+        </div>
+      </div>
+
+      <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
+        <button id="resetAiModalBtn" type="button" class="btn-secondary" data-i18n="analyzer.custom_llm.btn_reset" style="flex: 1;">Restablecer Defecto</button>
+        <button id="saveAiModalBtn" type="button" class="btn-primary" data-i18n="analyzer.custom_llm.btn_save" style="flex: 1;">Guardar y Cerrar</button>
+      </div>
+    </div>
+  </div>
 {% endblock %}

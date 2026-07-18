@@ -1,5 +1,5 @@
 """
-WSGI config for ViZo project.
+WSGI config for ViZzo project.
 
 It exposes the WSGI callable as a module-level variable named ``application``.
 
