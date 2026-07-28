@@ -13,6 +13,16 @@ window.ViZzoState = window.ViZzoState || {
  * Helper para dividir fileNetwork plano en nodos y enlaces para babia-network
  */
 export function generateNetworkNodesAndLinks(fileNetworkData) {
+  if (fileNetworkData && Array.isArray(fileNetworkData.nodes) && Array.isArray(fileNetworkData.links)) {
+    // Si ya viene formateado como objeto de red (ej. code_reviews)
+    const cleanNodes = fileNetworkData.nodes.map((n) => ({
+      ...n,
+      name: n.name || n.id,
+      val: n.val || n.total_reviews_given || n.size || 1,
+    }));
+    return { nodes: cleanNodes, links: fileNetworkData.links };
+  }
+
   const nodesMap = {};
   const linksMap = {};
   const filesMap = {};
@@ -27,7 +37,7 @@ export function generateNetworkNodesAndLinks(fileNetworkData) {
       const realCommits = item.commits || item.size || 1;
       nodesMap[author] = {
         id: author,
-        name: author + " (" + realCommits + " commits)",
+        name: author,
         val: realCommits,
         commits: realCommits,
       };
@@ -86,8 +96,8 @@ export function generateNetworkNodesAndLinks(fileNetworkData) {
     const maxCommits = Math.max(...commitCounts);
     const minCommits = Math.min(...commitCounts);
 
-    const minSize = 1.0;
-    const maxSize = 250.0;
+    const minSize = 3.0;
+    const maxSize = 450.0;
 
     finalNodes.forEach((node) => {
       if (maxCommits === minCommits) {

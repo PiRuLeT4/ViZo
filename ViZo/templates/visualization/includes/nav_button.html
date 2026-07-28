@@ -1,53 +1,57 @@
-<!-- Interfaz interactiva para volver al analizador -->
+<!-- Interfaz interactiva para volver al analizador (Panel Vertical Corregido) -->
 <a-entity
   id="nav-analyzer-btn"
   nav-button="href: /analyzer/"
-  position="-15.7 1.5 18.5"
+  position="-23.7 4.2 27.0"
   rotation="0 90 0"
+  scale="2.0 2.0 2.0"
 >
-  <!-- Sleek Backplate (Smaller, cleaner size) -->
+  <!-- Sleek Vertical Backplate -->
   <a-plane
     position="0 0 -0.02"
-    width="1.6"
-    height="0.9"
+    width="1.0"
+    height="1.3"
     color="#0c0c12"
     material="opacity: 0.85; transparent: true; roughness: 0.5; metalness: 0.1"
   ></a-plane>
 
-  <!-- Glowing bordeaux outline frame for the plate (half size) -->
-  <a-box position="0  0.45 0" width="1.64" height="0.02" depth="0.015" color="#8B0A2E" emissive="#8B0A2E" emissive-intensity="1.2"></a-box>
-  <a-box position="0 -0.45 0" width="1.64" height="0.02" depth="0.015" color="#8B0A2E" emissive="#8B0A2E" emissive-intensity="1.2"></a-box>
-  <a-box position="-0.82 0 0" width="0.02" height="0.90" depth="0.015" color="#8B0A2E" emissive="#8B0A2E" emissive-intensity="1.2"></a-box>
-  <a-box position=" 0.82 0 0" width="0.02" height="0.90" depth="0.015" color="#8B0A2E" emissive="#8B0A2E" emissive-intensity="1.2"></a-box>
+  <!-- Glowing bordeaux outline frame for vertical plate -->
+  <a-box position="0  0.65 0" width="1.04" height="0.02" depth="0.015" color="#8B0A2E" emissive="#8B0A2E" emissive-intensity="1.2"></a-box>
+  <a-box position="0 -0.65 0" width="1.04" height="0.02" depth="0.015" color="#8B0A2E" emissive="#8B0A2E" emissive-intensity="1.2"></a-box>
+  <a-box position="-0.52 0 0" width="0.02" height="1.30" depth="0.015" color="#8B0A2E" emissive="#8B0A2E" emissive-intensity="1.2"></a-box>
+  <a-box position=" 0.52 0 0" width="0.02" height="1.30" depth="0.015" color="#8B0A2E" emissive="#8B0A2E" emissive-intensity="1.2"></a-box>
 
-  <!-- Panel Header Title (half size) -->
+  <!-- Panel Header Title -->
   <a-text
     value="VOLVER AL ANALIZADOR"
-    position="0 0.28 0.02"
+    position="0 0.42 0.02"
     align="center"
-    width="2.6"
+    width="0.85"
+    wrap-count="16"
     color="#D4364F"
     emissive="#D4364F"
     emissive-intensity="0.6"
     font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"
   ></a-text>
 
+  <!-- Subtitle -->
   <a-text
-    value="PULSA PARA INICIAR OTRO ANALISIS"
-    position="0 0.12 0.02"
+    value="PULSA PARA INICIAR\nOTRO ANALISIS"
+    position="0 0.08 0.02"
     align="center"
-    width="1.6"
+    width="0.80"
+    wrap-count="20"
     color="#a0aec0"
     font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"
   ></a-text>
 
-  <!-- Professional rectangular button (half size) -->
+  <!-- Professional rectangular button -->
   <a-box
     class="clickable"
     data-nav-panel
-    position="0 -0.22 0.02"
-    width="1.0"
-    height="0.25"
+    position="0 -0.32 0.02"
+    width="0.75"
+    height="0.28"
     depth="0.03"
     color="#1a1a24"
     material="roughness: 0.5; metalness: 0.1"
@@ -58,7 +62,7 @@
       align="center"
       baseline="center"
       position="0 0 0.018"
-      width="2.6"
+      width="1.8"
       color="#ffffff"
       font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"
     ></a-text>

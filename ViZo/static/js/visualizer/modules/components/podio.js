@@ -60,11 +60,14 @@ AFRAME.registerComponent("vizzo-podio", {
         this.lastWidth = size.x;
         this.lastDepth = size.z;
 
-        const margin = 1.0;
-        const w = size.x + margin;
-        const d = size.z + margin;
+        const margin = 1.5;
+        const MAX_PODIUM_SIZE = 13.0;
+        const MIN_PODIUM_SIZE = 3.0;
+        const w = Math.min(MAX_PODIUM_SIZE, Math.max(MIN_PODIUM_SIZE, size.x + margin));
+        const d = Math.min(MAX_PODIUM_SIZE, Math.max(MIN_PODIUM_SIZE, size.z + margin));
 
-        const center = box.getCenter(new THREE.Vector3());
+        let center = box.getCenter(new THREE.Vector3());
+
         const height = 0.4;
         const yPos = height / 2;
 
@@ -79,36 +82,51 @@ AFRAME.registerComponent("vizzo-podio", {
 
         // Reposicionar dinámicamente el panel de control asociado fuera del podio
         const dashId = this.el.id.replace("vizzo-viz-", "");
-        const panelEl = document.querySelector("#vizzo-panel-" + dashId);
-        if (panelEl) {
-          var rotY = this.el.getAttribute("rotation").y || 0;
+        let panels = document.querySelectorAll(`[data-dash-id='${dashId}']`);
+        if (panels.length === 0) {
+          panels = document.querySelectorAll(`[id*='vizzo-panel-'][id*='${dashId}']`);
+        }
+        if (panels.length > 0) {
+          var rotY = (this.el.getAttribute("rotation") && this.el.getAttribute("rotation").y) || 0;
           var yawRad = (rotY * Math.PI) / 180;
 
-          // Colocar justo en la esquina frontal derecha exterior del podio de mármol
-          var forwardDist = (d / 2) + 0.25;
-          var rightDist = (w / 2) + 0.25;
+          // Colocar el panel de control en la esquina derecha del podio (vista cámara hacia el gráfico) sin solaparse con la madera
+          var forwardDist = (d / 2) + 0.45;
+          var baseRightDist = (w / 2) + 0.2;
 
-          var panelX = center.x + forwardDist * Math.sin(yawRad) + rightDist * Math.cos(yawRad);
-          var panelZ = center.z + forwardDist * Math.cos(yawRad) - rightDist * Math.sin(yawRad);
-
-          var currentPos = panelEl.getAttribute("position");
-          var currentRot = panelEl.getAttribute("rotation");
-
-          // Actualizar posición y rotación solo si varían para optimizar rendimiento
-          if (currentPos) {
-            if (Math.abs(currentPos.x - panelX) > 0.02 || Math.abs(currentPos.z - panelZ) > 0.02) {
-              panelEl.setAttribute("position", `${panelX} ${currentPos.y} ${panelZ}`);
+          panels.forEach((panelEl, pIdx) => {
+            var rightDist = baseRightDist;
+            if (panels.length > 1) {
+              // Separar paneles dobles en la zona derecha si existen (ej. boats_metrics y boats_ai)
+              rightDist = baseRightDist + (pIdx === 0 ? -0.4 : 0.6);
             }
-          } else {
-            panelEl.setAttribute("position", `${panelX} 0.45 ${panelZ}`);
-          }
-          if (currentRot) {
-            if (Math.abs(currentRot.y - rotY) > 0.5) {
-              panelEl.setAttribute("rotation", `0 ${rotY} 0`);
+
+            var panelX = center.x + forwardDist * Math.sin(yawRad) + rightDist * Math.cos(yawRad);
+            var panelZ = center.z + forwardDist * Math.cos(yawRad) - rightDist * Math.sin(yawRad);
+
+            if (!isNaN(panelX) && !isNaN(panelZ)) {
+              var currentPos = panelEl.getAttribute("position");
+              var currentRot = panelEl.getAttribute("rotation");
+
+              var targetY = (currentPos && !isNaN(currentPos.y) && currentPos.y > 0) ? currentPos.y : 0.45;
+
+              // Actualizar posición y rotación solo si varían para optimizar rendimiento
+              if (currentPos) {
+                if (Math.abs(currentPos.x - panelX) > 0.02 || Math.abs(currentPos.z - panelZ) > 0.02) {
+                  panelEl.setAttribute("position", `${panelX} ${targetY} ${panelZ}`);
+                }
+              } else {
+                panelEl.setAttribute("position", `${panelX} ${targetY} ${panelZ}`);
+              }
+              if (currentRot) {
+                if (Math.abs(currentRot.y - rotY) > 0.5) {
+                  panelEl.setAttribute("rotation", `0 ${rotY} 0`);
+                }
+              } else {
+                panelEl.setAttribute("rotation", `0 ${rotY} 0`);
+              }
             }
-          } else {
-            panelEl.setAttribute("rotation", `0 ${rotY} 0`);
-          }
+          });
         }
 
         this.light.setAttribute("distance", 0);

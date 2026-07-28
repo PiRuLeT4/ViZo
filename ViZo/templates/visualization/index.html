@@ -44,24 +44,7 @@
       {% endif %}
     </div>
 
-    <!-- Holographic Terminal Modal -->
-    <div id="vizzo-terminal-modal">
-      <div class="terminal-header">
-        <div class="terminal-title">VIZZO_01 // ASISTENTE IA</div>
-        <button
-          class="terminal-close"
-          onclick="window.ViZzo.ui.closeExplanation()"
-        >
-          CLOSE [X]
-        </button>
-      </div>
-      <div class="terminal-body">
-        <div class="terminal-prompt">
-          > INICIANDO COMUNICACIÓN CON LA IA DE ANÁLISIS...
-        </div>
-        <div id="terminal-content"></div>
-      </div>
-    </div>
+
 
     <a-scene xr-mode-ui="enabled: true">
       <!-- General Assets -->
@@ -119,6 +102,11 @@
           src="{% static 'images/button-texture.jpg'%}"
           crossorigin="anonymous"
         />
+        <img
+          id="floor-texture"
+          src="{% static 'images/floor-texture.jpg'%}"
+          crossorigin="anonymous"
+        />
       </a-assets>
 
       <!-- ══════════════════════════════════════
@@ -136,14 +124,14 @@
       <a-entity id="cargador"></a-entity>
 
       <!-- Visualización dinámica generada por la IA (Módulos ES6) -->
-      <script src="{% static 'js/visualizer/visualization.js' %}?v=3" type="module"></script>
+      <script src="{% static 'js/visualizer/visualization.js' %}?v=44" type="module"></script>
 
       <!-- ── CAMERA (confined to room + object collisions) ── -->
       <a-entity
         id="rig"
         movement-controls
-        position="0 1.1 19"
-        room-bounds="minX: -15; maxX: 15; minY: 1; maxY: 8.5; minZ: -100"
+        position="2 1.1 27"
+        room-bounds="minX: -23; maxX: 30; minY: 1; maxY: 11; minZ: -23; maxZ: 28"
         object-collide="radius: 0.4"
       >
         <a-entity camera position="0 0 0" look-controls></a-entity>
@@ -174,6 +162,112 @@
             visible="false"
           >
             <!-- Menú holográfico 3D de muñeca se inyectará dinámicamente -->
+          </a-entity>
+        </a-entity>
+
+        <!-- Panel de Explicaciones IA Flotante 3D (para gafas VR) -->
+        <a-entity
+          id="vr-explanation-panel"
+          position="0 1.5 -3"
+          rotation="0 0 0"
+          visible="false"
+        >
+          <!-- Base (mismo backplate que los paneles de la sala) -->
+          <a-plane
+            width="3.2"
+            height="2.0"
+            color="#0c0c12"
+            material="opacity: 0.88; transparent: true; roughness: 0.5; metalness: 0.1"
+          ></a-plane>
+
+          <!-- Bordes burdeos emisivos (idénticos al panel de opacidad de la sala) -->
+          <a-box position="0 1.0 0.005" width="3.22" height="0.02" depth="0.01" color="#8B0A2E" emissive="#8B0A2E" emissive-intensity="1.2"></a-box>
+          <a-box position="0 -1.0 0.005" width="3.22" height="0.02" depth="0.01" color="#8B0A2E" emissive="#8B0A2E" emissive-intensity="1.2"></a-box>
+          <a-box position="-1.61 0 0.005" width="0.02" height="2.02" depth="0.01" color="#8B0A2E" emissive="#8B0A2E" emissive-intensity="1.2"></a-box>
+          <a-box position="1.61 0 0.005" width="0.02" height="2.02" depth="0.01" color="#8B0A2E" emissive="#8B0A2E" emissive-intensity="1.2"></a-box>
+
+          <!-- Separador bajo título (burdeos sutil) -->
+          <a-plane
+            position="0 0.72 0.01"
+            width="3.0"
+            height="0.005"
+            color="#8B0A2E"
+            emissive="#8B0A2E"
+            emissive-intensity="0.6"
+          ></a-plane>
+
+          <!-- Título (rojo marca ViZzo, como SURFACE OPACITY) -->
+          <a-text
+            value="ASISTENTE IA — REPORTE"
+            position="0 0.85 0.015"
+            align="center"
+            color="#D4364F"
+            emissive="#D4364F"
+            emissive-intensity="0.6"
+            width="4.0"
+            font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"
+          ></a-text>
+
+          <!-- Texto de la explicación IA (luz cálida de la escena) -->
+          <a-text
+            id="vr-terminal-text"
+            value="Cargando reporte..."
+            position="-1.4 0.58 0.015"
+            align="left"
+            anchor="left"
+            baseline="top"
+            color="#FFF8EB"
+            width="2.8"
+            wrap-count="60"
+            font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"
+          ></a-text>
+
+          <!-- Botones de Scroll (metal oscuro de la escena) -->
+          <a-entity id="vr-scroll-up-btn" position="1.35 0.15 0.015">
+            <a-box
+              class="clickable"
+              width="0.18"
+              height="0.18"
+              depth="0.015"
+              color="#1a1a24"
+              material="roughness: 0.5; metalness: 0.1"
+            >
+              <a-text value="^" align="center" position="0 0 0.01" color="#FFF8EB" width="3.0"></a-text>
+            </a-box>
+          </a-entity>
+
+          <a-entity id="vr-scroll-down-btn" position="1.35 -0.1 0.015">
+            <a-box
+              class="clickable"
+              width="0.18"
+              height="0.18"
+              depth="0.015"
+              color="#1a1a24"
+              material="roughness: 0.5; metalness: 0.1"
+            >
+              <a-text value="v" align="center" position="0 0 0.01" color="#FFF8EB" width="3.0"></a-text>
+            </a-box>
+          </a-entity>
+
+          <!-- Botón de Cerrar (metal oscuro de la escena) -->
+          <a-entity id="vr-terminal-close-btn" position="0 -0.82 0.015">
+            <a-box
+              class="clickable"
+              width="0.7"
+              height="0.18"
+              depth="0.015"
+              color="#1a1a24"
+              material="roughness: 0.5; metalness: 0.1"
+            >
+              <a-text
+                value="CERRAR"
+                align="center"
+                position="0 0 0.01"
+                color="#FFF8EB"
+                width="2.2"
+                font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"
+              ></a-text>
+            </a-box>
           </a-entity>
         </a-entity>
       </a-entity>

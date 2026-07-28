@@ -18,7 +18,7 @@ import {
 } from '../helpers.js';
 
 import { getRandomPalette } from '../builders.js';
-import { showExplanation } from '../../ai-assistant.js';
+import { showExplanation, playTtsExplanation, fetchAiInfo } from '../../ai-assistant.js';
 
 window.SOLID_BOXES = [];
 
@@ -57,15 +57,25 @@ AFRAME.registerComponent("vizzo-opacity-control", {
   },
   init: function () {
     this.el.addEventListener("click", () => {
-      const targetEl = document.querySelector(this.data.target);
-      const valueEl = document.querySelector(this.data.valueEl);
-      if (!targetEl || !valueEl) return;
+      let targets = [];
+      if (this.data.target === "walls") {
+        const leftWall = document.querySelector("#left-wall");
+        const rightWall = document.querySelector("#right-wall");
+        if (leftWall) targets.push(leftWall);
+        if (rightWall) targets.push(rightWall);
+      } else {
+        const singleTarget = document.querySelector(this.data.target);
+        if (singleTarget) targets.push(singleTarget);
+      }
 
-      // Get current opacity
-      let material = targetEl.getAttribute("material") || {};
+      if (targets.length === 0) return;
+
+      // Get current opacity from the first target
+      const baseEl = targets[0];
+      let material = baseEl.getAttribute("material") || {};
       let currentOpacity = parseFloat(material.opacity);
       if (isNaN(currentOpacity)) {
-        currentOpacity = parseFloat(targetEl.getAttribute("opacity"));
+        currentOpacity = parseFloat(baseEl.getAttribute("opacity"));
         if (isNaN(currentOpacity)) {
           currentOpacity = 1.0;
         }
@@ -82,15 +92,26 @@ AFRAME.registerComponent("vizzo-opacity-control", {
       // Clamp to 1 decimal place
       newOpacity = Math.round(newOpacity * 10) / 10;
 
-      // Apply opacity and ensure transparent is true
-      targetEl.setAttribute("material", {
-        transparent: true,
-        opacity: newOpacity
+      // Apply to all targets
+      targets.forEach((target) => {
+        target.setAttribute("material", {
+          transparent: true,
+          opacity: newOpacity
+        });
+        target.setAttribute("opacity", newOpacity);
       });
-      targetEl.setAttribute("opacity", newOpacity);
 
-      // Update value display text
-      valueEl.setAttribute("value", newOpacity.toFixed(1));
+      // Update indicators
+      const valueEl = document.querySelector(this.data.valueEl);
+      if (valueEl) {
+        valueEl.setAttribute("value", newOpacity.toFixed(1));
+      }
+      if (this.data.target === "walls") {
+        const valLeft = document.getElementById("val-left");
+        const valRight = document.getElementById("val-right");
+        if (valLeft) valLeft.setAttribute("value", newOpacity.toFixed(1));
+        if (valRight) valRight.setAttribute("value", newOpacity.toFixed(1));
+      }
     });
 
     // Hover effects
@@ -256,33 +277,51 @@ AFRAME.registerComponent("nav-button", {
     var el = this.el;
     var data = this.data;
 
-    el.addEventListener("mouseenter", function () {
-      el.querySelectorAll("[data-nav-panel]").forEach(function (child) {
-        // Save original on first hover just in case elements are dynamic
-        if (!child.dataset.origEmissive) {
-          child.dataset.origEmissive =
-              child.getAttribute("emissive") || "#000000";
-          child.dataset.origEmissiveInt =
-              child.getAttribute("emissive-intensity") || "0";
-        }
-        child.setAttribute("emissive", "#ffffff");
-        child.setAttribute("emissive-intensity", "3");
-      });
-      el.setAttribute("scale", "1.04 1.04 1.04");
-    });
+    // Cache the base scale defined on the HTML attribute
+    var baseScale = el.getAttribute("scale") || { x: 1, y: 1, z: 1 };
+    if (typeof baseScale === "string") {
+      var parts = baseScale.trim().split(/\s+/).map(Number);
+      baseScale = { x: parts[0] || 1, y: parts[1] || 1, z: parts[2] || 1 };
+    }
+    this.baseScale = baseScale;
 
-    el.addEventListener("mouseleave", function () {
-      el.querySelectorAll("[data-nav-panel]").forEach(function (child) {
-        if (child.dataset.origEmissive) {
-          child.setAttribute("emissive", child.dataset.origEmissive);
-          child.setAttribute(
+    el.addEventListener(
+      "mouseenter",
+      function () {
+        el.querySelectorAll("[data-nav-panel]").forEach(function (child) {
+          if (!child.dataset.origEmissive) {
+            child.dataset.origEmissive =
+              child.getAttribute("emissive") || "#000000";
+            child.dataset.origEmissiveInt =
+              child.getAttribute("emissive-intensity") || "0";
+          }
+          child.setAttribute("emissive", "#ffffff");
+          child.setAttribute("emissive-intensity", "3");
+        });
+        var bs = this.baseScale || { x: 1, y: 1, z: 1 };
+        el.setAttribute(
+          "scale",
+          `${bs.x * 1.04} ${bs.y * 1.04} ${bs.z * 1.04}`,
+        );
+      }.bind(this),
+    );
+
+    el.addEventListener(
+      "mouseleave",
+      function () {
+        el.querySelectorAll("[data-nav-panel]").forEach(function (child) {
+          if (child.dataset.origEmissive) {
+            child.setAttribute("emissive", child.dataset.origEmissive);
+            child.setAttribute(
               "emissive-intensity",
               child.dataset.origEmissiveInt,
-          );
-        }
-      });
-      el.setAttribute("scale", "1 1 1");
-    });
+            );
+          }
+        });
+        var bs = this.baseScale || { x: 1, y: 1, z: 1 };
+        el.setAttribute("scale", `${bs.x} ${bs.y} ${bs.z}`);
+      }.bind(this),
+    );
 
     el.addEventListener("click", function () {
       window.location.href = data.href;
@@ -405,7 +444,7 @@ AFRAME.registerComponent("vizzo-control-btn", {
         else if (data.vizType === "cyls")
           targetEl = document.querySelector("[babia-cyls]");
         else if (data.vizType === "doughnut")
-          targetEl = document.querySelector("[babia-doughnut]");
+          targetEl = document.querySelector("[babia-doughnut]") || document.querySelector("[babia-pie]");
         else if (data.vizType === "barsmap")
           targetEl = document.querySelector("[babia-barsmap]");
       }
@@ -451,8 +490,12 @@ AFRAME.registerComponent("vizzo-control-btn", {
           targetEl,
           data.vizType,
         );
+      } else if (data.action === "fetch-ai-info") {
+        fetchAiInfo(data.vizType, targetEl);
       } else if (data.action === "explain-ai") {
-        showExplanation(data.vizType, targetEl);
+        showExplanation(data.vizType, targetEl, data.value);
+      } else if (data.action === "play-tts") {
+        playTtsExplanation(data.vizType, targetEl, data.value);
       } else if (data.action === "change-palette") {
         var newPalette = getRandomPalette();
         var compName = "babia-" + data.vizType;

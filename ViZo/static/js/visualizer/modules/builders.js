@@ -27,19 +27,19 @@ export function getRandomPalette() {
 
 // Posiciones fijas por número de dashboards
 export const POSITIONS = [
-  { x: 0, y: PODIUM_HEIGHT, z: 14 }, // Slot 0: BOATS
+  { x: 0, y: PODIUM_HEIGHT, z: 21 }, // Slot 0: BOATS
 ];
 
 /**
  * Calcula dinámicamente la posición y rotación de un pedestal satélite en cuadrícula por filas.
  */
 export function calculateSatellitePosition(index, total) {
-  if (total <= 0) return { x: 0, y: PODIUM_HEIGHT, z: 14, rotY: 0 };
+  if (total <= 0) return { x: 0, y: PODIUM_HEIGHT, z: 21, rotY: 0 };
 
   const COLUMNS = 3;
-  const X_SPACING = 8.5;
-  const Z_SPACING = 7.0;
-  const Z_START = 7.0; // Detrás de la ciudad (Z=14)
+  const X_SPACING = 14.5;
+  const Z_SPACING = 14.5;
+  const Z_START = 12.0; // Detrás de la ciudad (Z=21)
 
   const row = Math.floor(index / COLUMNS);
   const totalRows = Math.ceil(total / COLUMNS);
@@ -93,8 +93,9 @@ export function buildCity(scene, dash, loaderId, pos) {
   const m = dash.mappings;
   const vizEl = document.createElement("a-entity");
   vizEl.setAttribute("id", "vizzo-viz-" + dash.id);
+  vizEl.setAttribute("data-dataset", dash.dataset);
   vizEl.setAttribute("position", pos.x + " " + PODIUM_HEIGHT + " " + pos.z);
-  vizEl.setAttribute("scale", "0.24 0.24 0.24");
+  vizEl.setAttribute("scale", "0.48 0.48 0.48");
 
   vizEl.setAttribute(
     "babia-boats",
@@ -131,15 +132,9 @@ export function buildCyls(scene, dash, loaderId, pos) {
   const m = dash.mappings;
   const vizEl = document.createElement("a-entity");
   vizEl.setAttribute("id", "vizzo-viz-" + dash.id);
-  let posX = pos.x;
-  if (
-    dash.dataset === "top_complex_files" ||
-    (dash.id && dash.id.includes("complex"))
-  ) {
-    posX -= 2.0;
-  }
-  vizEl.setAttribute("position", posX + " " + PODIUM_HEIGHT + " " + pos.z);
-  vizEl.setAttribute("scale", "0.12 0.12 0.12");
+  vizEl.setAttribute("data-dataset", dash.dataset);
+  vizEl.setAttribute("position", pos.x + " " + PODIUM_HEIGHT + " " + pos.z);
+  vizEl.setAttribute("scale", "0.3 0.3 0.3");
   vizEl.setAttribute("rotation", `0 ${pos.rotY} 0`);
   vizEl.setAttribute(
     "babia-cyls",
@@ -150,7 +145,7 @@ export function buildCyls(scene, dash, loaderId, pos) {
       "radius: " + (m.radius || "count"),
       "legend: true",
       "animation: true",
-      "titlePosition: 18 8 0",
+      "titlePosition: 0 8 0",
       "titleFont: #font",
       "titleColor: #00d4ff",
       "palette: " + getRandomPalette(),
@@ -160,8 +155,7 @@ export function buildCyls(scene, dash, loaderId, pos) {
   scene.appendChild(vizEl);
   vizEl.setAttribute("vizzo-podio", "");
   console.log("ViZzo // babia-cyls creado sobre pedestal");
-  const actualPos = { x: posX, y: pos.y, z: pos.z, rotY: pos.rotY };
-  buildControlPanel(scene, dash, "vizzo-viz-" + dash.id, actualPos, "cyls");
+  buildControlPanel(scene, dash, "vizzo-viz-" + dash.id, pos, "cyls");
 }
 
 /**
@@ -171,12 +165,13 @@ export function buildDoughnut(scene, dash, loaderId, pos) {
   const m = dash.mappings;
   const vizEl = document.createElement("a-entity");
   vizEl.setAttribute("id", "vizzo-viz-" + dash.id);
+  vizEl.setAttribute("data-dataset", dash.dataset);
   vizEl.setAttribute(
     "position",
-    pos.x + " " + (PODIUM_HEIGHT + 0.8) + " " + pos.z,
+    pos.x + " " + (PODIUM_HEIGHT + 1.6) + " " + pos.z,
   );
   vizEl.setAttribute("rotation", `90 ${pos.rotY} 0`);
-  vizEl.setAttribute("scale", "0.5 0.5 0.5");
+  vizEl.setAttribute("scale", "1.0 1.0 1.0");
   vizEl.setAttribute(
     "babia-doughnut",
     [
@@ -185,7 +180,7 @@ export function buildDoughnut(scene, dash, loaderId, pos) {
       "size: " + (m.size || "count"),
       "legend: true",
       "animation: true",
-      "titlePosition: 2 0 -3",
+      "titlePosition: 0 3 0",
       "palette: " + getRandomPalette(),
     ].join("; "),
   );
@@ -203,8 +198,9 @@ export function buildBarsmap(scene, dash, loaderId, pos) {
   const m = dash.mappings;
   const vizEl = document.createElement("a-entity");
   vizEl.setAttribute("id", "vizzo-viz-" + dash.id);
+  vizEl.setAttribute("data-dataset", dash.dataset);
   vizEl.setAttribute("position", pos.x + " " + PODIUM_HEIGHT + " " + pos.z);
-  vizEl.setAttribute("scale", "0.16 0.16 0.16");
+  vizEl.setAttribute("scale", "0.4 0.4 0.4");
   vizEl.setAttribute("rotation", `0 ${pos.rotY} 0`);
   vizEl.setAttribute(
     "babia-barsmap",
@@ -215,7 +211,7 @@ export function buildBarsmap(scene, dash, loaderId, pos) {
       "height: " + (m.height || "commits"),
       "legend: true",
       "palette: " + getRandomPalette(),
-      "titlePosition: -5 12 0",
+      "titlePosition: 0 10 0",
       "axis_name: true",
       "animation: true",
     ].join("; "),
@@ -233,15 +229,16 @@ export function buildNetwork(scene, dash, nodesLoaderId, linksLoaderId, pos) {
   plinthEl.setAttribute("id", "vizzo-plinth-" + dash.id);
   plinthEl.setAttribute("position", pos.x + " 0.5 " + pos.z);
   plinthEl.setAttribute("rotation", `0 ${pos.rotY} 0`);
-  plinthEl.setAttribute("lounge-plinth", "width: 2.4; depth: 2.4");
+  plinthEl.setAttribute("lounge-plinth", "width: 4.8; depth: 4.8");
   plinthEl.setAttribute("lounge-staydown", "");
 
   // 2. Crear la entidad de babia-network propiamente dicha dentro del plinth
   const vizEl = document.createElement("a-entity");
   vizEl.setAttribute("id", "vizzo-viz-" + dash.id);
-  vizEl.setAttribute("position", "0 1.5 0");
+  vizEl.setAttribute("data-dataset", dash.dataset);
+  vizEl.setAttribute("position", "0 2.7 0");
   vizEl.setAttribute("rotation", "0 0 -90");
-  vizEl.setAttribute("scale", "0.032 0.032 0.032");
+  vizEl.setAttribute("scale", "0.064 0.064 0.064");
   vizEl.setAttribute(
     "babia-network",
     [
@@ -253,7 +250,7 @@ export function buildNetwork(scene, dash, nodesLoaderId, linksLoaderId, pos) {
       "nodeResolution: 30",
       "nodeVal: val",
       "nodeRelSize: 1",
-      "linkWidth: 0.2",
+      "linkWidth: 0.4",
       "linkLabel: fileLabel",
       "nodeLegend: true",
       "linkLegend: true",
@@ -277,8 +274,9 @@ export function buildBars(scene, dash, loaderId, pos) {
   const m = dash.mappings;
   const vizEl = document.createElement("a-entity");
   vizEl.setAttribute("id", "vizzo-viz-" + dash.id);
+  vizEl.setAttribute("data-dataset", dash.dataset);
   vizEl.setAttribute("position", pos.x + " " + PODIUM_HEIGHT + " " + pos.z);
-  vizEl.setAttribute("scale", "0.2 0.2 0.2");
+  vizEl.setAttribute("scale", "0.4 0.4 0.4");
   vizEl.setAttribute("rotation", `0 ${pos.rotY} 0`);
   vizEl.setAttribute(
     "babia-bars",
@@ -288,7 +286,7 @@ export function buildBars(scene, dash, loaderId, pos) {
       "height: " + (m.height || m.size || m.comments || "comments"),
       "legend: true",
       "palette: " + getRandomPalette(),
-      "titlePosition: -5 12 0",
+      "titlePosition: 0 10 0",
       "axis_name: true",
       "animation: true",
     ].join("; "),
@@ -308,7 +306,7 @@ export function buildStatsTrophies(scene, summary) {
   const forksCount = parseInt(summary.forks) || 0;
 
   // 1. --- TROFEO DE STARS (Derecha de la ciudad) ---
-  const posStars = { x: 8.0, y: 0.1, z: 15 };
+  const posStars = { x: 12.0, y: 0.1, z: 22.5 };
   const starsTrophyEl = document.createElement("a-entity");
   starsTrophyEl.setAttribute("id", "vizzo-stars-trophy");
   starsTrophyEl.setAttribute(
@@ -318,16 +316,16 @@ export function buildStatsTrophies(scene, summary) {
   starsTrophyEl.setAttribute("visible", "true");
 
   const pedStars = document.createElement("a-cylinder");
-  pedStars.setAttribute("radius", "0.5");
-  pedStars.setAttribute("height", "0.5");
+  pedStars.setAttribute("radius", "1");
+  pedStars.setAttribute("height", "1.4");
   pedStars.setAttribute("src", "#marmol-texture");
   pedStars.setAttribute("material", "roughness: 0.3; metalness: 0.2");
   starsTrophyEl.appendChild(pedStars);
 
-  // Estrella de metal dorado de 5 puntas (Escala fija, sin emisión)
+  // Estrella de metal dorado de 5 puntas (Escala adaptada a VR)
   const starGeomEl = document.createElement("a-entity");
-  starGeomEl.setAttribute("position", "0 1.0 0");
-  starGeomEl.setAttribute("scale", "0.6 0.6 0.6");
+  starGeomEl.setAttribute("position", "0 1.6 0");
+  starGeomEl.setAttribute("scale", "1.5 1.5 1.5");
   starGeomEl.setAttribute(
     "animation",
     "property: rotation; to: 0 360 0; loop: true; dur: 8000; easing: linear",
@@ -364,10 +362,10 @@ export function buildStatsTrophies(scene, summary) {
 
   const textStars = document.createElement("a-text");
   textStars.setAttribute("value", `${starsCount}\nSTARS`);
-  textStars.setAttribute("position", "0 1.8 0");
+  textStars.setAttribute("position", "0 2.8 0");
   textStars.setAttribute("align", "center");
-  textStars.setAttribute("color", "#334155");
-  textStars.setAttribute("width", "3.2");
+  textStars.setAttribute("color", "#fff");
+  textStars.setAttribute("width", "4.8");
   textStars.setAttribute("side", "double");
   textStars.setAttribute("font", "https://cdn.aframe.io/fonts/Exo2Bold.fnt");
   starsTrophyEl.appendChild(textStars);
@@ -375,7 +373,7 @@ export function buildStatsTrophies(scene, summary) {
   scene.appendChild(starsTrophyEl);
 
   // 2. --- TROFEO DE FORKS (Izquierda de la ciudad) ---
-  const posForks = { x: -8.0, y: 0.1, z: 15 };
+  const posForks = { x: -12.0, y: 0.1, z: 22.5 };
   const forksTrophyEl = document.createElement("a-entity");
   forksTrophyEl.setAttribute("id", "vizzo-forks-trophy");
   forksTrophyEl.setAttribute(
@@ -385,16 +383,16 @@ export function buildStatsTrophies(scene, summary) {
   forksTrophyEl.setAttribute("visible", "true");
 
   const pedForks = document.createElement("a-cylinder");
-  pedForks.setAttribute("radius", "0.5");
-  pedForks.setAttribute("height", "0.5");
+  pedForks.setAttribute("radius", "1");
+  pedForks.setAttribute("height", "1.4");
   pedForks.setAttribute("src", "#marmol-texture");
   pedForks.setAttribute("material", "roughness: 0.3; metalness: 0.2");
   forksTrophyEl.appendChild(pedForks);
 
-  // Figura de Fork simple: Bifurcación simétrica en "Y" (Escala fija, plateada)
+  // Figura de Fork simple: Bifurcación simétrica en "Y" (Escala adaptada a VR)
   const forkGeomEl = document.createElement("a-entity");
-  forkGeomEl.setAttribute("position", "0 0.9 0");
-  forkGeomEl.setAttribute("scale", "0.8 0.8 0.8");
+  forkGeomEl.setAttribute("position", "0 1.5 0");
+  forkGeomEl.setAttribute("scale", "1.8 1.8 1.8");
   forkGeomEl.setAttribute(
     "animation",
     "property: rotation; to: 0 -360 0; loop: true; dur: 8000; easing: linear",
@@ -457,10 +455,10 @@ export function buildStatsTrophies(scene, summary) {
 
   const textForks = document.createElement("a-text");
   textForks.setAttribute("value", `${forksCount}\nFORKS`);
-  textForks.setAttribute("position", "0 1.8 0");
+  textForks.setAttribute("position", "0 2.8 0");
   textForks.setAttribute("align", "center");
-  textForks.setAttribute("color", "#334155");
-  textForks.setAttribute("width", "3.2");
+  textForks.setAttribute("color", "#fff");
+  textForks.setAttribute("width", "4.8");
   textForks.setAttribute("font", "https://cdn.aframe.io/fonts/Exo2Bold.fnt");
   textForks.setAttribute("side", "double");
   forksTrophyEl.appendChild(textForks);
@@ -478,12 +476,13 @@ export function buildPie(scene, dash, loaderId, pos) {
   const m = dash.mappings || {};
   const vizEl = document.createElement("a-entity");
   vizEl.setAttribute("id", "vizzo-viz-" + dash.id);
+  vizEl.setAttribute("data-dataset", dash.dataset);
   vizEl.setAttribute(
     "position",
-    pos.x + " " + (PODIUM_HEIGHT + 0.8) + " " + pos.z,
+    pos.x + " " + (PODIUM_HEIGHT + 1.2) + " " + pos.z,
   );
   vizEl.setAttribute("rotation", `90 ${pos.rotY} 0`);
-  vizEl.setAttribute("scale", "0.5 0.5 0.5");
+  vizEl.setAttribute("scale", "0.8 0.8 0.8");
   vizEl.setAttribute(
     "babia-pie",
     [
