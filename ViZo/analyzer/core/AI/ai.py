@@ -288,23 +288,65 @@ REPORTE TÉCNICO GENERAL - REPOSITORIO: {repo_name}
 Métricas generales disponibles en el pedestal correspondiente. Use los controles físicos o el menú holográfico de muñeca para alternar mapeos e interactuar con la visualización."""
 
 
-def get_ai_explanation(
+def parse_explanation_sections(raw_text: str) -> dict:
+    """
+    Parsea la respuesta de la IA (JSON o texto plano) en 3 secciones bien definidas.
+    """
+    import json
+    import re
+
+    if not raw_text or not isinstance(raw_text, str):
+        return {
+            "summary": "Sin información de explicación disponible.",
+            "problems": "No se detectaron problemas críticos adicionales.",
+            "recommendations": "No se generaron recomendaciones específicas adicionales.",
+        }
+
+    # Intentar parsear JSON directo o dentro de bloque ```json ... ```
+    json_match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", raw_text, re.DOTALL)
+    candidate_str = json_match.group(1) if json_match else raw_text.strip()
+    try:
+        data = json.loads(candidate_str)
+        if isinstance(data, dict) and "summary" in data:
+            return {
+                "summary": data.get("summary", "").strip(),
+                "problems": data.get("problems", "").strip(),
+                "recommendations": data.get("recommendations", "").strip(),
+            }
+    except Exception:
+        pass
+
+    # Fallback si vino texto plano o respuesta offline
+    summary_match = re.search(r"(?:1\.\s*TÍTULO|\#\s*1|\#\s*TÍTULO|RESUMEN)(.*?)(?=(?:2\.\s*PRINCIPALES|3\.\s*RECOMENDACIONES|\#\s*2|\#\s*3|PROBLEMAS|$))", raw_text, re.DOTALL | re.IGNORECASE)
+    problems_match = re.search(r"(?:2\.\s*PRINCIPALES|\#\s*2|\#\s*PROBLEMAS|PROBLEMAS)(.*?)(?=(?:3\.\s*RECOMENDACIONES|4\.\s*RECOMENDACIONES|\#\s*3|MEJORAS|$))", raw_text, re.DOTALL | re.IGNORECASE)
+    recs_match = re.search(r"(?:3\.\s*RECOMENDACIONES|4\.\s*RECOMENDACIONES|\#\s*3|\#\s*RECOMENDACIONES|MEJORAS)(.*?)$", raw_text, re.DOTALL | re.IGNORECASE)
+
+    summary_text = summary_match.group(1).strip() if summary_match and summary_match.group(1).strip() else raw_text
+    problems_text = problems_match.group(1).strip() if problems_match and problems_match.group(1).strip() else "No se detectaron problemas críticos adicionales para esta sección."
+    recs_text = recs_match.group(1).strip() if recs_match and recs_match.group(1).strip() else "No se generaron recomendaciones específicas adicionales."
+
+    return {
+        "summary": summary_text,
+        "problems": problems_text,
+        "recommendations": recs_text,
+    }
+
+
+def generate_dashboard_explanation(
     dashboard_type: str,
     dashboard_data: str,
-    repo_name: str,
+    repo_name: str = "PROYECTO",
     base_url: str = None,
     api_key: str = None,
     model: str = None,
 ) -> str:
     """
-    Envía los datos de un dashboard de visualización específico a la IA para
-    obtener una explicación técnica de la salud y calidad del código.
+    Genera una explicación técnica y profesional adaptada al tipo de dashboard provisto.
     """
-    # Intentar resumir el JSON de datos si es una lista muy larga para evitar exceder el contexto del LLM local
     try:
+        # Intentar resumir el JSON de datos si es una lista muy larga para evitar exceder el contexto del LLM local
         data_obj = json.loads(dashboard_data)
         if isinstance(data_obj, list) and len(data_obj) > 15:
-            # Ordenar por el campo más relevante si existe
             first_item = data_obj[0]
             if "nloc" in first_item:
                 data_obj.sort(key=lambda x: float(x.get("nloc") or 0), reverse=True)
@@ -317,24 +359,83 @@ def get_ai_explanation(
 
             data_obj = data_obj[:15]
             dashboard_data = json.dumps(data_obj)
+        elif isinstance(data_obj, dict) and ("nodes" in data_obj or "links" in data_obj):
+            # Sintetizar y recortar grafos de red (code_reviews / file_network)
+            raw_nodes = data_obj.get("nodes", [])
+            raw_links = data_obj.get("links", [])
+
+            # Ordenar nodos por peso (total_reviews_given, val, size, etc.) y seleccionar el Top 10
+            sorted_nodes = sorted(
+                raw_nodes,
+                key=lambda n: float(
+                    n.get("total_reviews_given") or n.get("val") or n.get("size") or 0
+                ),
+                reverse=True,
+            )[:10]
+
+            selected_node_ids = {str(n.get("id")) for n in sorted_nodes if n.get("id") is not None}
+
+            # Filtrar los enlaces principales asociados a estos nodos
+            filtered_links = []
+            for l in raw_links:
+                src = str(l.get("source") or l.get("linkSource") or "")
+                tgt = str(l.get("target") or l.get("linkTarget") or "")
+                if src in selected_node_ids or tgt in selected_node_ids:
+                    filtered_links.append(l)
+            filtered_links = filtered_links[:15]
+
+            # Construir JSON limpio sin metadatos ruidosos de la API de GitHub
+            clean_nodes = [
+                {
+                    "developer": n.get("name") or n.get("id"),
+                    "contributions_or_reviews": n.get("total_reviews_given") or n.get("val") or n.get("size") or 0,
+                }
+                for n in sorted_nodes
+            ]
+
+            clean_links = [
+                {
+                    "reviewer": l.get("source") or l.get("linkSource"),
+                    "author_or_target": l.get("target") or l.get("linkTarget"),
+                    "interactions": l.get("review_count") or l.get("linkWidth") or l.get("weight") or 1,
+                }
+                for l in filtered_links
+            ]
+
+            dashboard_data = json.dumps({
+                "type": "network_graph",
+                "top_nodes": clean_nodes,
+                "main_links": clean_links,
+            })
     except Exception:
         pass
 
-    desc = _DASHBOARD_DESCRIPTIONS.get(dashboard_type)
-    if not desc:
-        desc = f"Dashboard de tipo '{dashboard_type}'. Analiza los datos JSON provistos y explica su significado."
-
-    system_prompt = _EXPLAIN_SYSTEM_PROMPT_BASE.format(dashboard_description=desc)
-
-    prompt_user = f"""
-    Repositorio: {repo_name}
-    Tipo de Dashboard: {dashboard_type}
-    Datos del Dashboard (JSON):
-    {dashboard_data[:3000]}
-
-    INSTRUCCIÓN CRÍTICA: Concéntrate EXCLUSIVAMENTE en el dashboard de tipo '{dashboard_type}' descrito en el mensaje del sistema. Ignora los demás dashboards de la base de datos de ViZzo. No repitas explicaciones ni menciones otros componentes.
-    """
     try:
+        from analyzer.core.AI.prompts import (
+            _DASHBOARD_DESCRIPTIONS,
+            _EXPLAIN_SYSTEM_PROMPT_BASE,
+        )
+    except Exception:
+        pass
+
+    try:
+        desc = _DASHBOARD_DESCRIPTIONS.get(dashboard_type)
+        if not desc and ("pie" in dashboard_type or "doughnut" in dashboard_type):
+            desc = _DASHBOARD_DESCRIPTIONS.get("doughnut")
+        if not desc:
+            desc = f"Dashboard de tipo '{dashboard_type}'. Analiza detenidamente los datos JSON provistos ({dashboard_type}) y explica su significado."
+
+        system_prompt = _EXPLAIN_SYSTEM_PROMPT_BASE.format(dashboard_description=desc)
+
+        prompt_user = f"""
+        Repositorio: {repo_name}
+        Tipo de Dashboard: {dashboard_type}
+        Datos del Dashboard (JSON):
+        {dashboard_data[:3000]}
+
+        INSTRUCCIÓN CRÍTICA: Concéntrate EXCLUSIVAMENTE en el dashboard de tipo '{dashboard_type}' descrito en el mensaje del sistema. Ignora los demás dashboards de la base de datos de ViZzo. No repitas explicaciones ni menciones otros componentes.
+        """
+
         ai_model = model or AI_MODEL
         local_client = get_openai_client(base_url, api_key)
         print(
@@ -353,3 +454,25 @@ def get_ai_explanation(
     except Exception as e:
         print(f"[AI Explanation] Error: {e}. Usando fallback offline.")
         return get_offline_explanation(dashboard_type, repo_name)
+
+
+def get_ai_explanation(
+    dashboard_type: str,
+    dashboard_data: str,
+    repo_name: str,
+    base_url: str = None,
+    api_key: str = None,
+    model: str = None,
+) -> str:
+    """
+    Envía los datos de un dashboard de visualización específico a la IA para
+    obtener una explicación técnica de la salud y calidad del código.
+    """
+    return generate_dashboard_explanation(
+        dashboard_type=dashboard_type,
+        dashboard_data=dashboard_data,
+        repo_name=repo_name,
+        base_url=base_url,
+        api_key=api_key,
+        model=model,
+    )

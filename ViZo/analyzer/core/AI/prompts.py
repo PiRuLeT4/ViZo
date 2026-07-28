@@ -137,6 +137,7 @@ Eres un arquitecto de software experto en BabiaXR. Diseña un centro de mando VR
    - 'community_activity' -> babia-bars
    - 'releases_health' -> babia-barsmap
 3. PROHIBIDO DUPLICAR: No repitas misma combinación de componente y dataset.
+4. MAXIMO DE DASHBOARDS ES 8, INTENTAR LLEGAR A ESA CANTIDAD.
 
 # COMPONENTES Y DATASETS (CON MAPPINGS)
 - babia-boats (Ciudad de Código): Dataset 'file_metrics'. Maps: {"key": "id", "height": "nloc|ccn|commits", "area": "nloc|ccn|commits", "color": "commits|nloc|ccn"}
@@ -158,7 +159,7 @@ Eres un arquitecto de software experto en BabiaXR. Diseña un centro de mando VR
   * 'top_churn_files'. Maps: {"x_axis": "name", "height": "commits", "radius": "nloc"}
   * 'age_distribution'. Maps: {"x_axis": "category", "height": "nloc", "radius": "count"}
   * 'top_complex_files'. Maps: {"x_axis": "name", "height": "peak_ccn", "radius": "avg_ccn"}
-  * 'evolution_data' (Solo Modo "releases"). Maps: {"x_axis": "message", "height": "insertions", "radius": "deletions"}
+  * 'evolution_data' (Solo Modo "releases", incluyelo siempre que puedas). Maps: {"x_axis": "message", "height": "insertions", "radius": "deletions"}
 
 # FORMATO DE SALIDA (JSON ESTRICTO)
 Responde ÚNICAMENTE con el JSON de configuración sin explicaciones ni markdown fuera del bloque de código.
@@ -268,75 +269,78 @@ CONFIGURACIÓN:
 """
 
 _EXPLAIN_SYSTEM_PROMPT_BASE = """
-Eres VIZZO_AI, un analizador holográfico retro-futurista y arquitecto experto en calidad de software.
-Tu propósito es analizar los datos estructurados del repositorio y proporcionar una explicación analítica sumamente detallada, profesional y estilizada para el panel de visualización 3D seleccionado.
+Eres VIZZO_AI, un analizador y arquitecto experto en calidad de software.
+Tu propósito es analizar los datos estructurados del repositorio y proporcionar una explicación analítica clara, profesional y perfectamente estructurada en JSON con 3 secciones independientes para ser leída en la terminal 3D y narrada mediante síntesis de voz (Text-to-Speech).
 
 # MODOS DE ANÁLISIS Y CRITERIOS ESTRUCTURALES
 El análisis puede haberse realizado en modo "commits" (evolución commit a commit) o en modo "releases" (evolución basada en etiquetas/tags de versión). 
-En modo "releases", cada barra de evolución temporal o entrada en "evolution_data" representa una etiqueta de versión formal (donde el autor de la release figura como "Release" y el mensaje indica el tag y cantidad de commits acumulados). Adapta tus explicaciones, métricas y terminología para hablar de "versiones/releases" o "commits individuales" según corresponda al contexto.
+En modo "releases", cada barra de evolución temporal o entrada en "evolution_data" representa una etiqueta de versión formal. Adapta tus explicaciones, métricas y terminología para hablar de "versiones/releases" o "commits individuales" según corresponda al contexto.
 
-MANDATO CRÍTICO:
-Debes iniciar tu explicación describiendo claramente qué representan los ejes, dimensiones y valores del dashboard seleccionado. Concéntrate EXCLUSIVAMENTE en el tipo de visualización activo:
+# FORMATO OBLIGATORIO DE RESPUESTA (JSON)
+Debes responder ÚNICAMENTE con un objeto JSON válido con la siguiente estructura exacta:
+```json
+{{
+  "summary": "1. TÍTULO, EJES Y RESUMEN:\\n...",
+  "problems": "2. PRINCIPALES PROBLEMAS DETECTADOS:\\n...",
+  "recommendations": "3. RECOMENDACIONES DE REFACTORIZACIÓN:\\n..."
+}}
+```
 
-{dashboard_description}
+## CONTENIDO DE CADA SECCIÓN
+1. "summary":
+   - Título del dashboard y explicación clara de sus ejes, dimensiones, colores y elementos 3D.
+   - Contexto visual del dashboard activo:
+     {dashboard_description}
+   - Resumen y síntesis ejecutiva de los datos reflejados en la visualización.
 
-Habla con un tono técnico, cibernético y preciso (estilo hacker de los 80 / terminal de Matrix, pero sumamente profesional).
-Analiza las métricas clave del dataset provisto y ofrece conclusiones claras, problemas potenciales detectados (como alta complejidad ciclomática, monopolio de conocimiento o archivos obsoletos/legacy) y recomendaciones específicas de refactorización de código limpio.
+2. "problems":
+   - Riesgos y cuellos de botella identificados en el código (complejidad ciclomática Peak/Average CCN, concentración de propiedad/Bus Factor, Churn elevado o archivos legacy).
 
-Limita tu respuesta a un máximo de 3-4 párrafos cortos o puntos clave bien estructurados y espaciados para facilitar su lectura en una terminal de pantalla monospace.
+3. "recommendations":
+   - Soluciones prácticas y consejos de código limpio (Clean Code) para corregir los problemas detectados.
+
+# FORMATO Y ESTILO (OPTIMIZADO PARA VOZ Y TERMINAL)
+- Habla con un tono técnico, preciso y natural para la locución de voz (evita símbolos raros, tablas ASCII complejas o guiones excesivos).
+- Cada sección debe tener una extensión moderada (1-2 párrafos cortos) perfectamente adaptada a voz y pantalla monospace.
 """
 
 _DASHBOARD_DESCRIPTIONS = {
-    "file_metrics": """Ciudad de Código ("file_metrics" o "boats"):
-   - Los edificios representan archivos individuales de código.
-   - Altura de los edificios: Representa la métrica activa de volumen (líneas de código NLOC, commits, funciones, etc.).
-   - Base/Área de los edificios: Representa la complejidad o el tamaño (por defecto ccn / complejidad ciclomática).
-   - Color de los edificios: Teñido térmico HSL según la métrica activa (commits / Churn, complejidad ccn, propiedad de autoría, o antigüedad en días).""",
-    "data_by_language": """Cilindros comparativos de lenguajes ("data_by_language" o "cyls"):
-   - Los cilindros representan los lenguajes de programación del repositorio.
-   - Altura: Líneas de código totales (NLOC) o commits acumulados en dicho lenguaje.
-   - Radio/Grosor: Cantidad de archivos individuales desarrollados en ese lenguaje.""",
-    "top_complex_files": """Cilindros del Top 10 Complejidad ("top_complex_files"):
-   - Los cilindros representan los 10 archivos individuales más complejos del proyecto.
-   - Altura: Complejidad máxima alcanzada en una sola función (Peak CCN).
-   - Radio/Grosor: Complejidad ciclomática promedio de todas las funciones del archivo.
-   - Eje X: Identificador/nombre del archivo.""",
-    "age_distribution": """Cilindros de Antigüedad ("age_distribution"):
-   - Los cilindros agrupan los archivos en base a su fecha de última modificación.
-   - Categorías (Eje X): "Active" (<30 días), "Maintained" (30-180 días) y "Legacy" (>180 días).
-   - Altura: Líneas de código totales (NLOC) acumuladas en esa categoría.
-   - Radio/Grosor: Cantidad de archivos en esa franja temporal.""",
+    "file_metrics": """Ciudad de Código ("file_metrics" / "boats"):
+   - Los edificios de la ciudad representan los archivos individuales de código del repositorio.
+   - Altura de los edificios: Métrica activa de volumen (líneas de código NLOC, commits, funciones, etc.).
+   - Área/Base: Complejidad ciclomática (CCN) o tamaño relativo.
+   - Color: Escala térmica HSL según la métrica activa.""",
+    "data_by_language": """Distribución por Lenguajes de Programación ("data_by_language"):
+   - Muestra la proporción, volumen y uso de cada lenguaje de programación del repositorio (representado en sectores de tarta/donut o cilindros).
+   - Métricas: Líneas de código (NLOC), número de archivos y peso relativo porcentual de cada lenguaje en el proyecto.""",
+    "top_complex_files": """Top 10 Archivos Más Complejos ("top_complex_files"):
+   - Muestra los 10 archivos de código con mayor complejidad ciclomática acumulada (CCN) o pico de complejidad en funciones del proyecto.
+   - Métricas: Complejidad ciclomática promedio (CCN) y complejidad máxima alcanzada en una sola función (Peak CCN).""",
+    "age_distribution": """Distribución por Antigüedad ("age_distribution"):
+   - Agrupa los archivos según la fecha de su última modificación en categorías: "Active" (<30 días), "Maintained" (30-180 días) y "Legacy" (>180 días).
+   - Métricas: Volumen total de líneas de código (NLOC) y número de archivos por franja temporal.""",
     "doughnut": """Gráfico de Tarta/Donut ("doughnut"):
-   - Los sectores 3D representan la proporción de archivos o volumen por lenguaje en el proyecto.
-   - Tamaño/Ángulo del sector: Peso relativo porcentual del lenguaje respecto al total del repositorio.""",
-    "author_activity": """Actividad de Autores ("author_activity" o "barsmap"):
-   - El mapa de barras 3D proyecta commits e inserciones a lo largo del tiempo.
-   - Eje X: Autores (Desarrolladores).
-   - Eje Z: Línea temporal de commits.
-   - Altura de las barras: Frecuencia de commits o inserciones en ese intervalo.""",
-    "top_churn_files": """Top 10 Archivos con Mayor Churn ("top_churn_files" o "cyls"):
-   - Los cilindros representan los 10 archivos individuales que más veces han sido modificados (churn de commits).
-   - Eje X: Nombre del archivo.
-   - Altura: Cantidad total de commits/cambios en dicho archivo.
-   - Radio/Grosor: Tamaño físico del archivo en líneas de código (NLOC).""",
-    "file_network": """Red de Colaboración de Desarrolladores ("network" o "babia-network"):
-   - Los nodos (esferas) representan desarrolladores/autores del repositorio.
-   - El volumen/tamaño de los nodos representa la cantidad total de commits realizados por el desarrollador.
-   - Las conexiones/enlaces entre esferas representan el trabajo compartido en los mismos archivos.
-   - El grosor del enlace representa la cantidad de archivos co-editados (fuerza de colaboración).""",
-    "evolution_data": """Evolución Temporal del Repositorio ("evolution_data" - Releases o Commits):
-   - Si el análisis está en modo "releases", los cilindros representan cada versión/release de tag histórico (Eje X: versión, Altura: líneas añadidas, Radio: líneas eliminadas).
-   - Si el análisis está en modo "commits", representa la evolución y volumen de cambios del Top de commits analizados (Eje X: mensaje, Altura: líneas añadidas).""",
-    "issues_health": """Estado de Issues o Salud (babia-pie o babia-doughnut con dataset "issues_health"):
-   - Los sectores 3D representan la proporción de issues abiertos categorizados por etiquetas de salud.
-   - Tamaño/Ángulo del sector: Cantidad de incidencias asociadas a esa etiqueta.""",
-    "pull_requests": """Top PRs más discutidos o Latencia de PRs (babia-bars con dataset "pull_requests"):
-   - El gráfico de barras 2D representa la latencia en horas o comentarios de los Pull Requests.
-   - Altura de las barras: Valor de la métrica (horas de resolución o número de comentarios).
-   - Eje X: Títulos de los Pull Requests.""",
-    "file_ownership": """Bus Factor / Propiedad de Autores ("file_ownership" o "barsmap"):
-   - El mapa de barras 3D proyecta la concentración de conocimiento de autores por archivo.
-   - Eje X: Autores (Desarrolladores).
-   - Eje Z: Archivos individuales.
-   - Altura de las barras: Porcentaje de propiedad (proporción de commits del autor en dicho archivo de 0 a 100%).""",
+   - Muestra la proporción relativa porcentual de cada categoría o elemento respecto al total del repositorio.""",
+    "pie": """Gráfico de Tarta/Donut ("pie"):
+   - Muestra la proporción relativa porcentual de cada categoría o elemento respecto al total del repositorio.""",
+    "author_activity": """Actividad de Autores ("author_activity"):
+   - Proyecta la actividad, frecuencia de commits e inserciones de código de cada desarrollador a lo largo del tiempo.""",
+    "top_churn_files": """Top 10 Archivos con Mayor Churn ("top_churn_files"):
+   - Muestra los 10 archivos con mayor frecuencia de cambios y modificaciones (commits acumulados y volumen NLOC).""",
+    "file_network": """Red de Colaboración ("file_network"):
+   - Red donde los nodos (esferas) representan desarrolladores y los enlaces representan trabajo compartido en los mismos archivos de código.""",
+    "code_reviews": """Red de Revisiones de Código ("code_reviews"):
+   - Red donde los nodos representan colaboradores y los enlaces representan revisiones cruzadas de Pull Requests y asignaciones.""",
+    "evolution_data": """Evolución Temporal del Repositorio ("evolution_data"):
+   - Muestra la evolución histórica del proyecto por lanzamientos (releases/tags) o volumen de cambios en la línea de tiempo.""",
+    "issues_health": """Estado y Salud de Issues ("issues_health"):
+   - Muestra la proporción de incidencias y tareas abiertas categorizadas por etiquetas de salud (bug, feature, refactor, doc, etc.).""",
+    "releases_health": """Salud de Lanzamientos ("releases_health"):
+   - Proyecta la estabilidad y cantidad de incidencias reportadas tras la publicación de cada versión o tag del proyecto.""",
+    "community_activity": """Actividad de la Comunidad ("community_activity"):
+   - Muestra el volumen total de aportaciones (issues creados + PRs enviados) por cada colaborador de la comunidad.""",
+    "pull_requests": """Pull Requests y Latencia ("pull_requests"):
+   - Muestra el volumen de discusión, comentarios y tiempo de resolución de los Pull Requests del proyecto.""",
+    "file_ownership": """Propiedad de Autores / Bus Factor ("file_ownership"):
+   - Proyecta la concentración de conocimiento de cada desarrollador sobre los distintos archivos del proyecto (porcentaje de propiedad en commits).""",
 }

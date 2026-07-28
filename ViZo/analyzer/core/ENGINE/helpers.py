@@ -73,7 +73,16 @@ def _clone_repo(url: str, target_dir: str, depth: int = None) -> str:
     Devuelve target_dir si el clon fue exitoso; lanza RuntimeError si falla.
     """
     print(Fore.GREEN + f"Clonando repositorio para análisis: {url} (depth={depth if depth else 'full'})")
-    cmd = ["git", "clone", "-c", "filter.lfs.smudge=", "-c", "filter.lfs.required=false"]
+    cmd = [
+        "git",
+        "clone",
+        "-c",
+        "core.longpaths=true",
+        "-c",
+        "filter.lfs.smudge=",
+        "-c",
+        "filter.lfs.required=false",
+    ]
     if depth and depth > 0:
         cmd += ["--depth", str(depth)]
     cmd += [url, target_dir]
@@ -271,7 +280,8 @@ _LIZARD_EXCLUDE_PATTERNS = [
 
 _LIZARD_INCLUDE_FOLDERS = [
     # --- Genéricos y ya existentes ---
-    "src", "lib", "app", "source", "core", "components", "pkg", "cmd", "include", "apps", "sources", "build", "tools",
+    "src", "lib", "app", "source", "core", "components", "pkg", "cmd", "include", "apps", 
+    "sources", "build", "tools", "android", "ios", "macos", "apple", "game", "engine",
     
     # --- Django / Python / Backends Web ---
     "api",

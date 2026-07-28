@@ -5,10 +5,11 @@ Vistas y endpoints correspondientes a la experiencia visual 3D/VR de ViZzo.
 """
 
 import json
+import os
 
 from django.shortcuts import render, get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 
 from analyzer.core.AI.ai import get_ai_explanation
 from analyzer.persistence.queries import build_result_from_session
@@ -81,18 +82,82 @@ def api_explain(request):
             )
 
         # Generar explicación con el LLM
-        from analyzer.core.AI.ai import client, AI_MODEL
+        from analyzer.core.AI.ai import client, AI_MODEL, parse_explanation_sections
 
         print(f"Generating explanation for dashboard type: {dashboard_type}")
         print(f"Using AI client base_url: {llm_base_url or client.base_url}, model: {llm_model or AI_MODEL}")
-        explanation = get_ai_explanation(
+        raw_explanation = get_ai_explanation(
             dashboard_type, json.dumps(dashboard_data), repo_name,
             base_url=llm_base_url,
             api_key=llm_api_key,
             model=llm_model
         )
-        print("Explanation: Done")
-        return JsonResponse({"explanation": explanation})
+        sections = parse_explanation_sections(raw_explanation)
+        print("Explanation & Sections: Done")
+        return JsonResponse({"explanation": raw_explanation, "sections": sections})
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
+
+@csrf_exempt
+def api_tts(request):
+    """
+    Endpoint para convertir texto de explicación a audio MP3 utilizando la API TTS de Grok (xAI).
+    """
+    if request.method != "POST":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+    try:
+        data = json.loads(request.body)
+        text = data.get("text", "").strip()
+        voice_id = data.get("voice_id", "eve").strip()
+        language = data.get("language", "es").strip()
+
+        if not text:
+            return JsonResponse({"error": "Missing text parameter"}, status=400)
+
+        from dotenv import load_dotenv
+        load_dotenv()
+
+        xai_api_key = os.getenv("XAI_API_KEY", "").strip()
+        if not xai_api_key:
+            return JsonResponse(
+                {"error": "XAI_API_KEY no configurada en las variables de entorno (.env)."},
+                status=500,
+            )
+
+        import requests
+
+        headers = {
+            "Authorization": f"Bearer {xai_api_key}",
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "text": text,
+            "voice_id": voice_id,
+            "language": language,
+            "output_format": {
+                "codec": "mp3",
+                "sample_rate": 24000,
+                "bit_rate": 128000,
+            },
+        }
+
+        response = requests.post(
+            "https://api.x.ai/v1/tts",
+            headers=headers,
+            json=payload,
+            timeout=30,
+        )
+        if response.status_code != 200:
+            return JsonResponse(
+                {"error": f"Error de API Grok TTS ({response.status_code}): {response.text}"},
+                status=response.status_code,
+            )
+
+        return HttpResponse(response.content, content_type="audio/mpeg")
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+

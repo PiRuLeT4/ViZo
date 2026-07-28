@@ -228,6 +228,15 @@ def run_analysis(
             except Exception as e:
                 print(Fore.RED + f"ViZzo // Error en extracción pública: {e}")
 
+        # Unificar nombres de autores de Git (John Doe) con logins de GitHub (johndoe99)
+        _unify_author_names(
+            repo_summary=repo_summary,
+            file_network=file_network,
+            author_activity=evolution_raw["author_activity"],
+            file_ownership=file_ownership,
+            evolution_commits=evolution_raw["commits"],
+        )
+
         # Enriquecer el resumen con los contadores de PRs e Issues
         # para que la IA pueda decidir si instanciar los dashboards de comunidad
         repo_summary["num_pull_requests"] = len(pull_requests)
@@ -264,3 +273,84 @@ def run_analysis(
         return None
     finally:
         _cleanup(target_dir)
+
+
+def _unify_author_names(
+    repo_summary: dict,
+    file_network: list,
+    author_activity: list,
+    file_ownership: list,
+    evolution_commits: list,
+):
+    """
+    Combina y unifica los nombres de autores de Git (John Doe) con los usuarios de GitHub/GitLab (johndoe99).
+    Añade en el título/etiqueta el formato 'NombrePrincipal (NombreSecundario)' cuando ambos estén disponibles.
+    """
+    git_authors = set(repo_summary.get("authors", []))
+    for c in evolution_commits:
+        auth = c.get("author")
+        if auth and auth not in ("Unknown", "Release"):
+            git_authors.add(auth)
+
+    gh_logins = set()
+    for user_item in repo_summary.get("community_activity", []):
+        u = user_item.get("user")
+        if u and u != "Unknown":
+            gh_logins.add(u)
+
+    code_reviews = repo_summary.get("code_reviews", {})
+    for node in code_reviews.get("nodes", []):
+        u = node.get("id")
+        if u and u != "Unknown":
+            gh_logins.add(u)
+
+    mapping = {}
+    for login in list(gh_logins):
+        clean_login = login.lower().replace("-", "").replace("_", "").replace(".", "")
+        matched_git = None
+        for g_auth in git_authors:
+            clean_git = g_auth.lower().replace(" ", "").replace("-", "").replace("_", "").replace(".", "")
+            if clean_login == clean_git or clean_login in clean_git or clean_git in clean_login:
+                matched_git = g_auth
+                break
+        if matched_git:
+            mapping[login] = matched_git
+            mapping[matched_git] = login
+
+    def format_name(name):
+        if not name or name in ("Unknown", "Release"):
+            return name
+        other = mapping.get(name)
+        if other and other != name and other.lower() != name.lower():
+            if " " in name:
+                return f"{name} ({other})"
+            elif " " in other:
+                return f"{other} ({name})"
+            else:
+                return f"{name} ({other})"
+        return name
+
+    # 1. Actualizar code_reviews nodes
+    for node in code_reviews.get("nodes", []):
+        raw_id = node.get("id")
+        node["name"] = format_name(raw_id)
+
+    # 2. Actualizar file_network
+    for item in file_network:
+        raw_auth = item.get("author")
+        item["author"] = format_name(raw_auth)
+
+    # 3. Actualizar author_activity
+    for item in author_activity:
+        raw_auth = item.get("author")
+        item["author"] = format_name(raw_auth)
+
+    # 4. Actualizar file_ownership
+    for item in file_ownership:
+        raw_auth = item.get("author")
+        item["author"] = format_name(raw_auth)
+
+    # 5. Actualizar community_activity
+    for item in repo_summary.get("community_activity", []):
+        raw_u = item.get("user")
+        item["user"] = format_name(raw_u)

@@ -27,73 +27,72 @@ def _run_lizard(target_dir: str) -> list:
     # de procesos anidados en Windows, previniendo errores de canalización (BrokenPipeError).
     threads_count = 1
 
-    # Filtrar para analizar solo carpetas de código fuente comunes si existen (estrategia de inclusión)
-    paths_to_analyze = []
-    for folder in _LIZARD_INCLUDE_FOLDERS:
-        folder_path = os.path.join(target_dir, folder)
-        if os.path.isdir(folder_path):
-            paths_to_analyze.append(folder_path)
-
-    if not paths_to_analyze:
-        paths_to_analyze = [target_dir]
-    else:
-        print(Fore.CYAN + f"  - Analizando de forma exclusiva directorios seleccionados: {[os.path.basename(p) for p in paths_to_analyze]}")
-
     # Expandir directorios a archivos individuales para realizar filtros preventivos
     files_to_analyze = []
-    has_resolved = False
-    for p in paths_to_analyze:
-        if os.path.isfile(p):
-            files_to_analyze.append(p)
-            has_resolved = True
-        elif os.path.isdir(p):
-            has_resolved = True
-            for root, dirs, filenames in os.walk(p):
-                # Filtrar dirs IN-PLACE para evitar que os.walk descienda a carpetas excluidas
-                dirs[:] = [
-                    d for d in dirs 
-                    if d not in {
-                        "node_modules", "vendor", "3rdparty", "third_party", 
-                        "bin", "build", "dist", "target", ".git", "venv", 
-                        "env", ".venv", ".env", "htmlcov", "out", ".github", 
-                        ".gitlab", "cmake"
-                    }
-                ]
-                for f in filenames:
-                    files_to_analyze.append(os.path.join(root, f))
+    has_resolved = os.path.exists(target_dir)
 
-    # Filtrar archivos: omitimos archivos JS/TS muy grandes (>50KB) que pueden causar bucles infinitos en Lizard
+    if os.path.isfile(target_dir):
+        files_to_analyze.append(target_dir)
+    elif os.path.isdir(target_dir):
+        for root, dirs, filenames in os.walk(target_dir):
+            # Filtrar dirs IN-PLACE para evitar que os.walk descienda a carpetas de dependencias / build
+            dirs[:] = [
+                d for d in dirs 
+                if d.lower() not in {
+                    "node_modules", "vendor", "3rdparty", "third_party", 
+                    "bin", "build", "dist", "target", ".git", "venv", 
+                    "env", ".venv", ".env", "htmlcov", "out", ".github", 
+                    ".gitlab", "cmake", "coverage", "deps", ".idea", ".vscode"
+                }
+            ]
+            for f in filenames:
+                files_to_analyze.append(os.path.join(root, f))
+
+    _SUPPORTED_EXTENSIONS = (
+        ".js", ".ts", ".tsx", ".jsx", 
+        ".py", ".go", ".java", 
+        ".c", ".cpp", ".h", ".hpp", ".cc", ".cxx", ".hh",
+        ".swift", ".kt", ".cs", ".rb", ".php", 
+        ".rs", ".lua", ".scala"
+    )
+
+    # Filtrar archivos: omitimos archivos no soportados, muy grandes (>50KB) o minificados/ofuscados
     filtered_files = []
     skipped_large_files = []
     skipped_minified_files = []
 
     if not has_resolved:
         # Si las rutas no existen en disco (caso de pruebas unitarias), pasamos las rutas originales directamente
-        filtered_files = paths_to_analyze
+        filtered_files = [target_dir]
     else:
         for f in files_to_analyze:
-            if f.endswith((".js", ".ts", ".tsx", ".jsx")):
-                try:
-                    size_kb = os.path.getsize(f) / 1024.0
-                    if size_kb > 50.0:
-                        skipped_large_files.append((f, size_kb))
-                        continue
-                except Exception:
-                    pass
-                
-                # Exclusión preventiva de archivos minificados/ofuscados
-                if is_minified_or_obfuscated(f):
-                    skipped_minified_files.append(f)
+            # 1. Ignorar archivos que no sean de código fuente de lenguajes soportados por Lizard
+            if not f.lower().endswith(_SUPPORTED_EXTENSIONS):
+                continue
+
+            # 2. Ignorar archivos de código fuente muy grandes (>50KB)
+            try:
+                size_kb = os.path.getsize(f) / 1024.0
+                if size_kb > 50.0:
+                    skipped_large_files.append((f, size_kb))
                     continue
+            except Exception:
+                pass
+                
+            # 3. Exclusión preventiva de archivos minificados/ofuscados
+            if is_minified_or_obfuscated(f):
+                skipped_minified_files.append(f)
+                continue
+
             filtered_files.append(f)
 
     if skipped_large_files:
-        print(Fore.RED + f"  - [Advertencia] Omitidos {len(skipped_large_files)} archivos JS/TS grandes (>50KB) para evitar bloqueos del analizador:")
+        print(Fore.RED + f"  - [Advertencia] Omitidos {len(skipped_large_files)} archivos de código fuente grandes (>50KB) para evitar bloqueos del analizador:")
         for lf, size in skipped_large_files:
             print(Fore.RED + f"    * {os.path.basename(lf)} ({size:.1f} KB)")
 
     if skipped_minified_files:
-        print(Fore.RED + f"  - [Advertencia] Omitidos {len(skipped_minified_files)} archivos JS/TS minificados/ofuscados preventivamente:")
+        print(Fore.RED + f"  - [Advertencia] Omitidos {len(skipped_minified_files)} archivos de código fuente minificados/ofuscados preventivamente:")
         for mf in skipped_minified_files:
             print(Fore.RED + f"    * {os.path.basename(mf)}")
 
@@ -123,7 +122,7 @@ def _run_lizard(target_dir: str) -> list:
         try:
             p.start()
             # Esperar un máximo de 30 segundos
-            status, result = q.get(timeout=30.0)
+            status, result = q.get(timeout=60.0)
             if status == "success":
                 analysis = result
             else:
