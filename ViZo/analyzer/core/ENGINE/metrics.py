@@ -1,30 +1,31 @@
-# metrics.py
-# ──────────
-# Lógica encargada del procesamiento final y empaquetamiento de métricas locales en ViZzo.
-
 import os
+from dataclasses import dataclass
 from datetime import datetime
 from colorama import Fore
 
 
+@dataclass
+class MetricsResult:
+    """Estructura de datos tipada con los resultados del análisis de métricas locales."""
+    file_metrics: list
+    data_by_language: list
+    filenames: list
+    total_nloc: int
+    total_ccn: float
+    language_counts: dict
+    file_ownership: list
+    age_distribution: list
+    top_complex_files: list
+    file_network: list
+    top_churn_files: list
+
+
 def _process_metrics(
     analysis: list, evolution_data: dict, target_dir: str
-) -> tuple[list, list, list, int, float, dict, list, list, list, list, list]:
+) -> MetricsResult:
     """
     Procesa los resultados de Lizard y PyDriller en una sola pasada.
     Construye métricas por archivo, agrupaciones por lenguaje, totales y datasets avanzados.
-
-    Devuelve:
-        file_metrics      : lista de dicts con métricas por archivo
-        data_by_language  : lista de dicts agrupada por lenguaje (ordenada por frecuencia)
-        filenames         : lista de nombres de archivo
-        total_nloc        : suma total de NLOC
-        total_ccn         : suma total de CCN
-        language_counts   : dict {lang: count} para el resumen
-        file_ownership    : lista de dicts con propiedad de autores para Barsmap
-        age_distribution  : lista de dicts con agregaciones de Legacy Code
-        top_complex_files : lista de dicts con el Top 10 de complejidad Peak CCN
-        file_network      : lista de dicts con nodos y relaciones de la red de desarrolladores
     """
     file_metrics = []
     lang_data = {}  # {lang: {nloc, ccn_list, commits, count, added, deleted}}
@@ -257,18 +258,18 @@ def _process_metrics(
         Fore.CYAN
         + f"Datos procesados: {len(file_metrics)} archivos, {len(data_by_language)} lenguajes."
     )
-    return (
-        file_metrics,
-        data_by_language,
-        filenames,
-        total_nloc,
-        total_ccn,
-        language_counts,
-        file_ownership,
-        age_distribution,
-        top_complex_files,
-        file_network,
-        top_churn_files,
+    return MetricsResult(
+        file_metrics=file_metrics,
+        data_by_language=data_by_language,
+        filenames=filenames,
+        total_nloc=total_nloc,
+        total_ccn=total_ccn,
+        language_counts=language_counts,
+        file_ownership=file_ownership,
+        age_distribution=age_distribution,
+        top_complex_files=top_complex_files,
+        file_network=file_network,
+        top_churn_files=top_churn_files,
     )
 
 

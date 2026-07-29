@@ -19,11 +19,16 @@ from .helpers import (
 )
 from .lizard_analysis import _run_lizard
 from .evolution_analysis import _run_releases_history, _run_git_history
-from .metrics import _process_metrics, _build_repo_summary
+from .metrics import _process_metrics, _build_repo_summary, MetricsResult
 
 
-def _check_cancelled(session_id: int):
-    """Verifica si la sesión de análisis fue cancelada por el usuario en base de datos."""
+import threading
+
+def _check_cancelled(session_id: int = None, cancel_event: threading.Event = None):
+    """Verifica si la sesión de análisis fue cancelada por el usuario en memoria o en base de datos."""
+    if cancel_event and cancel_event.is_set():
+        raise RuntimeError("CANCELLED_BY_USER")
+
     if session_id is not None:
         from analyzer.models import AnalysisSession
 
@@ -41,6 +46,7 @@ def run_analysis(
     max_commits: int = 150,
     analysis_mode: str = "commits",
     session_id: int = None,
+    cancel_event: threading.Event = None,
 ) -> dict | None:
     """
     Clona el repositorio indicado por `url`, ejecuta el análisis completo
@@ -52,87 +58,48 @@ def run_analysis(
     if os.path.exists(target_dir):
         shutil.rmtree(target_dir, onerror=_remove_readonly)
 
-    _check_cancelled(session_id)
+    _check_cancelled(session_id, cancel_event)
 
     try:
-        # Optimización para repositorios grandes: usamos shallow clone para descargar
-        # únicamente el historial necesario para el análisis en modo 'commits'.
-        # En modo 'releases', desactivamos el clonado superficial (depth=None) para
-        # garantizar la correcta descarga de todos los tags históricos del repositorio.
-        if analysis_mode == "commits":
-            depth = max_commits
-        else:
-            depth = None
+        # FASE 1: Clonado y extracción de historial (Git / PyDriller / Lizard)
+        repo_name, last_commit_id, evolution_raw, analysis, mode = _phase_clone_and_analyze(
+            url, target_dir, max_commits, analysis_mode, session_id, cancel_event
+        )
 
-        _clone_repo(url, target_dir, depth=depth)
-        repo_name = url.rstrip("/").split("/")[-1].removesuffix(".git")
-
-        _check_cancelled(session_id)
-
-        if analysis_mode == "releases":
-            tags = _get_tags_info(target_dir, max_releases=max_commits)
-            if tags:
-                last_commit_id = tags[0]["hash"]
-                evolution_raw = _run_releases_history(target_dir, tags)
-
-                # Checkout al tag más reciente para el análisis estático
-                subprocess.run(
-                    ["git", "checkout", tags[0]["name"]],
-                    capture_output=True,
-                    cwd=target_dir,
-                    encoding="utf-8",
-                    errors="replace",
-                    env=_get_clean_git_env(),
-                )
-                _check_cancelled(session_id)
-                analysis = _run_lizard(target_dir)
-                _check_cancelled(session_id)
-            else:
-                print(
-                    Fore.YELLOW
-                    + "[Releases Mode] No se encontraron tags locales. Fallback a commits."
-                )
-                analysis_mode = "commits"
-
-        if analysis_mode == "commits":
-            last_commit_id = _get_head_commit(target_dir)
-            _check_cancelled(session_id)
-            evolution_raw = _run_git_history(target_dir, max_commits=max_commits)
-            _check_cancelled(session_id)
-            analysis = _run_lizard(target_dir)
-            _check_cancelled(session_id)
-
-        # PASADA ÚNICA: Procesar métricas y lenguajes
-        _check_cancelled(session_id)
-        (
-            file_metrics,
-            data_by_language,
-            filenames,
-            total_nloc,
-            total_ccn,
-            language_counts,
-            file_ownership,
-            age_distribution,
-            top_complex_files,
-            file_network,
-            top_churn_files,
-        ) = _process_metrics(analysis, evolution_raw, target_dir)
-
-        main_language = next(iter(language_counts), "unknown")
+        # FASE 2: Procesar métricas locales con Dataclass
+        _check_cancelled(session_id, cancel_event)
+        metrics_res = _process_metrics(analysis, evolution_raw, target_dir)
+        main_language = next(iter(metrics_res.language_counts), "unknown")
         print(Fore.CYAN + f"Lenguaje principal: {main_language}")
 
-        _check_cancelled(session_id)
+        _check_cancelled(session_id, cancel_event)
         repo_summary = _build_repo_summary(
             analysis,
             evolution_raw,
-            filenames,
-            language_counts,
-            total_nloc,
-            total_ccn,
-            analysis_mode=analysis_mode,
+            metrics_res.filenames,
+            metrics_res.language_counts,
+            metrics_res.total_nloc,
+            metrics_res.total_ccn,
+            analysis_mode=mode,
         )
 
-        # Lista raw de Lizard (compatibilidad legacy)
+        # FASE 3: Extracción de metadatos de comunidad (API GitHub/GitLab)
+        _check_cancelled(session_id, cancel_event)
+        pull_requests, issues = _phase_fetch_community_metadata(url, session_id, repo_summary)
+
+        # FASE 4: Unificación de nombres de autores
+        _unify_author_names(
+            repo_summary=repo_summary,
+            file_network=metrics_res.file_network,
+            author_activity=evolution_raw["author_activity"],
+            file_ownership=metrics_res.file_ownership,
+            evolution_commits=evolution_raw["commits"],
+        )
+
+        repo_summary["num_pull_requests"] = len(pull_requests)
+        repo_summary["num_issues"] = len(issues)
+        print(Fore.YELLOW + f"Resumen del repositorio: {repo_summary}")
+
         metrics_list = [
             {
                 "filename": os.path.basename(f.filename),
@@ -143,122 +110,21 @@ def run_analysis(
             for f in analysis
         ]
 
-        # Descarga de Pull Requests e Issues (públicos o privados con token)
-        pull_requests = []
-        issues = []
-        is_private = False
-        token = None
-        repo_user = None
-
-        if session_id is not None:
-            from analyzer.models import AnalysisSession
-
-            session = AnalysisSession.objects.filter(pk=session_id).first()
-            if session:
-                is_private = session.repo.is_private
-                repo_user = session.repo.user
-                if repo_user and hasattr(repo_user, "profile"):
-                    if "gitlab" in url.lower():
-                        token = repo_user.profile.gitlab_token
-                    else:
-                        token = repo_user.profile.github_token
-
-        # Inicializar métricas vacías por defecto
-        repo_summary["stars"] = 0
-        repo_summary["forks"] = 0
-        repo_summary["code_reviews"] = {"nodes": [], "links": []}
-        repo_summary["issues_health"] = []
-        repo_summary["releases_health"] = []
-        repo_summary["community_activity"] = []
-
-        # Intentar extracción enriquecida si hay token
-        extracted = False
-        if token:
-            try:
-                from .private_provider import fetch_private_metadata
-
-                meta = fetch_private_metadata(url, token)
-                if meta:
-                    pull_requests = meta.get("pull_requests", [])
-                    issues = meta.get("issues", [])
-                    repo_summary["stars"] = meta.get("stars", 0)
-                    repo_summary["forks"] = meta.get("forks", 0)
-                    repo_summary["code_reviews"] = meta.get(
-                        "code_reviews", {"nodes": [], "links": []}
-                    )
-                    repo_summary["issues_health"] = meta.get("issues_health", [])
-                    repo_summary["releases_health"] = meta.get("releases_health", [])
-                    repo_summary["community_activity"] = meta.get(
-                        "community_activity", []
-                    )
-                    extracted = True
-                    print(
-                        Fore.GREEN
-                        + "ViZzo // Extracción enriquecida OAuth completada exitosamente."
-                    )
-            except Exception as e:
-                print(
-                    Fore.RED
-                    + f"ViZzo // Error en extracción OAuth privada: {e}. Degradando..."
-                )
-
-        # Degradación elegante a pública (solo si no es privado el repo)
-        if not extracted and not is_private:
-            try:
-                from .public_provider import fetch_public_metadata
-
-                meta = fetch_public_metadata(url)
-                if meta:
-                    pull_requests = meta.get("pull_requests", [])
-                    issues = meta.get("issues", [])
-                    repo_summary["stars"] = meta.get("stars", 0)
-                    repo_summary["forks"] = meta.get("forks", 0)
-                    repo_summary["code_reviews"] = meta.get(
-                        "code_reviews", {"nodes": [], "links": []}
-                    )
-                    repo_summary["issues_health"] = meta.get("issues_health", [])
-                    repo_summary["releases_health"] = meta.get("releases_health", [])
-                    repo_summary["community_activity"] = meta.get(
-                        "community_activity", []
-                    )
-                    print(
-                        Fore.YELLOW
-                        + "ViZzo // Extracción pública sin token completada (degradada)."
-                    )
-            except Exception as e:
-                print(Fore.RED + f"ViZzo // Error en extracción pública: {e}")
-
-        # Unificar nombres de autores de Git (John Doe) con logins de GitHub (johndoe99)
-        _unify_author_names(
-            repo_summary=repo_summary,
-            file_network=file_network,
-            author_activity=evolution_raw["author_activity"],
-            file_ownership=file_ownership,
-            evolution_commits=evolution_raw["commits"],
-        )
-
-        # Enriquecer el resumen con los contadores de PRs e Issues
-        # para que la IA pueda decidir si instanciar los dashboards de comunidad
-        repo_summary["num_pull_requests"] = len(pull_requests)
-        repo_summary["num_issues"] = len(issues)
-        # print del resumen para ver en desarrollo
-        print(Fore.YELLOW + f"Resumen del repositorio: {repo_summary}")
-
         return {
             "metrics": metrics_list,
             "evolution_data": evolution_raw["commits"],
             "author_activity": evolution_raw["author_activity"],
-            "file_metrics": file_metrics,
-            "data_by_language": data_by_language,
+            "file_metrics": metrics_res.file_metrics,
+            "data_by_language": metrics_res.data_by_language,
             "repo_summary": repo_summary,
             "repo_name": repo_name,
             "last_commit_id": last_commit_id,
             "main_language": main_language,
-            "file_ownership": file_ownership,
-            "age_distribution": age_distribution,
-            "top_complex_files": top_complex_files,
-            "file_network": file_network,
-            "top_churn_files": top_churn_files,
+            "file_ownership": metrics_res.file_ownership,
+            "age_distribution": metrics_res.age_distribution,
+            "top_complex_files": metrics_res.top_complex_files,
+            "file_network": metrics_res.file_network,
+            "top_churn_files": metrics_res.top_churn_files,
             "pull_requests": pull_requests,
             "issues": issues,
             "community_activity": repo_summary["community_activity"],
@@ -273,6 +139,112 @@ def run_analysis(
         return None
     finally:
         _cleanup(target_dir)
+
+
+def _phase_clone_and_analyze(
+    url: str, target_dir: str, max_commits: int, analysis_mode: str, session_id: int, cancel_event: threading.Event
+) -> tuple:
+    """Fase 1: Clonado del repositorio y extracción estática y de evolución."""
+    depth = max_commits if analysis_mode == "commits" else None
+    _clone_repo(url, target_dir, depth=depth)
+    repo_name = url.rstrip("/").split("/")[-1].removesuffix(".git")
+
+    _check_cancelled(session_id, cancel_event)
+
+    if analysis_mode == "releases":
+        tags = _get_tags_info(target_dir, max_releases=max_commits)
+        if tags:
+            last_commit_id = tags[0]["hash"]
+            evolution_raw = _run_releases_history(target_dir, tags)
+            subprocess.run(
+                ["git", "checkout", tags[0]["name"]],
+                capture_output=True,
+                cwd=target_dir,
+                encoding="utf-8",
+                errors="replace",
+                env=_get_clean_git_env(),
+            )
+            _check_cancelled(session_id, cancel_event)
+            analysis = _run_lizard(target_dir)
+            _check_cancelled(session_id, cancel_event)
+            return repo_name, last_commit_id, evolution_raw, analysis, "releases"
+        else:
+            print(Fore.YELLOW + "[Releases Mode] No se encontraron tags locales. Fallback a commits.")
+            analysis_mode = "commits"
+
+    last_commit_id = _get_head_commit(target_dir)
+    _check_cancelled(session_id, cancel_event)
+    evolution_raw = _run_git_history(target_dir, max_commits=max_commits)
+    _check_cancelled(session_id, cancel_event)
+    analysis = _run_lizard(target_dir)
+    _check_cancelled(session_id, cancel_event)
+
+    return repo_name, last_commit_id, evolution_raw, analysis, "commits"
+
+
+def _phase_fetch_community_metadata(url: str, session_id: int, repo_summary: dict) -> tuple:
+    """Fase 3: Extracción de metadatos de comunidad utilizando proveedor privado u público."""
+    pull_requests = []
+    issues = []
+    is_private = False
+    token = None
+
+    if session_id is not None:
+        from analyzer.models import AnalysisSession
+
+        session = AnalysisSession.objects.filter(pk=session_id).first()
+        if session:
+            is_private = session.repo.is_private
+            repo_user = session.repo.user
+            if repo_user and hasattr(repo_user, "profile"):
+                token = repo_user.profile.gitlab_token if "gitlab" in url.lower() else repo_user.profile.github_token
+
+    repo_summary["stars"] = 0
+    repo_summary["forks"] = 0
+    repo_summary["code_reviews"] = {"nodes": [], "links": []}
+    repo_summary["issues_health"] = []
+    repo_summary["releases_health"] = []
+    repo_summary["community_activity"] = []
+
+    extracted = False
+    if token:
+        try:
+            from .private_provider import fetch_private_metadata
+
+            meta = fetch_private_metadata(url, token)
+            if meta:
+                pull_requests = meta.get("pull_requests", [])
+                issues = meta.get("issues", [])
+                repo_summary["stars"] = meta.get("stars", 0)
+                repo_summary["forks"] = meta.get("forks", 0)
+                repo_summary["code_reviews"] = meta.get("code_reviews", {"nodes": [], "links": []})
+                repo_summary["issues_health"] = meta.get("issues_health", [])
+                repo_summary["releases_health"] = meta.get("releases_health", [])
+                repo_summary["community_activity"] = meta.get("community_activity", [])
+                extracted = True
+                print(Fore.GREEN + "ViZzo // Extracción enriquecida OAuth completada exitosamente.")
+        except Exception as e:
+            print(Fore.RED + f"ViZzo // Error en extracción OAuth privada: {e}. Degradando...")
+
+    if not extracted and not is_private:
+        try:
+            from .public_provider import fetch_public_metadata
+
+            meta = fetch_public_metadata(url)
+            if meta:
+                pull_requests = meta.get("pull_requests", [])
+                issues = meta.get("issues", [])
+                repo_summary["stars"] = meta.get("stars", 0)
+                repo_summary["forks"] = meta.get("forks", 0)
+                repo_summary["code_reviews"] = meta.get("code_reviews", {"nodes": [], "links": []})
+                repo_summary["issues_health"] = meta.get("issues_health", [])
+                repo_summary["releases_health"] = meta.get("releases_health", [])
+                repo_summary["community_activity"] = meta.get("community_activity", [])
+                print(Fore.YELLOW + "ViZzo // Extracción pública sin token completada (degradada).")
+        except Exception as e:
+            print(Fore.RED + f"ViZzo // Error en extracción pública: {e}")
+
+    return pull_requests, issues
 
 
 def _unify_author_names(

@@ -8,7 +8,7 @@ import json
 import os
 from colorama import Fore
 from dotenv import load_dotenv
-from openai import APIConnectionError, OpenAI
+from openai import APIConnectionError, APITimeoutError, OpenAI
 
 from .prompts import (
     _SYSTEM_PROMPT,
@@ -29,17 +29,18 @@ load_dotenv()
 AI_BASE_URL = os.getenv("DEEPSEEK_BASE_URL")
 AI_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 AI_MODEL = os.getenv("DEEPSEEK_MODEL")
+DEFAULT_AI_TIMEOUT = float(os.getenv("AI_TIMEOUT", "60.0"))
 
 # Conexión local con LM Studio / OpenAI
 client = OpenAI(
     base_url=AI_BASE_URL,
     api_key=AI_API_KEY,
-    timeout=None,  # Sin límite de tiempo
+    timeout=DEFAULT_AI_TIMEOUT,
     max_retries=0,  # No reintentar si falla la conexión inicial
 )
 
 
-def get_openai_client(base_url=None, api_key=None):
+def get_openai_client(base_url=None, api_key=None, timeout=None):
     """
     Crea una instancia local del cliente OpenAI con los parámetros suministrados,
     haciendo fallback a los valores por defecto del sistema.
@@ -47,7 +48,7 @@ def get_openai_client(base_url=None, api_key=None):
     return OpenAI(
         base_url=base_url or AI_BASE_URL,
         api_key=api_key or AI_API_KEY,
-        timeout=None,
+        timeout=timeout or DEFAULT_AI_TIMEOUT,
         max_retries=0,
     )
 
@@ -127,6 +128,11 @@ def get_ai_config(
         )
         return config
 
+    except APITimeoutError:
+        print(
+            Fore.RED
+            + f"[AI] Timeout de la API excedido ({DEFAULT_AI_TIMEOUT}s). Usando fallback offline."
+        )
     except APIConnectionError:
         print(
             Fore.RED
