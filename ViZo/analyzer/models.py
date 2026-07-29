@@ -1,15 +1,16 @@
 from django.db import models
 from django.contrib.auth.models import User
+from analyzer.fields import EncryptedCharField
 
 
 class UserProfile(models.Model):
     """Perfil ampliado del usuario para guardar tokens de OAuth y metadatos."""
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
     provider = models.CharField(max_length=50, default="github")
-    github_token = models.CharField(max_length=255, blank=True, null=True)
+    github_token = EncryptedCharField(max_length=500, blank=True, null=True)
     avatar_url = models.CharField(max_length=500, blank=True, null=True)
     github_username = models.CharField(max_length=150, blank=True, null=True)
-    gitlab_token = models.CharField(max_length=255, blank=True, null=True)
+    gitlab_token = EncryptedCharField(max_length=500, blank=True, null=True)
     gitlab_username = models.CharField(max_length=150, blank=True, null=True)
 
     def __str__(self):
