@@ -50,20 +50,7 @@ def _cleanup(target_dir: str) -> None:
                 print(Fore.RED + f"No se pudo eliminar la carpeta temporal: {re_err}")
 
 
-def _get_clean_git_env() -> dict:
-    """
-    Retorna un diccionario de variables de entorno limpio, de forma que se
-    desactiven AskPass de VS Code y otros prompts interactivos de Git.
-    """
-    env = os.environ.copy()
-    # Eliminar cualquier variable de AskPass para evitar que VS Code o Git abran popups
-    for key in list(env.keys()):
-        if "ASKPASS" in key or key.startswith("VSCODE_GIT"):
-            env.pop(key)
-    # Forzar no interactivo
-    env["GIT_TERMINAL_PROMPT"] = "0"
-    env["GIT_ASKPASS"] = "true"  # Evita prompts interactivos
-    return env
+from analyzer.utils.git import _get_clean_git_env
 
 
 def _clone_repo(url: str, target_dir: str, depth: int = None) -> str:
