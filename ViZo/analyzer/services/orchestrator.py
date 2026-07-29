@@ -1,11 +1,7 @@
-# orchestrator.py
-# ───────────────
-# Orquestador principal del flujo de análisis de ViZzo.
-# Controla la ejecución Cache-First, la concurrencia de hilos y llamadas al core de análisis e IA.
-
 import json
+import logging
+import threading
 from concurrent.futures import ThreadPoolExecutor
-from colorama import Fore, init
 
 from analyzer.core.AI.ai import get_ai_config
 from analyzer.core.ENGINE.analysis import run_analysis
@@ -16,10 +12,18 @@ from .git_remote import _get_remote_head, _get_remote_tags_hash
 from .cache import _check_cache, _persist_results
 from .security import verify_and_build_clone_url
 
-init(autoreset=True)
+logger = logging.getLogger(__name__)
 
 # Pool de hilos acotado global para limitar tareas concurrentes y proteger el procesador
 _ANALYSIS_EXECUTOR = ThreadPoolExecutor(max_workers=3, thread_name_prefix="vizzo-task")
+_ACTIVE_TASKS: dict[int, threading.Event] = {}
+
+
+def cancel_task(session_id: int):
+    """Marca el Event de cancelación en memoria para que el worker activo se detenga inmediatamente."""
+    event = _ACTIVE_TASKS.get(session_id)
+    if event:
+        event.set()
 
 
 def analyze_repository(url: str, max_commits: int = 150) -> dict | None:
@@ -146,6 +150,10 @@ def start_async_analysis(
         author_activity=[],
     )
 
+    # Crear evento de cancelación activo en memoria
+    cancel_event = threading.Event()
+    _ACTIVE_TASKS[session.id] = cancel_event
+
     # Enviamos la tarea al ThreadPoolExecutor controlado
     _ANALYSIS_EXECUTOR.submit(
         async_analysis_worker,
@@ -155,7 +163,8 @@ def start_async_analysis(
         analysis_mode,
         llm_base_url,
         llm_api_key,
-        llm_model
+        llm_model,
+        cancel_event,
     )
 
     return session.id, False
@@ -163,7 +172,8 @@ def start_async_analysis(
 
 def async_analysis_worker(
     session_id: int, url: str, max_commits: int, analysis_mode: str = "commits",
-    llm_base_url: str = None, llm_api_key: str = None, llm_model: str = None
+    llm_base_url: str = None, llm_api_key: str = None, llm_model: str = None,
+    cancel_event: threading.Event = None,
 ):
     """
     Worker asíncrono que procesa el análisis y utiliza la persistencia de Django.
@@ -176,12 +186,22 @@ def async_analysis_worker(
         session.status = "processing"
         session.save(update_fields=["status"])
 
+        if cancel_event and cancel_event.is_set():
+            raise RuntimeError("CANCELLED_BY_USER")
+
         # Analizar
         analysis_result = run_analysis(
-            url, max_commits=max_commits, analysis_mode=analysis_mode, session_id=session_id
+            url,
+            max_commits=max_commits,
+            analysis_mode=analysis_mode,
+            session_id=session_id,
+            cancel_event=cancel_event,
         )
         if not analysis_result:
             raise Exception("El análisis del motor analyzer_core ha fallado.")
+
+        if cancel_event and cancel_event.is_set():
+            raise RuntimeError("CANCELLED_BY_USER")
 
         # Obtener configuración del dashboard con la IA
         ai_config = get_ai_config(
@@ -195,6 +215,9 @@ def async_analysis_worker(
                 "No se pudo obtener una configuración visual de la IA válida."
             )
 
+        if cancel_event and cancel_event.is_set():
+            raise RuntimeError("CANCELLED_BY_USER")
+
         # Actualizar lenguaje principal si es necesario
         repo_obj = session.repo
         main_lang = analysis_result["main_language"]
@@ -202,7 +225,7 @@ def async_analysis_worker(
             repo_obj.main_language = main_lang
             repo_obj.save(update_fields=["main_language"])
 
-        # Persistir resultados utilizandoqueries.save_session
+        # Persistir resultados utilizando queries.save_session
         save_session(
             repo_obj=session.repo,
             last_commit_id=analysis_result["last_commit_id"],
@@ -222,25 +245,30 @@ def async_analysis_worker(
             issues=analysis_result.get("issues", []),
             top_churn_files=analysis_result.get("top_churn_files", []),
         )
-        print(f"[Async Worker Success] Sesión {session_id} completada exitosamente.")
+        logger.info(f"[Async Worker Success] Sesión {session_id} completada exitosamente.")
 
     except Exception as e:
         traceback.print_exc()
         try:
             session = AnalysisSession.objects.get(pk=session_id)
-            if "cancelado" not in str(session.error_message).lower():
+            if "cancelado" not in str(session.error_message).lower() and str(e) != "CANCELLED_BY_USER":
                 session.status = "failed"
                 session.error_message = str(e)
                 session.save(update_fields=["status", "error_message"])
-                print(
+                logger.error(
                     f"[Async Worker Failed] Sesión {session_id} marcada como fallida. Motivo: {e}"
                 )
             else:
-                print(f"[Async Worker Cancelled] Sesión {session_id} fue cancelada por el usuario.")
+                session.status = "failed"
+                session.error_message = "Análisis cancelado por el usuario."
+                session.save(update_fields=["status", "error_message"])
+                logger.info(f"[Async Worker Cancelled] Sesión {session_id} fue cancelada por el usuario.")
         except Exception as inner_ex:
-            print(
+            logger.error(
                 f"[Async Worker Inner Error] Error al marcar sesión fallida: {inner_ex}"
             )
     finally:
+        _ACTIVE_TASKS.pop(session_id, None)
         # Liberar la conexión en el hilo secundario
         connection.close()
+

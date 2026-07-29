@@ -8,14 +8,16 @@ import json
 import os
 
 from django.shortcuts import render, get_object_or_404
-from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django.http import JsonResponse, HttpResponse
 
 from analyzer.core.AI.ai import get_ai_explanation
 from analyzer.persistence.queries import build_result_from_session
 from analyzer.models import AnalysisSession
+from analyzer.services.ratelimit import ratelimit
 
 
+@ensure_csrf_cookie
 def show_visualization(request, session_id):
     """
     Vista permanente (GET) para mostrar la escena 3D de una sesión de análisis previa.
@@ -59,7 +61,7 @@ def api_session_data(request, session_id):
     })
 
 
-@csrf_exempt
+@ratelimit(rate="15/m")
 def api_explain(request):
     """
     Endpoint para solicitar una explicación analítica de calidad/refactorización.
@@ -100,7 +102,7 @@ def api_explain(request):
         return JsonResponse({"error": str(e)}, status=500)
 
 
-@csrf_exempt
+@ratelimit(rate="5/m")
 def api_tts(request):
     """
     Endpoint para convertir texto de explicación a audio MP3 utilizando la API TTS de Grok (xAI).
@@ -116,6 +118,9 @@ def api_tts(request):
 
         if not text:
             return JsonResponse({"error": "Missing text parameter"}, status=400)
+
+        # Truncar el texto a 500 caracteres máximo para proteger el consumo de la API de xAI
+        text = text[:500]
 
         from dotenv import load_dotenv
         load_dotenv()

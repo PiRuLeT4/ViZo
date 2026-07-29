@@ -6,12 +6,14 @@ Endpoints de la API para registrar, arrancar asíncronamente y sondear estados d
 import json
 from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
+from django.conf import settings
 
-from analyzer.services.orchestrator import start_async_analysis
+from analyzer.services.orchestrator import start_async_analysis, cancel_task
+from analyzer.services.ratelimit import ratelimit
 from analyzer.models import AnalysisSession
 
 
+@ratelimit(rate="5/m")
 def api_analyze(request):
     """
     Endpoint POST AJAX de análisis asíncrono de alto rendimiento.
@@ -108,7 +110,6 @@ def api_session_status(request, session_id):
     })
 
 
-@csrf_exempt
 def api_cancel_analysis(request, session_id):
     """
     Endpoint POST para cancelar una sesión de análisis activa o en cola.
@@ -121,12 +122,12 @@ def api_cancel_analysis(request, session_id):
         session.status = "failed"
         session.error_message = "Análisis cancelado por el usuario."
         session.save(update_fields=["status", "error_message"])
+        cancel_task(session_id)
         return JsonResponse({"status": "success", "message": "Análisis cancelado con éxito."})
 
     return JsonResponse({"error": "No se puede cancelar un análisis que no está activo."}, status=400)
 
 
-@csrf_exempt
 def api_save_ai_config(request):
     """
     Endpoint POST para guardar las credenciales personalizadas de IA en cookies seguras.
@@ -151,14 +152,17 @@ def api_save_ai_config(request):
             response.delete_cookie("vizzo_llm_is_local")
             return response
             
-        # De lo contrario, configuramos las cookies
-        response.set_cookie("vizzo_llm_base_url", llm_base_url, max_age=30*24*60*60, samesite="Lax")
-        response.set_cookie("vizzo_llm_model", llm_model, max_age=30*24*60*60, samesite="Lax")
-        response.set_cookie("vizzo_llm_is_local", "true" if llm_is_local else "false", max_age=30*24*60*60, samesite="Lax")
+        # De lo contrario, configuramos las cookies con opciones seguras
+        is_secure = not settings.DEBUG
+        cookie_opts = {"max_age": 30 * 24 * 60 * 60, "samesite": "Lax", "httponly": True, "secure": is_secure}
+
+        response.set_cookie("vizzo_llm_base_url", llm_base_url, **cookie_opts)
+        response.set_cookie("vizzo_llm_model", llm_model, **cookie_opts)
+        response.set_cookie("vizzo_llm_is_local", "true" if llm_is_local else "false", **cookie_opts)
         
         # Si el api_key es el valor ficticio '••••••••••••••••', no lo sobreescribimos
         if llm_api_key and llm_api_key != "••••••••••••••••":
-            response.set_cookie("vizzo_llm_api_key", llm_api_key, max_age=30*24*60*60, httponly=True, samesite="Lax")
+            response.set_cookie("vizzo_llm_api_key", llm_api_key, **cookie_opts)
         elif not llm_api_key:
             # Si se deja vacío, eliminamos la cookie de la API Key
             response.delete_cookie("vizzo_llm_api_key")
@@ -167,3 +171,4 @@ def api_save_ai_config(request):
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+

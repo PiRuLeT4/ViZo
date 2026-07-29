@@ -9,18 +9,7 @@ import hashlib
 from colorama import Fore
 
 
-def _get_clean_git_env() -> dict:
-    """
-    Retorna un diccionario de variables de entorno limpio, de forma que se
-    desactiven AskPass de VS Code y otros prompts interactivos de Git.
-    """
-    env = os.environ.copy()
-    for key in list(env.keys()):
-        if "ASKPASS" in key or key.startswith("VSCODE_GIT"):
-            env.pop(key)
-    env["GIT_TERMINAL_PROMPT"] = "0"
-    env["GIT_ASKPASS"] = "true"
-    return env
+from analyzer.utils.git import _get_clean_git_env
 
 
 def _get_remote_head(url: str, disable_helpers: bool = False) -> str | None:
