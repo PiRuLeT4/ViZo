@@ -4,9 +4,11 @@ index.py
 Vista para el portal principal (Landing Page) de ViZzo.
 """
 from django.shortcuts import redirect, render
+from django.views.decorators.csrf import ensure_csrf_cookie
 from analyzer.persistence.queries import get_latest_active_sessions, get_user_active_sessions
 
 
+@ensure_csrf_cookie
 def index(request):
     """
     Vista principal que renderiza el portal de inicio y el feed de repositorios.

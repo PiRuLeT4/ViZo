@@ -5,6 +5,7 @@ Vistas y flujos de autenticación OAuth para GitHub.
 Permite iniciar sesión, registrar tokens de acceso y gestionar la desconexión.
 """
 import os
+import secrets
 import requests
 from django.shortcuts import redirect
 from django.contrib.auth import login, logout
@@ -28,6 +29,9 @@ def github_login(request):
         )
         return redirect("index")
 
+    state = secrets.token_urlsafe(32)
+    request.session["oauth_github_state"] = state
+
     # Scope: 'repo' para acceso a repositorios públicos/privados, 'user' para perfil
     scope = "repo user"
     redirect_uri = request.build_absolute_uri(reverse("github_callback"))
@@ -38,6 +42,7 @@ def github_login(request):
         f"?client_id={client_id}"
         f"&redirect_uri={redirect_uri}"
         f"&scope={scope}"
+        f"&state={state}"
     )
     return redirect(auth_url)
 
@@ -47,6 +52,13 @@ def github_callback(request):
     Procesa el callback de GitHub OAuth. Intercambia el código por un token de acceso,
     obtiene la información del usuario desde la API de GitHub y autentica/inicia sesión en Django.
     """
+    state_received = request.GET.get("state")
+    state_expected = request.session.pop("oauth_github_state", None)
+
+    if not state_received or not state_expected or state_received != state_expected:
+        messages.error(request, "Validación de seguridad OAuth fallida (state inválido). Por favor reintenta.")
+        return redirect("index")
+
     code = request.GET.get("code")
     if not code:
         messages.error(request, "No se recibió código de autorización de GitHub.")
@@ -104,19 +116,14 @@ def github_callback(request):
         return redirect("index")
 
     # 3. Registrar o actualizar el usuario de Django y su UserProfile
-    # Buscar primero por el perfil con este nombre de usuario de github
     profile = UserProfile.objects.filter(github_username=github_username).first()
     if profile:
         user = profile.user
     else:
-        # Si no hay perfil, buscamos un usuario de Django por username o creamos uno nuevo
         username = github_username
-        # Evitar colisión de nombres de usuario si ya existe un usuario local con ese nombre
         if User.objects.filter(username=username).exists():
-            # Si el usuario existe pero no tiene perfil, lo vinculamos
             user = User.objects.get(username=username)
             if hasattr(user, 'profile'):
-                # Si ya tiene perfil con otro username de github, generamos un username único
                 username = f"{github_username}_github"
                 count = 1
                 while User.objects.filter(username=username).exists():
@@ -126,7 +133,6 @@ def github_callback(request):
         else:
             user = User.objects.create_user(username=username, email=email)
 
-    # Asegurar la existencia del perfil y guardar el token y avatar
     profile, created = UserProfile.objects.get_or_create(user=user)
     profile.provider = "github"
     profile.github_token = access_token
@@ -164,6 +170,9 @@ def gitlab_login(request):
         )
         return redirect("index")
 
+    state = secrets.token_urlsafe(32)
+    request.session["oauth_gitlab_state"] = state
+
     scope = "read_user"
     redirect_uri = request.build_absolute_uri(reverse("gitlab_callback"))
     
@@ -173,6 +182,7 @@ def gitlab_login(request):
         f"&redirect_uri={redirect_uri}"
         f"&response_type=code"
         f"&scope={scope}"
+        f"&state={state}"
     )
     return redirect(auth_url)
 
@@ -182,6 +192,13 @@ def gitlab_callback(request):
     Procesa el callback de GitLab OAuth. Intercambia el código por un token de acceso,
     obtiene la información del usuario desde la API de GitLab y autentica/inicia sesión en Django.
     """
+    state_received = request.GET.get("state")
+    state_expected = request.session.pop("oauth_gitlab_state", None)
+
+    if not state_received or not state_expected or state_received != state_expected:
+        messages.error(request, "Validación de seguridad OAuth fallida (state inválido). Por favor reintenta.")
+        return redirect("index")
+
     code = request.GET.get("code")
     if not code:
         messages.error(request, "No se recibió código de autorización de GitLab.")
@@ -193,6 +210,7 @@ def gitlab_callback(request):
 
     # 1. Intercambiar código por Token de Acceso
     token_url = "https://gitlab.com/oauth/token"
+
     payload = {
         "client_id": client_id,
         "client_secret": client_secret,

@@ -4,6 +4,7 @@ api.py
 Endpoints de la API para registrar, arrancar asíncronamente y sondear estados de análisis.
 """
 import json
+import logging
 from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
 from django.conf import settings
@@ -11,6 +12,9 @@ from django.conf import settings
 from analyzer.services.orchestrator import start_async_analysis, cancel_task
 from analyzer.services.ratelimit import ratelimit
 from analyzer.models import AnalysisSession
+from analyzer.utils.url_validator import validate_repo_url
+
+logger = logging.getLogger(__name__)
 
 
 @ratelimit(rate="5/m")
@@ -21,14 +25,19 @@ def api_analyze(request):
     if request.method != "POST":
         return JsonResponse({"error": "Method not allowed"}, status=405)
 
-    url = request.POST.get("repoUrl")
+    raw_url = request.POST.get("repoUrl")
     depth = request.POST.get("depth")
     analysis_mode = request.POST.get("analysis_mode", "commits")
     if analysis_mode not in ["commits", "releases"]:
         analysis_mode = "commits"
 
-    if not url:
+    if not raw_url:
         return JsonResponse({"error": "La URL del repositorio es obligatoria."}, status=400)
+
+    try:
+        url = validate_repo_url(raw_url)
+    except ValueError as val_err:
+        return JsonResponse({"error": str(val_err)}, status=400)
 
     if depth == "all":
         max_commits = 0
@@ -98,6 +107,7 @@ def api_analyze(request):
     })
 
 
+@ratelimit(rate="30/m")
 def api_session_status(request, session_id):
     """
     Endpoint GET de sondeo para consultar el estado de una sesión de análisis.
@@ -110,6 +120,7 @@ def api_session_status(request, session_id):
     })
 
 
+@ratelimit(rate="10/m")
 def api_cancel_analysis(request, session_id):
     """
     Endpoint POST para cancelar una sesión de análisis activa o en cola.
@@ -118,6 +129,11 @@ def api_cancel_analysis(request, session_id):
         return JsonResponse({"error": "Method not allowed"}, status=405)
 
     session = get_object_or_404(AnalysisSession, pk=session_id)
+    
+    # Verificar autoría: solo el usuario propietario (o cualquier usuario si es repo público sin propietario) puede cancelar
+    if session.repo.user is not None and session.repo.user != request.user:
+        return JsonResponse({"error": "No tienes permiso para cancelar este análisis."}, status=403)
+
     if session.status in ["pending", "processing"]:
         session.status = "failed"
         session.error_message = "Análisis cancelado por el usuario."
@@ -170,5 +186,7 @@ def api_save_ai_config(request):
         return response
 
     except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+        logger.exception("Error guardando configuración de IA")
+        return JsonResponse({"error": "Error interno al guardar la configuración."}, status=500)
+
 
