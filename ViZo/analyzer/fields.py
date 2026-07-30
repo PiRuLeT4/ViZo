@@ -1,7 +1,10 @@
+import logging
 import os
 from cryptography.fernet import Fernet
 from django.db import models
 from django.conf import settings
+
+logger = logging.getLogger(__name__)
 
 
 class EncryptedCharField(models.CharField):
@@ -27,6 +30,10 @@ class EncryptedCharField(models.CharField):
         if value and value.startswith("gAAAAA"):
             try:
                 value = self._get_fernet().decrypt(value.encode()).decode()
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(
+                    "Fallo al descifrar EncryptedCharField. Clave de cifrado incorrecta o dato corrupto: %s", e
+                )
+                value = None
         return value
+

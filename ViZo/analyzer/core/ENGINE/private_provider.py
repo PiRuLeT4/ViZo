@@ -1,6 +1,9 @@
+import logging
 from .base_provider import parse_repo_url
 from .github_provider import GitHubMetadataProvider
 from .gitlab_provider import GitLabMetadataProvider
+
+logger = logging.getLogger(__name__)
 
 
 def fetch_private_metadata(repo_url: str, token: str) -> dict:
@@ -20,14 +23,14 @@ def fetch_private_metadata(repo_url: str, token: str) -> dict:
     }
 
     if not token:
-        print("ViZzo // [Warning] private_provider invocado sin token. Retornando vacío.")
+        logger.warning("ViZzo // private_provider invocado sin token. Retornando vacío.")
         return empty_result
 
     platform, owner, repo = parse_repo_url(repo_url)
     if not platform:
         return empty_result
 
-    print(f"ViZzo // Iniciando extracción autenticada ({platform.upper()}) para {owner}/{repo}...")
+    logger.info(f"ViZzo // Iniciando extracción autenticada ({platform.upper()}) para {owner}/{repo}...")
 
     if platform == "github":
         provider = GitHubMetadataProvider(owner, repo, token=token)
@@ -35,3 +38,4 @@ def fetch_private_metadata(repo_url: str, token: str) -> dict:
         provider = GitLabMetadataProvider(owner, repo, token=token)
 
     return provider.fetch_metadata()
+

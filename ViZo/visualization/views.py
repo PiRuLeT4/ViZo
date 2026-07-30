@@ -1,10 +1,5 @@
-"""
-views.py
-────────
-Vistas y endpoints correspondientes a la experiencia visual 3D/VR de ViZzo.
-"""
-
 import json
+import logging
 import os
 
 from django.shortcuts import render, get_object_or_404
@@ -15,6 +10,8 @@ from analyzer.core.AI.ai import get_ai_explanation
 from analyzer.persistence.queries import build_result_from_session
 from analyzer.models import AnalysisSession
 from analyzer.services.ratelimit import ratelimit
+
+logger = logging.getLogger(__name__)
 
 
 @ensure_csrf_cookie
@@ -37,6 +34,7 @@ def show_visualization(request, session_id):
     )
 
 
+@ratelimit(rate="20/m")
 def api_session_data(request, session_id):
     """
     Endpoint REST que retorna en JSON todos los datasets requeridos
@@ -86,8 +84,8 @@ def api_explain(request):
         # Generar explicación con el LLM
         from analyzer.core.AI.ai import client, AI_MODEL, parse_explanation_sections
 
-        print(f"Generating explanation for dashboard type: {dashboard_type}")
-        print(f"Using AI client base_url: {llm_base_url or client.base_url}, model: {llm_model or AI_MODEL}")
+        logger.info(f"Generating explanation for dashboard type: {dashboard_type}")
+        logger.debug(f"Using AI client base_url: {llm_base_url or client.base_url}, model: {llm_model or AI_MODEL}")
         raw_explanation = get_ai_explanation(
             dashboard_type, json.dumps(dashboard_data), repo_name,
             base_url=llm_base_url,
@@ -95,11 +93,12 @@ def api_explain(request):
             model=llm_model
         )
         sections = parse_explanation_sections(raw_explanation)
-        print("Explanation & Sections: Done")
+        logger.info("Explanation & Sections: Done")
         return JsonResponse({"explanation": raw_explanation, "sections": sections})
 
     except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+        logger.exception("Error generando explicación de IA")
+        return JsonResponse({"error": "Error interno al generar la explicación."}, status=500)
 
 
 @ratelimit(rate="5/m")
@@ -157,12 +156,14 @@ def api_tts(request):
         )
         if response.status_code != 200:
             return JsonResponse(
-                {"error": f"Error de API Grok TTS ({response.status_code}): {response.text}"},
+                {"error": f"Error de API Grok TTS ({response.status_code})"},
                 status=response.status_code,
             )
 
         return HttpResponse(response.content, content_type="audio/mpeg")
 
     except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+        logger.exception("Error generando audio TTS")
+        return JsonResponse({"error": "Error interno al generar el audio."}, status=500)
+
 

@@ -221,7 +221,11 @@ class GitLabOAuthIntegrationTestCase(TestCase):
         self.assertIn("GitLab OAuth no está configurado", str(messages[0]))
 
     def test_gitlab_callback_missing_code(self):
-        response = self.client.get("/oauth/gitlab/callback/")
+        session = self.client.session
+        session["oauth_gitlab_state"] = "teststate"
+        session.save()
+
+        response = self.client.get("/oauth/gitlab/callback/?state=teststate")
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response["Location"], "/analyzer/")
         messages = list(response.wsgi_request._messages)
@@ -240,6 +244,10 @@ class GitLabOAuthIntegrationTestCase(TestCase):
             return default
         mock_getenv.side_effect = side_effect
 
+        session = self.client.session
+        session["oauth_gitlab_state"] = "teststate"
+        session.save()
+
         # Mock token request response
         mock_token_resp = mock_post.return_value
         mock_token_resp.json.return_value = {"access_token": "mock_gitlab_access_token"}
@@ -254,7 +262,7 @@ class GitLabOAuthIntegrationTestCase(TestCase):
         }
         mock_user_resp.status_code = 200
 
-        response = self.client.get("/oauth/gitlab/callback/?code=testcode")
+        response = self.client.get("/oauth/gitlab/callback/?code=testcode&state=teststate")
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response["Location"], "/analyzer/")
 
@@ -281,10 +289,14 @@ class GitLabOAuthIntegrationTestCase(TestCase):
             return default
         mock_getenv.side_effect = side_effect
 
+        session = self.client.session
+        session["oauth_gitlab_state"] = "teststate"
+        session.save()
+
         # Mock token request exception
         mock_post.side_effect = Exception("Connection refused")
 
-        response = self.client.get("/oauth/gitlab/callback/?code=testcode")
+        response = self.client.get("/oauth/gitlab/callback/?code=testcode&state=teststate")
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response["Location"], "/analyzer/")
         messages = list(response.wsgi_request._messages)
@@ -303,6 +315,10 @@ class GitLabOAuthIntegrationTestCase(TestCase):
             return default
         mock_getenv.side_effect = side_effect
 
+        session = self.client.session
+        session["oauth_gitlab_state"] = "teststate"
+        session.save()
+
         # Mock token request response
         mock_token_resp = mock_post.return_value
         mock_token_resp.json.return_value = {"access_token": "mock_gitlab_access_token"}
@@ -311,7 +327,7 @@ class GitLabOAuthIntegrationTestCase(TestCase):
         # Mock user API exception
         mock_get.side_effect = Exception("User API error")
 
-        response = self.client.get("/oauth/gitlab/callback/?code=testcode")
+        response = self.client.get("/oauth/gitlab/callback/?code=testcode&state=teststate")
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response["Location"], "/analyzer/")
         messages = list(response.wsgi_request._messages)

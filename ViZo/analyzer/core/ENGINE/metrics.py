@@ -1,7 +1,9 @@
+import logging
 import os
 from dataclasses import dataclass
 from datetime import datetime
-from colorama import Fore
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -238,26 +240,17 @@ def _process_metrics(
                 }
             )
 
-    print(Fore.CYAN + "ViZzo // Red de Colaboración:")
-    print(
-        Fore.CYAN
-        + f"  - Autores principales seleccionados (Top 10): {list(top_authors_set)}"
-    )
-    print(
-        Fore.CYAN + f"  - Relaciones totales generadas en la red: {len(file_network)}"
-    )
+    logger.info("ViZzo // Red de Colaboración:")
+    logger.info(f"  - Autores principales seleccionados (Top 10): {list(top_authors_set)}")
+    logger.info(f"  - Relaciones totales generadas en la red: {len(file_network)}")
     if file_network:
-        print(Fore.YELLOW + "  - Muestra de los primeros 10 elementos de la red:")
+        logger.debug("  - Muestra de los primeros 10 elementos de la red:")
         for idx, item in enumerate(file_network[:10]):
-            print(
-                Fore.YELLOW
-                + f"    [{idx}] Autor: {item['author']} | Archivo: {item['file']} | Tamaño Normalizado: {item['size']}"
+            logger.debug(
+                f"    [{idx}] Autor: {item['author']} | Archivo: {item['file']} | Tamaño Normalizado: {item['size']}"
             )
 
-    print(
-        Fore.CYAN
-        + f"Datos procesados: {len(file_metrics)} archivos, {len(data_by_language)} lenguajes."
-    )
+    logger.info(f"Datos procesados: {len(file_metrics)} archivos, {len(data_by_language)} lenguajes.")
     return MetricsResult(
         file_metrics=file_metrics,
         data_by_language=data_by_language,

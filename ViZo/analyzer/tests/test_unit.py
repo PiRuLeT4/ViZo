@@ -293,24 +293,12 @@ class LocalMetricsTestCase(TestCase):
         }
 
         # Run process_metrics
-        (
-            file_metrics,
-            data_by_language,
-            filenames,
-            total_nloc,
-            total_ccn,
-            language_counts,
-            file_ownership,
-            age_distribution,
-            top_complex_files,
-            file_network,
-            top_churn_files,
-        ) = _process_metrics([mock_file], evolution_data, "/tmp/test_dir")
+        res = _process_metrics([mock_file], evolution_data, "/tmp/test_dir")
 
         # Verify calculations
-        self.assertEqual(len(top_churn_files), 1)
-        self.assertEqual(len(file_metrics), 1)
-        fm = file_metrics[0]
+        self.assertEqual(len(res.top_churn_files), 1)
+        self.assertEqual(len(res.file_metrics), 1)
+        fm = res.file_metrics[0]
         self.assertEqual(fm["name"], "file1.py")
         self.assertEqual(fm["num_functions"], 1)
         self.assertEqual(fm["peak_ccn"], 5.0)
@@ -321,35 +309,35 @@ class LocalMetricsTestCase(TestCase):
 
         # Verify file_ownership list
         # It should list A (66.67%) and B (33.33%)
-        self.assertEqual(len(file_ownership), 2)
-        self.assertEqual(file_ownership[0]["author"], "Author A")
-        self.assertAlmostEqual(file_ownership[0]["ownership"], 66.67, places=2)
-        self.assertEqual(file_ownership[1]["author"], "Author B")
-        self.assertAlmostEqual(file_ownership[1]["ownership"], 33.33, places=2)
+        self.assertEqual(len(res.file_ownership), 2)
+        self.assertEqual(res.file_ownership[0]["author"], "Author A")
+        self.assertAlmostEqual(res.file_ownership[0]["ownership"], 66.67, places=2)
+        self.assertEqual(res.file_ownership[1]["author"], "Author B")
+        self.assertAlmostEqual(res.file_ownership[1]["ownership"], 33.33, places=2)
 
         # Verify age_distribution
         # Since age_days is 0, it should be in "Active"
         active_cat = next(
-            cat for cat in age_distribution if cat["category"] == "Active"
+            cat for cat in res.age_distribution if cat["category"] == "Active"
         )
         self.assertEqual(active_cat["count"], 1)
         self.assertEqual(active_cat["nloc"], 100)
 
         # Verify top_complex_files
-        self.assertEqual(len(top_complex_files), 1)
-        self.assertEqual(top_complex_files[0]["name"], "file1.py")
-        self.assertEqual(top_complex_files[0]["peak_ccn"], 5.0)
+        self.assertEqual(len(res.top_complex_files), 1)
+        self.assertEqual(res.top_complex_files[0]["name"], "file1.py")
+        self.assertEqual(res.top_complex_files[0]["peak_ccn"], 5.0)
 
         # Verify file_network
-        self.assertIsInstance(file_network, list)
-        self.assertEqual(len(file_network), 2)
+        self.assertIsInstance(res.file_network, list)
+        self.assertEqual(len(res.file_network), 2)
 
         # Verify items properties
         item_a = next(
-            item for item in file_network if item["author"] == "Author A"
+            item for item in res.file_network if item["author"] == "Author A"
         )
         item_b = next(
-            item for item in file_network if item["author"] == "Author B"
+            item for item in res.file_network if item["author"] == "Author B"
         )
         self.assertEqual(item_a["file"], "file1.py")
         self.assertEqual(item_a["size"], 2)

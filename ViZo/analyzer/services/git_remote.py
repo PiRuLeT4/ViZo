@@ -3,13 +3,14 @@
 # Utilidades para realizar consultas y comprobaciones remotas en Git
 # sin necesidad de clonar el repositorio localmente.
 
+import logging
 import os
 import subprocess
 import hashlib
-from colorama import Fore
-
 
 from analyzer.utils.git import _get_clean_git_env
+
+logger = logging.getLogger(__name__)
 
 
 def _get_remote_head(url: str, disable_helpers: bool = False) -> str | None:
@@ -34,7 +35,7 @@ def _get_remote_head(url: str, disable_helpers: bool = False) -> str | None:
         if result.returncode == 0 and result.stdout:
             return result.stdout.split()[0]
     except Exception as e:
-        print(Fore.YELLOW + f"[Git ls-remote] No disponible: {e}")
+        logger.warning(f"[Git ls-remote] No disponible: {e}")
     return None
 
 
@@ -58,5 +59,6 @@ def _get_remote_tags_hash(url: str) -> str | None:
             m.update("\n".join(lines).encode("utf-8"))
             return m.hexdigest()
     except Exception as e:
-        print(Fore.YELLOW + f"[Git ls-remote tags] No disponible: {e}")
+        logger.warning(f"[Git ls-remote tags] No disponible: {e}")
     return None
+

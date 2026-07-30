@@ -1,3 +1,4 @@
+import logging
 import os
 import shutil
 import stat
@@ -9,6 +10,8 @@ from django.db.models import Max
 from django.utils import timezone
 
 from analyzer.models import AnalysisSession
+
+logger = logging.getLogger(__name__)
 
 
 def remove_readonly(func, path, excinfo):
@@ -47,9 +50,9 @@ def purge_orphan_temp_dirs(check_db: bool = True):
                 try:
                     shutil.rmtree(path, onerror=remove_readonly)
                     deleted_count += 1
-                    print(f"[Cleanup] Carpeta temporal huérfana eliminada: {folder_name}")
+                    logger.info(f"[Cleanup] Carpeta temporal huérfana eliminada: {folder_name}")
                 except Exception as e:
-                    print(f"[Cleanup Warning] No se pudo eliminar {folder_name}: {e}")
+                    logger.warning(f"[Cleanup Warning] No se pudo eliminar {folder_name}: {e}")
 
     return deleted_count
 

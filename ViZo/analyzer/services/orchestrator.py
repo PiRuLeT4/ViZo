@@ -26,43 +26,6 @@ def cancel_task(session_id: int):
         event.set()
 
 
-def analyze_repository(url: str, max_commits: int = 150) -> dict | None:
-    """
-    Punto de entrada principal síncrono (Legacy / Fallback).
-    """
-    latest_commit_id = _get_remote_head(url)
-
-    if latest_commit_id:
-        cached = _check_cache(url, latest_commit_id)
-        if cached:
-            return cached
-    else:
-        print(
-            Fore.YELLOW
-            + "[Git] No se pudo obtener HEAD remoto. Se procederá con análisis completo."
-        )
-
-    analysis_result = run_analysis(url, max_commits=max_commits)
-    if analysis_result is None:
-        return None
-
-    print(Fore.MAGENTA + "Enviando resumen a la IA (LM Studio)...")
-    ai_config = get_ai_config(json.dumps(analysis_result["repo_summary"]))
-
-    _persist_results(url, analysis_result, ai_config)
-
-    return {
-        "repo_name": analysis_result["repo_name"],
-        "metrics": analysis_result["metrics"],
-        "evolution_data": analysis_result["evolution_data"],
-        "author_activity": analysis_result["author_activity"],
-        "file_metrics": analysis_result["file_metrics"],
-        "data_by_language": analysis_result["data_by_language"],
-        "ai_config": ai_config,
-        "from_cache": False,
-    }
-
-
 def start_async_analysis(
     url: str, max_commits: int = 150, analysis_mode: str = "commits", user=None, is_private=False,
     llm_base_url: str = None, llm_api_key: str = None, llm_model: str = None

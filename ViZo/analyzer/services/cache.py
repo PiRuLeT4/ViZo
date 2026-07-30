@@ -2,9 +2,11 @@
 # ────────
 # Gestión de persistencia y caché de base de datos para sesiones de análisis.
 
-from colorama import Fore
+import logging
 from analyzer.models import Repository
 from analyzer.persistence.queries import build_result_from_session, save_session
+
+logger = logging.getLogger(__name__)
 
 
 def _check_cache(url: str, latest_commit_id: str, analysis_mode: str = "commits") -> dict | None:
@@ -18,21 +20,12 @@ def _check_cache(url: str, latest_commit_id: str, analysis_mode: str = "commits"
         if (latest_session 
             and latest_session.last_commit_id == latest_commit_id 
             and getattr(latest_session, 'analysis_mode', 'commits') == analysis_mode):
-            print(
-                Fore.GREEN
-                + f"[Cache HIT] Repo '{repo_obj.name}' sin cambios. Usando datos de BD."
-            )
+            logger.info(f"[Cache HIT] Repo '{repo_obj.name}' sin cambios. Usando datos de BD.")
             return build_result_from_session(latest_session)
         else:
-            print(
-                Fore.YELLOW
-                + f"[Cache MISS] Repo '{repo_obj.name}' tiene nuevos commits. Re-analizando..."
-            )
+            logger.info(f"[Cache MISS] Repo '{repo_obj.name}' tiene nuevos commits. Re-analizando...")
     except Repository.DoesNotExist:
-        print(
-            Fore.YELLOW
-            + f"[Cache MISS] Repo nuevo: {url}. Analizando por primera vez..."
-        )
+        logger.info(f"[Cache MISS] Repo nuevo: {url}. Analizando por primera vez...")
     return None
 
 

@@ -2,9 +2,9 @@
 # ──────────────────────
 # Lógica dedicada a recorrer el historial de commits y versiones de Git/PyDriller.
 
+import logging
 import traceback
 import subprocess
-from colorama import Fore
 from pydriller import Repository as DrillRepo
 
 from .helpers import (
@@ -14,6 +14,8 @@ from .helpers import (
     _get_clean_git_env,
 )
 
+logger = logging.getLogger(__name__)
+
 
 def _run_git_history(target_dir: str, max_commits: int = 150) -> dict:
     """
@@ -21,10 +23,7 @@ def _run_git_history(target_dir: str, max_commits: int = 150) -> dict:
     Limita la búsqueda a max_commits (si es > 0) para rendimiento óptimo.
     """
     limit_str = f"máx. {max_commits}" if max_commits > 0 else "completo"
-    print(
-        Fore.YELLOW
-        + f"Analizando historial de evolución con PyDriller ({limit_str} commits)..."
-    )
+    logger.info(f"Analizando historial de evolución con PyDriller ({limit_str} commits)...")
 
     evolution_data = {
         "total_commits": 0,
@@ -64,9 +63,8 @@ def _run_git_history(target_dir: str, max_commits: int = 150) -> dict:
                     deletions = commit.deletions
                     modified_files_list = list(commit.modified_files)
                 except Exception as e:
-                    print(
-                        Fore.YELLOW
-                        + f"ViZzo // Omitiendo estadísticas de diff para commit límite {commit.hash[:8]}: {e}"
+                    logger.warning(
+                        f"ViZzo // Omitiendo estadísticas de diff para commit límite {commit.hash[:8]}: {e}"
                     )
                     insertions = 0
                     deletions = 0
@@ -175,13 +173,12 @@ def _run_git_history(target_dir: str, max_commits: int = 150) -> dict:
         evolution_data["file_last_modified"] = file_last_modified
 
     except Exception as e:
-        print(Fore.RED + f"Error procesando historial Git: {e}")
-        traceback.print_exc()
+        logger.error(f"Error procesando historial Git: {e}")
+        logger.debug(traceback.format_exc())
 
     num_processed = len(evolution_data["commits"])
-    print(
-        Fore.CYAN
-        + f"Total de commits procesados: {evolution_data['total_commits']} ({num_processed} analizados)"
+    logger.info(
+        f"Total de commits procesados: {evolution_data['total_commits']} ({num_processed} analizados)"
     )
     return evolution_data
 

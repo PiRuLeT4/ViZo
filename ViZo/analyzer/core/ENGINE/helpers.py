@@ -4,6 +4,7 @@
 # utilizadas por el motor de análisis de repositorios en ViZzo.
 
 import gc
+import logging
 import os
 import shutil
 import stat
@@ -13,7 +14,8 @@ import queue
 import multiprocessing
 import lizard
 from datetime import datetime
-from colorama import Fore
+
+logger = logging.getLogger(__name__)
 
 
 def _remove_readonly(func, path, excinfo):
@@ -33,21 +35,21 @@ def _temp_dir(session_id: int = None) -> str:
 def _cleanup(target_dir: str) -> None:
     """Elimina el directorio temporal si existe."""
     if os.path.exists(target_dir):
-        print(Fore.LIGHTBLACK_EX + "Limpiando archivos temporales...")
+        logger.debug("Limpiando archivos temporales...")
         # Forzar recolección de basura para cerrar descriptores de archivos de GitPython/PyDriller
         gc.collect()
         try:
             shutil.rmtree(target_dir, onerror=_remove_readonly)
-            print(Fore.LIGHTBLACK_EX + "Carpeta temporal eliminada.")
+            logger.debug("Carpeta temporal eliminada.")
         except Exception:
             # Reintentar tras una pausa para que el sistema operativo libere bloqueos de archivos
             gc.collect()
             time.sleep(0.5)
             try:
                 shutil.rmtree(target_dir, onerror=_remove_readonly)
-                print(Fore.LIGHTBLACK_EX + "Carpeta temporal eliminada tras reintento.")
+                logger.debug("Carpeta temporal eliminada tras reintento.")
             except Exception as re_err:
-                print(Fore.RED + f"No se pudo eliminar la carpeta temporal: {re_err}")
+                logger.error(f"No se pudo eliminar la carpeta temporal: {re_err}")
 
 
 from analyzer.utils.git import _get_clean_git_env
@@ -59,7 +61,7 @@ def _clone_repo(url: str, target_dir: str, depth: int = None) -> str:
     Soporta shallow clone pasándole depth para optimizar repositorios grandes.
     Devuelve target_dir si el clon fue exitoso; lanza RuntimeError si falla.
     """
-    print(Fore.GREEN + f"Clonando repositorio para análisis: {url} (depth={depth if depth else 'full'})")
+    logger.info(f"Clonando repositorio para análisis: {url} (depth={depth if depth else 'full'})")
     cmd = [
         "git",
         "clone",
@@ -84,7 +86,7 @@ def _clone_repo(url: str, target_dir: str, depth: int = None) -> str:
     )
     if result.returncode != 0:
         raise RuntimeError(f"git clone falló:\n{result.stderr.strip()}")
-    print(Fore.GREEN + "Repositorio clonado correctamente.")
+    logger.info("Repositorio clonado correctamente.")
     return target_dir
 
 

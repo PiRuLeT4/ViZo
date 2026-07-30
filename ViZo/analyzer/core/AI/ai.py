@@ -5,10 +5,12 @@
 # explicaciones holográficas mediante modelos de lenguaje (OpenAI / local).
 
 import json
+import logging
 import os
-from colorama import Fore
 from dotenv import load_dotenv
 from openai import APIConnectionError, APITimeoutError, OpenAI
+
+logger = logging.getLogger(__name__)
 
 from .prompts import (
     _SYSTEM_PROMPT,
@@ -82,24 +84,15 @@ def get_ai_config(
 
         if has_api_data:
             system_prompt = _SYSTEM_PROMPT
-            print(
-                Fore.CYAN
-                + "ViZzo // IA // Utilizando prompt de sistema ENRIQUECIDO (API de Comunidad)."
-            )
+            logger.info("ViZzo // IA // Utilizando prompt de sistema ENRIQUECIDO (API de Comunidad).")
         else:
             system_prompt = _SYSTEM_PROMPT_LOCAL
-            print(
-                Fore.CYAN
-                + "ViZzo // IA // Utilizando prompt de sistema LOCAL (Sin API)."
-            )
+            logger.info("ViZzo // IA // Utilizando prompt de sistema LOCAL (Sin API).")
 
         ai_model = model or AI_MODEL
         local_client = get_openai_client(base_url, api_key)
 
-        print(
-            Fore.YELLOW
-            + f"\n[AI] Generando configuración de dashboards con {ai_model} (URL: {base_url or AI_BASE_URL})..."
-        )
+        logger.info(f"[AI] Generando configuración de dashboards con {ai_model} (URL: {base_url or AI_BASE_URL})...")
         response = local_client.chat.completions.create(
             model=ai_model,
             messages=[
@@ -112,34 +105,21 @@ def get_ai_config(
         raw_content = response.choices[0].message.content.strip()
         summary, json_str = _extract_summary_and_json(raw_content)
 
-        # Imprimir resumen de la IA con estilo
-        print("\n" + Fore.MAGENTA + "=" * 60)
-        print(Fore.CYAN + "ESTRATEGIA DE LA IA:")
-        print(Fore.WHITE + summary)
-        print(Fore.MAGENTA + "=" * 60 + "\n")
+        logger.info(f"ESTRATEGIA DE LA IA: {summary}")
 
         config = json.loads(json_str)
         config = _validate_and_fix_config(config)
         config["ai_status"] = "success"
 
-        print(
-            Fore.GREEN
-            + f"[AI] Dashboards configurados: {[d['component'] for d in config['dashboards']]}"
-        )
+        logger.info(f"[AI] Dashboards configurados: {[d['component'] for d in config['dashboards']]}")
         return config
 
     except APITimeoutError:
-        print(
-            Fore.RED
-            + f"[AI] Timeout de la API excedido ({DEFAULT_AI_TIMEOUT}s). Usando fallback offline."
-        )
+        logger.warning(f"[AI] Timeout de la API excedido ({DEFAULT_AI_TIMEOUT}s). Usando fallback offline.")
     except APIConnectionError:
-        print(
-            Fore.RED
-            + f"[AI] Error de Conexión: No se pudo contactar con el servidor en {AI_BASE_URL}. ¿Está abierto y corriendo?"
-        )
+        logger.warning(f"[AI] Error de Conexión: No se pudo contactar con el servidor en {AI_BASE_URL}.")
     except Exception as e:
-        print(Fore.RED + f"[AI] Error: {e}. Usando fallback.")
+        logger.error(f"[AI] Error: {e}. Usando fallback.")
 
     return DEFAULT_AI_CONFIG
 
@@ -444,9 +424,8 @@ def generate_dashboard_explanation(
 
         ai_model = model or AI_MODEL
         local_client = get_openai_client(base_url, api_key)
-        print(
-            Fore.YELLOW
-            + f"[AI] Generando explicación aislada para {dashboard_type} con {ai_model} (URL: {base_url or AI_BASE_URL})..."
+        logger.info(
+            f"[AI] Generando explicación aislada para {dashboard_type} con {ai_model} (URL: {base_url or AI_BASE_URL})..."
         )
         response = local_client.chat.completions.create(
             model=ai_model,
@@ -458,7 +437,7 @@ def generate_dashboard_explanation(
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
-        print(f"[AI Explanation] Error: {e}. Usando fallback offline.")
+        logger.error(f"[AI Explanation] Error: {e}. Usando fallback offline.")
         return get_offline_explanation(dashboard_type, repo_name)
 
 

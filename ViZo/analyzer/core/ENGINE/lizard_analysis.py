@@ -2,11 +2,11 @@
 # ──────────────────
 # Lógica dedicada a la ejecución estática de Lizard en ViZzo.
 
+import logging
 import os
 import multiprocessing
 import queue
 import lizard
-from colorama import Fore
 
 from .helpers import (
     is_minified_or_obfuscated,
@@ -15,10 +15,13 @@ from .helpers import (
     _LIZARD_INCLUDE_FOLDERS
 )
 
+logger = logging.getLogger(__name__)
+_LIZARD_TIMEOUT = 60.0
+
 
 def _run_lizard(target_dir: str) -> list:
     """Ejecuta Lizard sobre target_dir y devuelve la lista de resultados por archivo."""
-    print(Fore.YELLOW + "Analizando métricas con Lizard...")
+    logger.info("Analizando métricas con Lizard...")
     
     # Exclusión de carpetas de dependencias y temporales ruidosas para optimizar el rendimiento en repos grandes
     exclude_patterns = _LIZARD_EXCLUDE_PATTERNS
@@ -87,14 +90,14 @@ def _run_lizard(target_dir: str) -> list:
             filtered_files.append(f)
 
     if skipped_large_files:
-        print(Fore.RED + f"  - [Advertencia] Omitidos {len(skipped_large_files)} archivos de código fuente grandes (>50KB) para evitar bloqueos del analizador:")
+        logger.warning(f"  - Omitidos {len(skipped_large_files)} archivos grandes (>50KB):")
         for lf, size in skipped_large_files:
-            print(Fore.RED + f"    * {os.path.basename(lf)} ({size:.1f} KB)")
+            logger.warning(f"    * {os.path.basename(lf)} ({size:.1f} KB)")
 
     if skipped_minified_files:
-        print(Fore.RED + f"  - [Advertencia] Omitidos {len(skipped_minified_files)} archivos de código fuente minificados/ofuscados preventivamente:")
+        logger.warning(f"  - Omitidos {len(skipped_minified_files)} archivos minificados/ofuscados:")
         for mf in skipped_minified_files:
-            print(Fore.RED + f"    * {os.path.basename(mf)}")
+            logger.warning(f"    * {os.path.basename(mf)}")
 
     # Ejecutar Lizard
     analysis = []
@@ -110,9 +113,9 @@ def _run_lizard(target_dir: str) -> list:
                 )
             )
         except Exception as e:
-            print(Fore.RED + f"  - [ERROR] Falló Lizard en test: {e}")
+            logger.error(f"  - Falló Lizard en test: {e}")
     else:
-        # Ejecutar Lizard en un subproceso con un límite estricto de tiempo (Timeout de 30 segundos)
+        # Ejecutar Lizard en un subproceso con un límite estricto de tiempo
         q = multiprocessing.Queue()
         p = multiprocessing.Process(
             target=_lizard_worker_process,
@@ -121,26 +124,25 @@ def _run_lizard(target_dir: str) -> list:
         
         try:
             p.start()
-            # Esperar un máximo de 30 segundos
-            status, result = q.get(timeout=60.0)
+            status, result = q.get(timeout=_LIZARD_TIMEOUT)
             if status == "success":
                 analysis = result
             else:
-                print(Fore.RED + f"  - [ERROR] Falló el subproceso de Lizard: {result}")
+                logger.error(f"  - Falló el subproceso de Lizard: {result}")
         except queue.Empty:
-            print(Fore.RED + "  - [ERROR] Lizard se ha bloqueado (Timeout de 30s excedido). Matando subproceso y continuando con fallback.")
+            logger.error(f"  - Lizard se ha bloqueado (Timeout de {_LIZARD_TIMEOUT}s excedido). Matando subproceso.")
             p.terminate()
             p.join()
         except Exception as e:
-            print(Fore.RED + f"  - [ERROR] Ocurrió un error al ejecutar Lizard: {e}")
+            logger.error(f"  - Error al ejecutar Lizard: {e}")
             p.terminate()
             p.join()
         else:
             p.join()
 
     for file in analysis:
-        print(
-            Fore.BLUE
-            + f"  {os.path.basename(file.filename)} | CCN: {file.average_cyclomatic_complexity:.2f} | NLOC: {file.nloc}"
+        logger.debug(
+            f"  {os.path.basename(file.filename)} | CCN: {file.average_cyclomatic_complexity:.2f} | NLOC: {file.nloc}"
         )
     return analysis
+

@@ -2,6 +2,7 @@
 # ------------
 # Funciones auxiliares para validación y extracción de las respuestas de IA en ViZzo.
 
+import logging
 import re
 from .defaults import (
     DEFAULT_AI_CONFIG,
@@ -11,6 +12,8 @@ from .defaults import (
     _DEFAULT_MAPPINGS_BY_DATASET,
     _DEFAULT_DATASETS,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def _extract_summary_and_json(raw_content: str) -> tuple[str, str]:
@@ -123,7 +126,7 @@ def _validate_and_fix_config(config: dict) -> dict:
         # Evitar duplicación de dashboards con la misma combinación (component, dataset)
         key = (component, dash["dataset"])
         if key in seen_dashboards:
-            print(f"ViZzo // IA // Omitiendo dashboard duplicado: {key}")
+            logger.warning(f"ViZzo // IA // Omitiendo dashboard duplicado: {key}")
             continue
         seen_dashboards.add(key)
 

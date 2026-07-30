@@ -4,24 +4,22 @@ queries.py
 Funciones de persistencia y consultas para la base de datos de ViZzo.
 SSOT (Single Source of Truth) para la persistencia del análisis.
 """
-from colorama import Fore
-
+import logging
 from analyzer.models import AnalysisSession, FileMetric, LanguageMetric, Repository
+
+logger = logging.getLogger(__name__)
 
 
 def build_result_from_session(session: AnalysisSession) -> dict:
     """Reconstruye el dict de resultado a partir de una AnalysisSession ya guardada en BD."""
     file_metrics = [fm.to_dict() for fm in session.file_metrics.all()]
     data_by_language = [lm.to_dict() for lm in session.language_metrics.all()]
-    print(
-        Fore.CYAN
-        + f"[Cache] Datos cargados desde BD (session id={session.pk}, commit={session.last_commit_id[:8]})"
-    )
+    logger.debug(f"[Cache] Datos cargados desde BD (session id={session.pk}, commit={session.last_commit_id[:8]})")
     
     author_activity = session.author_activity
     # Lógica de autocuración para sesiones antiguas donde author_activity no estaba persistido
     if not author_activity and session.evolution_data:
-        print(Fore.YELLOW + "[Cache Warning] 'author_activity' vacío en base de datos. Reconstruyendo retroactivamente...")
+        logger.warning("[Cache Warning] 'author_activity' vacío en base de datos. Reconstruyendo retroactivamente...")
         activity_dict = {}
         for commit in session.evolution_data:
             author = commit.get("author", "Unknown")
@@ -52,7 +50,7 @@ def build_result_from_session(session: AnalysisSession) -> dict:
         # Persistimos la autocuración para evitar futuros recálculos
         session.author_activity = author_activity
         session.save(update_fields=["author_activity"])
-        print(Fore.GREEN + "[Cache Success] 'author_activity' reconstruido y persistido.")
+        logger.info("[Cache Success] 'author_activity' reconstruido y persistido.")
 
     top_churn_files = session.repo_summary.get("top_churn_files") if isinstance(session.repo_summary, dict) else None
     if not top_churn_files and file_metrics:
@@ -234,8 +232,7 @@ def save_session(
         session.language_metrics.all().delete()
     LanguageMetric.objects.bulk_create(lang_metric_objs)
 
-    print(
-        Fore.GREEN
-        + f"[DB] Sesión guardada con éxito (id={session.pk}) con {len(file_metric_objs)} archivos y {len(lang_metric_objs)} lenguajes."
+    logger.info(
+        f"[DB] Sesión guardada con éxito (id={session.pk}) con {len(file_metric_objs)} archivos y {len(lang_metric_objs)} lenguajes."
     )
     return session

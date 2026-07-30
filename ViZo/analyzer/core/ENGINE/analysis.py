@@ -2,11 +2,13 @@
 # ───────────
 # Punto de entrada de la orquestación del análisis local del repositorio en ViZzo.
 
+import logging
 import os
 import shutil
 import subprocess
 import traceback
-from colorama import Fore
+
+logger = logging.getLogger(__name__)
 
 from .helpers import (
     _temp_dir,
@@ -67,10 +69,11 @@ def run_analysis(
         )
 
         # FASE 2: Procesar métricas locales con Dataclass
+        # FASE 2: Procesar métricas locales con Dataclass
         _check_cancelled(session_id, cancel_event)
         metrics_res = _process_metrics(analysis, evolution_raw, target_dir)
         main_language = next(iter(metrics_res.language_counts), "unknown")
-        print(Fore.CYAN + f"Lenguaje principal: {main_language}")
+        logger.info(f"Lenguaje principal: {main_language}")
 
         _check_cancelled(session_id, cancel_event)
         repo_summary = _build_repo_summary(
@@ -98,7 +101,7 @@ def run_analysis(
 
         repo_summary["num_pull_requests"] = len(pull_requests)
         repo_summary["num_issues"] = len(issues)
-        print(Fore.YELLOW + f"Resumen del repositorio: {repo_summary}")
+        logger.info(f"Resumen del repositorio: {repo_summary}")
 
         metrics_list = [
             {
@@ -131,11 +134,11 @@ def run_analysis(
         }
 
     except RuntimeError as e:
-        print(Fore.RED + f"Error de clonado/Git: {e}")
+        logger.error(f"Error de clonado/Git: {e}")
         return None
     except Exception as e:
-        print(Fore.RED + f"Error general en el análisis: {e}")
-        traceback.print_exc()
+        logger.error(f"Error general en el análisis: {e}")
+        logger.debug(traceback.format_exc())
         return None
     finally:
         _cleanup(target_dir)
@@ -169,7 +172,7 @@ def _phase_clone_and_analyze(
             _check_cancelled(session_id, cancel_event)
             return repo_name, last_commit_id, evolution_raw, analysis, "releases"
         else:
-            print(Fore.YELLOW + "[Releases Mode] No se encontraron tags locales. Fallback a commits.")
+            logger.warning("[Releases Mode] No se encontraron tags locales. Fallback a commits.")
             analysis_mode = "commits"
 
     last_commit_id = _get_head_commit(target_dir)
@@ -222,9 +225,9 @@ def _phase_fetch_community_metadata(url: str, session_id: int, repo_summary: dic
                 repo_summary["releases_health"] = meta.get("releases_health", [])
                 repo_summary["community_activity"] = meta.get("community_activity", [])
                 extracted = True
-                print(Fore.GREEN + "ViZzo // Extracción enriquecida OAuth completada exitosamente.")
+                logger.info("ViZzo // Extracción enriquecida OAuth completada exitosamente.")
         except Exception as e:
-            print(Fore.RED + f"ViZzo // Error en extracción OAuth privada: {e}. Degradando...")
+            logger.error(f"ViZzo // Error en extracción OAuth privada: {e}. Degradando...")
 
     if not extracted and not is_private:
         try:
@@ -240,9 +243,9 @@ def _phase_fetch_community_metadata(url: str, session_id: int, repo_summary: dic
                 repo_summary["issues_health"] = meta.get("issues_health", [])
                 repo_summary["releases_health"] = meta.get("releases_health", [])
                 repo_summary["community_activity"] = meta.get("community_activity", [])
-                print(Fore.YELLOW + "ViZzo // Extracción pública sin token completada (degradada).")
+                logger.info("ViZzo // Extracción pública sin token completada (degradada).")
         except Exception as e:
-            print(Fore.RED + f"ViZzo // Error en extracción pública: {e}")
+            logger.error(f"ViZzo // Error en extracción pública: {e}")
 
     return pull_requests, issues
 

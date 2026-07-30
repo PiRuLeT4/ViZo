@@ -1,6 +1,9 @@
+import logging
 from .base_provider import parse_repo_url
 from .github_provider import GitHubMetadataProvider
 from .gitlab_provider import GitLabMetadataProvider
+
+logger = logging.getLogger(__name__)
 
 
 def fetch_public_metadata(repo_url: str) -> dict:
@@ -10,7 +13,7 @@ def fetch_public_metadata(repo_url: str) -> dict:
     """
     platform, owner, repo = parse_repo_url(repo_url)
     if not platform:
-        print(f"ViZzo // URL no compatible con API pública de GitHub/GitLab: {repo_url}")
+        logger.warning(f"ViZzo // URL no compatible con API pública de GitHub/GitLab: {repo_url}")
         return {
             "pull_requests": [],
             "issues": [],
@@ -22,7 +25,7 @@ def fetch_public_metadata(repo_url: str) -> dict:
             "community_activity": [],
         }
 
-    print(f"ViZzo // Consultando API pública de {platform.upper()} para {owner}/{repo}...")
+    logger.info(f"ViZzo // Consultando API pública de {platform.upper()} para {owner}/{repo}...")
 
     if platform == "github":
         provider = GitHubMetadataProvider(owner, repo)
@@ -30,3 +33,4 @@ def fetch_public_metadata(repo_url: str) -> dict:
         provider = GitLabMetadataProvider(owner, repo)
 
     return provider.fetch_metadata()
+
