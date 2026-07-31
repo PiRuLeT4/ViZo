@@ -22,7 +22,11 @@ Thumbs.db
 
 # TFG / Archivos Temporales de Análisis
 temp_repos/
+temp_repo_analysis*/
+testpythonclone/
 *.log
+logs/
+ViZo/logs/
 
 # Roadmap
 Roadmap.md
