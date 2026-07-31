@@ -41,7 +41,7 @@ def start_async_analysis(
     if analysis_mode == "releases":
         latest_commit_id = _get_remote_tags_hash(clone_url)
         if not latest_commit_id:
-            print(Fore.YELLOW + "[Releases Mode] No se encontraron tags remotos. Bajando a modo commits.")
+            logger.warning("[Releases Mode] No se encontraron tags remotos. Bajando a modo commits.")
             analysis_mode = "commits"
             latest_commit_id = _get_remote_head(clone_url)
     else:
@@ -211,7 +211,7 @@ def async_analysis_worker(
         logger.info(f"[Async Worker Success] Sesión {session_id} completada exitosamente.")
 
     except Exception as e:
-        traceback.print_exc()
+        logger.exception(f"[Async Worker Failed] Sesión {session_id} falló:")
         try:
             session = AnalysisSession.objects.get(pk=session_id)
             if "cancelado" not in str(session.error_message).lower() and str(e) != "CANCELLED_BY_USER":

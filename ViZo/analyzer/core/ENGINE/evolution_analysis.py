@@ -176,6 +176,7 @@ def _run_git_history(target_dir: str, max_commits: int = 150) -> dict:
         logger.error(f"Error procesando historial Git: {e}")
         logger.debug(traceback.format_exc())
 
+    evolution_data["authors"] = list(evolution_data["authors"])
     num_processed = len(evolution_data["commits"])
     logger.info(
         f"Total de commits procesados: {evolution_data['total_commits']} ({num_processed} analizados)"
@@ -221,6 +222,7 @@ def _run_releases_history(target_dir: str, tags: list) -> dict:
                 encoding="utf-8",
                 errors="replace",
                 cwd=target_dir,
+                timeout=30,
                 env=_get_clean_git_env(),
             )
             if check_parent.returncode == 0:
@@ -243,6 +245,7 @@ def _run_releases_history(target_dir: str, tags: list) -> dict:
             encoding="utf-8",
             errors="replace",
             cwd=target_dir,
+            timeout=30,
             env=_get_clean_git_env(),
         )
 
@@ -325,5 +328,6 @@ def _run_releases_history(target_dir: str, tags: list) -> dict:
     ]
     evolution_data["file_author_commits"] = file_author_commits
     evolution_data["file_last_modified"] = file_last_modified
+    evolution_data["authors"] = list(evolution_data["authors"])
 
     return evolution_data

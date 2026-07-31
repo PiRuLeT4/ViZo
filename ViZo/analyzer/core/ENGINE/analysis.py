@@ -27,20 +27,9 @@ from .metrics import _process_metrics, _build_repo_summary, MetricsResult
 import threading
 
 def _check_cancelled(session_id: int = None, cancel_event: threading.Event = None):
-    """Verifica si la sesión de análisis fue cancelada por el usuario en memoria o en base de datos."""
+    """Verifica si la sesión de análisis fue cancelada por el usuario en memoria."""
     if cancel_event and cancel_event.is_set():
         raise RuntimeError("CANCELLED_BY_USER")
-
-    if session_id is not None:
-        from analyzer.models import AnalysisSession
-
-        session = AnalysisSession.objects.filter(pk=session_id).first()
-        if (
-            session
-            and session.status == "failed"
-            and "cancelado" in str(session.error_message).lower()
-        ):
-            raise RuntimeError("CANCELLED_BY_USER")
 
 
 def run_analysis(
@@ -68,7 +57,6 @@ def run_analysis(
             url, target_dir, max_commits, analysis_mode, session_id, cancel_event
         )
 
-        # FASE 2: Procesar métricas locales con Dataclass
         # FASE 2: Procesar métricas locales con Dataclass
         _check_cancelled(session_id, cancel_event)
         metrics_res = _process_metrics(analysis, evolution_raw, target_dir)

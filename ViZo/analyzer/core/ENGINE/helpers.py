@@ -82,6 +82,7 @@ def _clone_repo(url: str, target_dir: str, depth: int = None) -> str:
         text=True,
         encoding="utf-8",
         errors="replace",
+        timeout=300,
         env=_get_clean_git_env(),
     )
     if result.returncode != 0:
@@ -99,6 +100,7 @@ def _get_head_commit(target_dir: str) -> str:
         encoding="utf-8",
         errors="replace",
         cwd=target_dir,
+        timeout=30,
         env=_get_clean_git_env(),
     )
     if result.returncode != 0:
@@ -115,6 +117,7 @@ def _get_total_commits(target_dir: str) -> int:
         encoding="utf-8",
         errors="replace",
         cwd=target_dir,
+        timeout=30,
         env=_get_clean_git_env(),
     )
     if result.returncode != 0:
@@ -172,6 +175,7 @@ def _get_tags_info(target_dir: str, max_releases: int = 10) -> list:
         encoding="utf-8",
         errors="replace",
         cwd=target_dir,
+        timeout=30,
         env=_get_clean_git_env()
     )
     tags = []
@@ -197,6 +201,7 @@ def _get_tags_info(target_dir: str, max_releases: int = 10) -> list:
                             encoding="utf-8",
                             errors="replace",
                             cwd=target_dir,
+                            timeout=30,
                             env=_get_clean_git_env()
                         )
                         if date_res.returncode == 0 and date_res.stdout:
@@ -224,6 +229,7 @@ def _get_diff_stats(target_dir: str, rev_prev: str, rev_curr: str) -> tuple:
             encoding="utf-8",
             errors="replace",
             cwd=target_dir,
+            timeout=30,
             env=_get_clean_git_env()
         )
         if result.returncode == 0 and result.stdout.strip():
@@ -265,6 +271,17 @@ _LIZARD_EXCLUDE_PATTERNS = [
     "*/.github/*",
     "*/.gitlab/*",
     "*/cmake/*",
+    "*/test/*",
+    "*/tests/*",
+    "*/spec/*",
+    "*/specs/*",
+    "*/testing/*",
+    "*/e2e/*",
+    "*/fixtures/*",
+    "*/mock/*",
+    "*/mocks/*",
+    "*/__tests__/*",
+    "*/__mocks__/*",
 ]
 
 _LIZARD_INCLUDE_FOLDERS = [
@@ -326,20 +343,47 @@ def is_minified_or_obfuscated(filepath: str) -> bool:
     return False
 
 
-def _lizard_worker_process(queue_out, files: list, exclude_patterns: list, threads_count: int):
+def is_generated_or_test_file(filepath: str) -> bool:
     """
-    Función de ejecución en subproceso aislado. Convierte a lista el generador de Lizard
-    para resolverlo en el subproceso y lo envía a la cola.
+    Comprueba si un archivo es código fuente generado automáticamente (ObjectFactory, DTOs, parsers XML)
+    o archivos de pruebas ruidosos que bloquean el análisis estático de Lizard.
+    """
+    basename = os.path.basename(filepath).lower()
+
+    # Patrones de pruebas / unit tests
+    if any(pat in basename for pat in [".spec.", ".test.", "_test.", "test_", "testcase"]):
+        return True
+
+    # Patrones de código autogenerado común (Java, C#, Go, C++)
+    if any(pat in basename for pat in [
+        "objectfactory", "crossversionmodeltool", "dto", "dao", "vo",
+        ".pb.", ".generated.", ".designer.", "antlr", "g4"
+    ]):
+        return True
+
+    return False
+
+
+def _lizard_worker_process(queue_out, files: list, exclude_patterns: list, threads_count: int, chunk_size: int = 50):
+    """
+    Función de ejecución en subproceso aislado. Procesa la lista de archivos en lotes (chunks)
+    y envía los resultados de forma progresiva a la cola, permitiendo recuperar métricas parciales si ocurre timeout.
     """
     try:
-        res = list(
-            lizard.analyze(
-                files,
-                exclude_pattern=exclude_patterns,
-                threads=threads_count
-            )
-        )
-        queue_out.put(("success", res))
+        for i in range(0, len(files), chunk_size):
+            chunk = files[i:i + chunk_size]
+            try:
+                res = list(
+                    lizard.analyze(
+                        chunk,
+                        exclude_pattern=exclude_patterns,
+                        threads=threads_count
+                    )
+                )
+                queue_out.put(("batch", res))
+            except Exception as batch_err:
+                logger.warning(f"[Lizard Worker] Error en lote de archivos: {batch_err}")
+        queue_out.put(("done", None))
     except Exception as e:
         queue_out.put(("error", str(e)))
     finally:

@@ -62,4 +62,8 @@ def _persist_results(
         age_distribution=analysis_result.get("age_distribution", []),
         top_complex_files=analysis_result.get("top_complex_files", []),
         file_network=analysis_result.get("file_network", []),
+        analysis_mode=analysis_result.get("analysis_mode", "commits"),
+        pull_requests=analysis_result.get("pull_requests", []),
+        issues=analysis_result.get("issues", []),
+        top_churn_files=analysis_result.get("top_churn_files", []),
     )

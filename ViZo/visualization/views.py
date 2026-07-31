@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import requests
 
 from django.shortcuts import render, get_object_or_404
 from django.views.decorators.csrf import ensure_csrf_cookie
@@ -81,16 +82,21 @@ def api_explain(request):
                 {"error": "Missing dashboard_type or repo_name"}, status=400
             )
 
+        language = data.get("language", "es").strip()
+        if language not in ["es", "en"]:
+            language = "es"
+
         # Generar explicación con el LLM
         from analyzer.core.AI.ai import client, AI_MODEL, parse_explanation_sections
 
-        logger.info(f"Generating explanation for dashboard type: {dashboard_type}")
+        logger.info(f"Generating explanation ({language}) for dashboard type: {dashboard_type}")
         logger.debug(f"Using AI client base_url: {llm_base_url or client.base_url}, model: {llm_model or AI_MODEL}")
         raw_explanation = get_ai_explanation(
             dashboard_type, json.dumps(dashboard_data), repo_name,
             base_url=llm_base_url,
             api_key=llm_api_key,
-            model=llm_model
+            model=llm_model,
+            language=language,
         )
         sections = parse_explanation_sections(raw_explanation)
         logger.info("Explanation & Sections: Done")
@@ -120,9 +126,6 @@ def api_tts(request):
 
         # Truncar el texto a 500 caracteres máximo para proteger el consumo de la API de xAI
         text = text[:500]
-
-        from dotenv import load_dotenv
-        load_dotenv()
 
         xai_api_key = os.getenv("XAI_API_KEY", "").strip()
         if not xai_api_key:
