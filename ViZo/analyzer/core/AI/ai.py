@@ -7,7 +7,6 @@
 import json
 import logging
 import os
-from dotenv import load_dotenv
 from openai import APIConnectionError, APITimeoutError, OpenAI
 
 logger = logging.getLogger(__name__)
@@ -16,16 +15,13 @@ from .prompts import (
     _SYSTEM_PROMPT,
     _SYSTEM_PROMPT_LOCAL,
     _EXPLAIN_SYSTEM_PROMPT_BASE,
-    _DASHBOARD_DESCRIPTIONS,
+      _DASHBOARD_DESCRIPTIONS,
 )
 from .helpers import (
     DEFAULT_AI_CONFIG,
     _extract_summary_and_json,
     _validate_and_fix_config,
 )
-
-# Cargar variables de entorno
-load_dotenv()
 
 # POR DEFECTO SE USARA MI PLAN DE DEEPSEEK COMO IA DE LA APLICACION.
 AI_BASE_URL = os.getenv("DEEPSEEK_BASE_URL")
@@ -56,7 +52,7 @@ def get_openai_client(base_url=None, api_key=None, timeout=None):
 
 
 def get_ai_config(
-    repo_summary: str, base_url: str = None, api_key: str = None, model: str = None
+    repo_summary: str, base_url: str = None, api_key: str = None, model: str = None, language: str = "es"
 ) -> dict:
     """
     Envía el resumen del análisis a LM Studio/OpenAI/LLM personalizado y devuelve la configuración de dashboards.
@@ -66,14 +62,9 @@ def get_ai_config(
         # Analizar disponibilidad de datos de API en el resumen
         has_api_data = False
         try:
-            summary_dict = json.loads(repo_summary)
-            code_reviews = summary_dict.get("code_reviews", {})
-            if code_reviews and (
-                code_reviews.get("nodes") or code_reviews.get("links")
-            ):
-                has_api_data = True
-            elif (
-                summary_dict.get("pull_requests")
+            summary_dict = json.loads(repo_summary) if isinstance(repo_summary, str) else repo_summary
+            if (
+                summary_dict.get("code_reviews")
                 or summary_dict.get("issues_health")
                 or summary_dict.get("releases_health")
                 or summary_dict.get("community_activity")
@@ -88,6 +79,9 @@ def get_ai_config(
         else:
             system_prompt = _SYSTEM_PROMPT_LOCAL
             logger.info("ViZzo // IA // Utilizando prompt de sistema LOCAL (Sin API).")
+
+        if language == "en":
+            system_prompt += "\n\nCRITICAL INSTRUCTION: All dashboard titles ('title' field in JSON) MUST be written in ENGLISH (e.g. 'Code City', 'Developer Collaboration Network', 'Languages Distribution', 'Commits Evolution', 'Releases Health', 'Community Activity', 'File Ownership', 'Code Age', 'Top Complex Files', 'Issues Health')."
 
         ai_model = model or AI_MODEL
         local_client = get_openai_client(base_url, api_key)
@@ -124,10 +118,131 @@ def get_ai_config(
     return DEFAULT_AI_CONFIG
 
 
-def get_offline_explanation(dashboard_type: str, repo_name: str) -> str:
+def get_offline_explanation(dashboard_type: str, repo_name: str, language: str = "es") -> str:
     """
     Devuelve explicaciones técnicas de calidad predefinidas si el LLM local está offline.
+    Soporta idiomas 'es' y 'en'.
     """
+    if language == "en":
+        if dashboard_type in {"boats", "file_metrics"}:
+            return f"""[VIZZO_01 ANALYSIS SYSTEM - OFFLINE FALLBACK]
+COMPLEXITY & NLOC REPORT (3D CITY) - REPOSITORY: {repo_name}
+
+1. FILE STRUCTURAL ANALYSIS:
+   The 3D city represents directory and file hierarchy.
+   - Building height: Represents physical lines of code (NLOC). Tall buildings indicate extensive files that might violate the Single Responsibility Principle.
+   - Building width/area: Represents McCabe's Cyclomatic Complexity (CCN). Wide buildings indicate dense conditional logic that is difficult to test.
+
+2. DETECTED OBSERVATIONS:
+   - High density code nuclei observed. Files combining large height and width (massive buildings) are critical "Hotspots" requiring immediate refactoring.
+   - Directories with many small files reflect good modularization, whereas isolated monoliths are risk candidates.
+
+3. CLEAN CODE RECOMMENDATIONS:
+   - Split monolithic classes into smaller components.
+   - Extract complex methods with CCN > 10 into independent helper functions.
+   - Implement unit tests focused on identified hotspots."""
+
+        elif dashboard_type in {"cyls", "data_by_language"}:
+            return f"""[VIZZO_01 ANALYSIS SYSTEM - OFFLINE FALLBACK]
+LANGUAGE DISTRIBUTION REPORT (3D CYLINDERS) - REPOSITORY: {repo_name}
+
+1. TECHNOLOGICAL DIVERSIFICATION ANALYSIS:
+   3D cylinders compare programming language presence in the repository.
+   - Cylinder height: Total lines of code (NLOC) in that language.
+   - Cylinder radius: Number of individual files in that language.
+
+2. DETECTED OBSERVATIONS:
+   - The tallest cylinder represents the project's core/dominant technology.
+   - A wide radius with low height indicates fragmentation into small files (configs, templates, or automation scripts).
+
+3. ARCHITECTURE RECOMMENDATIONS:
+   - Keep main language dependencies up to date.
+   - Properly document integration and communication between detected technologies."""
+
+        elif dashboard_type == "doughnut":
+            return f"""[VIZZO_01 ANALYSIS SYSTEM - OFFLINE FALLBACK]
+LANGUAGE SHARE REPORT (3D DONUT) - REPOSITORY: {repo_name}
+
+1. RELATIVE WEIGHT ANALYSIS:
+   The 3D donut chart illustrates percentage proportion and file distribution per language.
+
+2. DETECTED OBSERVATIONS:
+   - Allows quick identification of project ecosystem and coupling level to a single technology.
+
+3. RECOMMENDATIONS:
+   - Optimize folder architecture to isolate build/transpilation languages from native source code.
+   - Standardize linters and formatters (Prettier, ESLint, Black) for each identified language."""
+
+        elif dashboard_type in {"barsmap", "author_activity"}:
+            return f"""[VIZZO_01 ANALYSIS SYSTEM - OFFLINE FALLBACK]
+AUTHOR ACTIVITY & COHESION REPORT (3D BARS) - REPOSITORY: {repo_name}
+
+1. COLLABORATIVE DEVELOPMENT ANALYSIS:
+   The 3D barsmap projects historical developer activity on a temporal grid.
+   - X-Axis: Authors (Developers).
+   - Z-Axis: Commit/activity timeline.
+   - Bar height: Commit frequency or insertions per interval.
+
+2. DETECTED OBSERVATIONS:
+   - Clearly visualizes Bus Factor. If most high bars belong to a single author, the project has high individual dependency.
+
+3. MANAGEMENT RECOMMENDATIONS:
+   - Encourage Code Reviews to distribute domain knowledge.
+   - Document key processes to reduce risk from primary developer departures."""
+
+        elif dashboard_type == "file_ownership":
+            return f"""[VIZZO_01 ANALYSIS SYSTEM - OFFLINE FALLBACK]
+FILE OWNERSHIP REPORT (BUS FACTOR) - REPOSITORY: {repo_name}
+
+1. BUS FACTOR ANALYSIS:
+   Shows author contributions per file.
+   - X-Axis: Authors.
+   - Z-Axis: Files.
+   - Height: Ownership percentage.
+
+2. DETECTED OBSERVATIONS:
+   - Solitary tall bars indicate files heavily dependent on a single developer.
+
+3. RECOMMENDATIONS:
+   - Promote task rotation and Pair Programming on critical files."""
+
+        elif dashboard_type == "age_distribution":
+            return f"""[VIZZO_01 ANALYSIS SYSTEM - OFFLINE FALLBACK]
+CODE AGE REPORT (LEGACY CODE) - REPOSITORY: {repo_name}
+
+1. AGE ANALYSIS:
+   Groups files by age: Active (<30 days), Maintained (30-180 days), Legacy (>180 days).
+
+2. RECOMMENDATIONS:
+   - Periodically audit Legacy Code cylinders to remove dead or redundant code."""
+
+        elif dashboard_type == "top_complex_files":
+            return f"""[VIZZO_01 ANALYSIS SYSTEM - OFFLINE FALLBACK]
+PEAK CCN COMPLEXITY REPORT (TOP 10) - REPOSITORY: {repo_name}
+
+1. EXTREME COMPLEXITY ANALYSIS:
+   Shows top 10 files with highest peak cyclomatic complexity in a single function.
+
+2. RECOMMENDATIONS:
+   - Refactor functions with Peak CCN > 10 applying divide-and-conquer principles."""
+
+        elif dashboard_type in {"network", "babia-network"}:
+            return f"""[VIZZO_01 ANALYSIS SYSTEM - OFFLINE FALLBACK]
+DEVELOPER COLLABORATION NETWORK (3D GRAPH) - REPOSITORY: {repo_name}
+
+1. SOCIAL INTERACTION ANALYSIS:
+   Topology of collaboration among authors who co-edited files.
+
+2. RECOMMENDATIONS:
+   - Transfer knowledge from central connected nodes to isolated developers."""
+
+        return f"""[VIZZO_01 ANALYSIS SYSTEM - OFFLINE FALLBACK]
+GENERAL TECHNICAL REPORT - REPOSITORY: {repo_name}
+
+General metrics available on the corresponding pedestal. Use wrist menu or physical controls to interact."""
+
+    # Default Spanish fallback
+
     if dashboard_type in {"boats", "file_metrics"}:
         return f"""[SISTEMA DE ANÁLISIS VIZZO_01 - OFFLINE FALLBACK]
 REPORTE DE COMPLEJIDAD Y NLOC (CIUDAD 3D) - REPOSITORIO: {repo_name}
@@ -302,14 +417,14 @@ def parse_explanation_sections(raw_text: str) -> dict:
     except Exception:
         pass
 
-    # Fallback si vino texto plano o respuesta offline
-    summary_match = re.search(r"(?:1\.\s*TÍTULO|\#\s*1|\#\s*TÍTULO|RESUMEN)(.*?)(?=(?:2\.\s*PRINCIPALES|3\.\s*RECOMENDACIONES|\#\s*2|\#\s*3|PROBLEMAS|$))", raw_text, re.DOTALL | re.IGNORECASE)
-    problems_match = re.search(r"(?:2\.\s*PRINCIPALES|\#\s*2|\#\s*PROBLEMAS|PROBLEMAS)(.*?)(?=(?:3\.\s*RECOMENDACIONES|4\.\s*RECOMENDACIONES|\#\s*3|MEJORAS|$))", raw_text, re.DOTALL | re.IGNORECASE)
-    recs_match = re.search(r"(?:3\.\s*RECOMENDACIONES|4\.\s*RECOMENDACIONES|\#\s*3|\#\s*RECOMENDACIONES|MEJORAS)(.*?)$", raw_text, re.DOTALL | re.IGNORECASE)
+    # Fallback si vino texto plano o respuesta offline (soporta encabezados ES y EN)
+    summary_match = re.search(r"(?:1\.\s*TÍTULO|1\.\s*TITLE|\#\s*1|\#\s*TÍTULO|\#\s*TITLE|RESUMEN|SUMMARY)(.*?)(?=(?:2\.\s*PRINCIPALES|2\.\s*KEY|2\.\s*MAIN|3\.\s*RECOMENDACIONES|3\.\s*RECOMMENDATIONS|\#\s*2|\#\s*3|PROBLEMAS|PROBLEMS|$))", raw_text, re.DOTALL | re.IGNORECASE)
+    problems_match = re.search(r"(?:2\.\s*PRINCIPALES|2\.\s*KEY|2\.\s*MAIN|\#\s*2|\#\s*PROBLEMAS|\#\s*PROBLEMS|PROBLEMAS|PROBLEMS)(.*?)(?=(?:3\.\s*RECOMENDACIONES|3\.\s*RECOMMENDATIONS|4\.\s*RECOMENDACIONES|4\.\s*RECOMMENDATIONS|\#\s*3|MEJORAS|RECOMMENDATIONS|$))", raw_text, re.DOTALL | re.IGNORECASE)
+    recs_match = re.search(r"(?:3\.\s*RECOMENDACIONES|3\.\s*RECOMMENDATIONS|4\.\s*RECOMENDACIONES|4\.\s*RECOMMENDATIONS|\#\s*3|\#\s*RECOMENDACIONES|\#\s*RECOMMENDATIONS|MEJORAS|RECOMMENDATIONS)(.*?)$", raw_text, re.DOTALL | re.IGNORECASE)
 
     summary_text = summary_match.group(1).strip() if summary_match and summary_match.group(1).strip() else raw_text
-    problems_text = problems_match.group(1).strip() if problems_match and problems_match.group(1).strip() else "No se detectaron problemas críticos adicionales para esta sección."
-    recs_text = recs_match.group(1).strip() if recs_match and recs_match.group(1).strip() else "No se generaron recomendaciones específicas adicionales."
+    problems_text = problems_match.group(1).strip() if problems_match and problems_match.group(1).strip() else ("No critical problems detected for this section." if "SUMMARY" in raw_text or "TITLE" in raw_text else "No se detectaron problemas críticos adicionales para esta sección.")
+    recs_text = recs_match.group(1).strip() if recs_match and recs_match.group(1).strip() else ("No specific additional recommendations generated." if "SUMMARY" in raw_text or "TITLE" in raw_text else "No se generaron recomendaciones específicas adicionales.")
 
     return {
         "summary": summary_text,
@@ -325,9 +440,11 @@ def generate_dashboard_explanation(
     base_url: str = None,
     api_key: str = None,
     model: str = None,
+    language: str = "es",
 ) -> str:
     """
     Genera una explicación técnica y profesional adaptada al tipo de dashboard provisto.
+    Soporta idioma 'es' y 'en'.
     """
     try:
         # Intentar resumir el JSON de datos si es una lista muy larga para evitar exceder el contexto del LLM local
@@ -400,6 +517,7 @@ def generate_dashboard_explanation(
         from analyzer.core.AI.prompts import (
             _DASHBOARD_DESCRIPTIONS,
             _EXPLAIN_SYSTEM_PROMPT_BASE,
+            _EXPLAIN_SYSTEM_PROMPT_BASE_EN,
         )
     except Exception:
         pass
@@ -409,23 +527,34 @@ def generate_dashboard_explanation(
         if not desc and ("pie" in dashboard_type or "doughnut" in dashboard_type):
             desc = _DASHBOARD_DESCRIPTIONS.get("doughnut")
         if not desc:
-            desc = f"Dashboard de tipo '{dashboard_type}'. Analiza detenidamente los datos JSON provistos ({dashboard_type}) y explica su significado."
+            desc = f"Dashboard type '{dashboard_type}'. Analyze provided JSON data and explain its meaning."
 
-        system_prompt = _EXPLAIN_SYSTEM_PROMPT_BASE.format(dashboard_description=desc)
+        if language == "en":
+            base_prompt = _EXPLAIN_SYSTEM_PROMPT_BASE_EN if '_EXPLAIN_SYSTEM_PROMPT_BASE_EN' in locals() else _EXPLAIN_SYSTEM_PROMPT_BASE
+            system_prompt = base_prompt.format(dashboard_description=desc)
+            prompt_user = f"""
+            Repository: {repo_name}
+            Dashboard Type: {dashboard_type}
+            Dashboard Data (JSON):
+            {dashboard_data[:3000]}
 
-        prompt_user = f"""
-        Repositorio: {repo_name}
-        Tipo de Dashboard: {dashboard_type}
-        Datos del Dashboard (JSON):
-        {dashboard_data[:3000]}
+            CRITICAL INSTRUCTION: Focus EXCLUSIVELY on the dashboard of type '{dashboard_type}' described in the system message. Write your ENTIRE explanation in ENGLISH.
+            """
+        else:
+            system_prompt = _EXPLAIN_SYSTEM_PROMPT_BASE.format(dashboard_description=desc)
+            prompt_user = f"""
+            Repositorio: {repo_name}
+            Tipo de Dashboard: {dashboard_type}
+            Datos del Dashboard (JSON):
+            {dashboard_data[:3000]}
 
-        INSTRUCCIÓN CRÍTICA: Concéntrate EXCLUSIVAMENTE en el dashboard de tipo '{dashboard_type}' descrito en el mensaje del sistema. Ignora los demás dashboards de la base de datos de ViZzo. No repitas explicaciones ni menciones otros componentes.
-        """
+            INSTRUCCIÓN CRÍTICA: Concéntrate EXCLUSIVAMENTE en el dashboard de tipo '{dashboard_type}' descrito en el mensaje del sistema. Ignora los demás dashboards de la base de datos de ViZzo. No repitas explicaciones ni menciones otros componentes.
+            """
 
         ai_model = model or AI_MODEL
         local_client = get_openai_client(base_url, api_key)
         logger.info(
-            f"[AI] Generando explicación aislada para {dashboard_type} con {ai_model} (URL: {base_url or AI_BASE_URL})..."
+            f"[AI] Generando explicación aislada para {dashboard_type} ({language}) con {ai_model} (URL: {base_url or AI_BASE_URL})..."
         )
         response = local_client.chat.completions.create(
             model=ai_model,
@@ -438,7 +567,7 @@ def generate_dashboard_explanation(
         return response.choices[0].message.content.strip()
     except Exception as e:
         logger.error(f"[AI Explanation] Error: {e}. Usando fallback offline.")
-        return get_offline_explanation(dashboard_type, repo_name)
+        return get_offline_explanation(dashboard_type, repo_name, language=language)
 
 
 def get_ai_explanation(
@@ -448,6 +577,7 @@ def get_ai_explanation(
     base_url: str = None,
     api_key: str = None,
     model: str = None,
+    language: str = "es",
 ) -> str:
     """
     Envía los datos de un dashboard de visualización específico a la IA para
@@ -460,4 +590,5 @@ def get_ai_explanation(
         base_url=base_url,
         api_key=api_key,
         model=model,
+        language=language,
     )

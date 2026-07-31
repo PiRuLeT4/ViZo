@@ -25,6 +25,7 @@
     />
 
     <!-- A-Frame Components (ViZzo Lab Physics & Logic) -->
+    <script src="{% static 'js/translations.js' %}"></script>
     <script src="{% static 'js/visualizer/helpers.js' %}"></script>
     <script src="{% static 'js/visualizer/components/vizzo-components.js' %}"></script>
     <script src="{% static 'js/visualizer/components/fame.js' %}"></script>
@@ -37,7 +38,7 @@
         {{ repo_name|default:'LIVE_DATA_ANALYSIS'|upper }} // LOADING...
       </div>
       {% if ai_status == 'offline' %}
-      <div class="vizzo-warning">
+      <div class="vizzo-warning" data-i18n="scene.ai_offline">
         [AI_OFFLINE] Servidor de IA local no detectado. Visualización estándar
         activada.
       </div>
@@ -198,6 +199,7 @@
 
           <!-- Título (rojo marca ViZzo, como SURFACE OPACITY) -->
           <a-text
+            id="vr-terminal-title"
             value="ASISTENTE IA — REPORTE"
             position="0 0.85 0.015"
             align="center"
@@ -260,6 +262,7 @@
               material="roughness: 0.5; metalness: 0.1"
             >
               <a-text
+                id="vr-terminal-close-text"
                 value="CERRAR"
                 align="center"
                 position="0 0 0.01"
@@ -269,6 +272,20 @@
               ></a-text>
             </a-box>
           </a-entity>
+
+          <script>
+            document.addEventListener('DOMContentLoaded', () => {
+              const isEn = (localStorage.getItem('vizzo_lang') === 'en');
+              if (isEn) {
+                const titleEl = document.getElementById('vr-terminal-title');
+                if (titleEl) titleEl.setAttribute('value', 'AI ASSISTANT — REPORT');
+                const closeTextEl = document.getElementById('vr-terminal-close-text');
+                if (closeTextEl) closeTextEl.setAttribute('value', 'CLOSE');
+                const termTextEl = document.getElementById('vr-terminal-text');
+                if (termTextEl) termTextEl.setAttribute('value', 'Loading report...');
+              }
+            });
+          </script>
         </a-entity>
       </a-entity>
     </a-scene>

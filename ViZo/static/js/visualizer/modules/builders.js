@@ -236,7 +236,7 @@ export function buildNetwork(scene, dash, nodesLoaderId, linksLoaderId, pos) {
   const vizEl = document.createElement("a-entity");
   vizEl.setAttribute("id", "vizzo-viz-" + dash.id);
   vizEl.setAttribute("data-dataset", dash.dataset);
-  vizEl.setAttribute("position", "0 2.7 0");
+  vizEl.setAttribute("position", "0 2.9 0");
   vizEl.setAttribute("rotation", "0 0 -90");
   vizEl.setAttribute("scale", "0.064 0.064 0.064");
   vizEl.setAttribute(

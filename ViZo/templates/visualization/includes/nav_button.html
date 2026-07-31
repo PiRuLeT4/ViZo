@@ -23,6 +23,7 @@
 
   <!-- Panel Header Title -->
   <a-text
+    id="nav-title-text"
     value="VOLVER AL ANALIZADOR"
     position="0 0.42 0.02"
     align="center"
@@ -36,6 +37,7 @@
 
   <!-- Subtitle -->
   <a-text
+    id="nav-sub-text"
     value="PULSA PARA INICIAR\nOTRO ANALISIS"
     position="0 0.08 0.02"
     align="center"
@@ -58,6 +60,7 @@
   >
     <!-- Centered return text -->
     <a-text
+      id="nav-btn-text"
       value="INICIO"
       align="center"
       baseline="center"
@@ -73,4 +76,18 @@
     light="type: point; color: #8B0A2E; intensity: 0.4; distance: 3; decay: 2"
     position="0 0 0.8"
   ></a-entity>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const isEn = (localStorage.getItem('vizzo_lang') === 'en');
+      if (isEn) {
+        const titleEl = document.getElementById('nav-title-text');
+        if (titleEl) titleEl.setAttribute('value', 'BACK TO ANALYZER');
+        const subEl = document.getElementById('nav-sub-text');
+        if (subEl) subEl.setAttribute('value', 'CLICK TO START\\nANOTHER ANALYSIS');
+        const btnTextEl = document.getElementById('nav-btn-text');
+        if (btnTextEl) btnTextEl.setAttribute('value', 'HOME');
+      }
+    });
+  </script>
 </a-entity>

@@ -1,3 +1,4 @@
+import { csrfHeaders } from '../csrf.js';
 import {
   toggleWireframe,
   swapMappings,
@@ -299,7 +300,8 @@ function setFetchBtnState(dashboardType, targetEl, state) {
 
         if (state === "loading") {
           if (textEl) {
-            textEl.setAttribute("value", "CARGANDO...");
+            const isEn = localStorage.getItem("vizzo_lang") === "en";
+            textEl.setAttribute("value", isEn ? "LOADING..." : "CARGANDO...");
             textEl.setAttribute("color", "#ffaa00");
             textEl.setAttribute("emissive", "#ffaa00");
           }
@@ -315,7 +317,8 @@ function setFetchBtnState(dashboardType, targetEl, state) {
           }
         } else if (state === "ready") {
           if (textEl) {
-            textEl.setAttribute("value", "INFO LISTA");
+            const isEn = localStorage.getItem("vizzo_lang") === "en";
+            textEl.setAttribute("value", isEn ? "INFO READY" : "INFO LISTA");
             textEl.setAttribute("color", "#4af7a0");
             textEl.setAttribute("emissive", "#4af7a0");
           }
@@ -332,7 +335,8 @@ function setFetchBtnState(dashboardType, targetEl, state) {
         } else {
           // default / idle
           if (textEl) {
-            textEl.setAttribute("value", "EXPLICAR");
+            const isEn = localStorage.getItem("vizzo_lang") === "en";
+            textEl.setAttribute("value", isEn ? "EXPLAIN" : "EXPLICAR");
             textEl.setAttribute("color", "#00d4ff");
             textEl.setAttribute("emissive", "#00d4ff");
           }
@@ -510,17 +514,17 @@ export function fetchAiInfo(dashboardType, targetEl) {
     ? statusEl.getAttribute("data-repo")
     : "LIVE_DATA";
 
+  const lang = window.getLang ? window.getLang() : (localStorage.getItem("vizzo_lang") || "es");
   const payload = {
     dashboard_type: datasetKey || dashboardType,
     dashboard_data: dashboardData || {},
     repo_name: repoName,
+    language: lang,
   };
 
   fetch("/api/explain/", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: csrfHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(payload),
   })
     .then((res) => {
@@ -583,7 +587,11 @@ export function showExplanation(dashboardType, targetEl, sectionKey = "summary")
 
   // Si aún no se ha obtenido la info, mostrar aviso indicando que debe pulsarse EXPLICAR primero
   if (!explanationCache[targetKey]) {
-    showInVR("Pulse el botón 'EXPLICAR' primero para generar la explicación del dashboard.");
+    const promptMsg = (window.t ? window.t("scene.vr_prompt_explain") : null) ||
+      (localStorage.getItem("vizzo_lang") === "en"
+        ? "Click the 'EXPLAIN' button first to generate the dashboard explanation."
+        : "Pulse el botón 'EXPLICAR' primero para generar la explicación del dashboard.");
+    showInVR(promptMsg);
     return;
   }
 
@@ -747,15 +755,14 @@ function preloadAllSectionsTts(dashboardType, sections, targetEl) {
       targetKey,
     );
 
+    const lang = window.getLang ? window.getLang() : (localStorage.getItem("vizzo_lang") || "es");
     fetch("/api/tts/", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: csrfHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         text: text,
         voice_id: "kepler",
-        language: "es",
+        language: lang,
       }),
     })
       .then((res) => {

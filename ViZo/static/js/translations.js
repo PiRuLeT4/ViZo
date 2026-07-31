@@ -108,6 +108,26 @@ const TRANSLATIONS = {
     "modal.desc": "Selecciona tu proveedor de control de versiones:",
     "modal.github": "Continuar con GitHub",
     "modal.gitlab": "Continuar con GitLab",
+
+    // ── 3D Scene & VR ──
+    "scene.status_loading": "ANÁLISIS DE DATOS EN VIVO // CARGANDO...",
+    "scene.ai_offline": "[IA_OFFLINE] Servidor de IA local no detectado. Visualización estándar activada.",
+    "scene.nav_title": "VOLVER AL ANALIZADOR",
+    "scene.nav_sub": "PULSA PARA INICIAR\nOTRO ANÁLISIS",
+    "scene.nav_btn": "INICIO",
+    "scene.btn_explain": "EXPLICAR",
+    "scene.btn_summary": "RESUMEN",
+    "scene.btn_problems": "PROBLEMAS",
+    "scene.btn_recs": "MEJORAS",
+    "scene.btn_show": "MOSTRAR",
+    "scene.btn_listen": "ESCUCHAR",
+    "scene.vr_assistant_title": "ASISTENTE IA — REPORTE",
+    "scene.vr_loading": "Cargando reporte...",
+    "scene.vr_close": "CERRAR",
+    "scene.vr_prompt_explain": "Pulse el botón 'EXPLICAR' primero para generar la explicación del dashboard.",
+    "scene.legend.opacity": "OPACIDAD SUPERFICIE",
+    "scene.legend.height": "ALTURA PEDESTAL",
+    "scene.legend.scale": "ESCALA PREDETERMINADA",
   },
 
   en: {
@@ -214,6 +234,26 @@ const TRANSLATIONS = {
     "modal.desc": "Select your version control provider:",
     "modal.github": "Continue with GitHub",
     "modal.gitlab": "Continue with GitLab",
+
+    // ── 3D Scene & VR ──
+    "scene.status_loading": "LIVE DATA ANALYSIS // LOADING...",
+    "scene.ai_offline": "[AI_OFFLINE] Local AI server not detected. Standard visualization active.",
+    "scene.nav_title": "BACK TO ANALYZER",
+    "scene.nav_sub": "CLICK TO START\nANOTHER ANALYSIS",
+    "scene.nav_btn": "HOME",
+    "scene.btn_explain": "EXPLAIN",
+    "scene.btn_summary": "SUMMARY",
+    "scene.btn_problems": "PROBLEMS",
+    "scene.btn_recs": "RECOMMENDATIONS",
+    "scene.btn_show": "SHOW",
+    "scene.btn_listen": "LISTEN",
+    "scene.vr_assistant_title": "AI ASSISTANT — REPORT",
+    "scene.vr_loading": "Loading report...",
+    "scene.vr_close": "CLOSE",
+    "scene.vr_prompt_explain": "Click the 'EXPLAIN' button first to generate the dashboard explanation.",
+    "scene.legend.opacity": "SURFACE OPACITY",
+    "scene.legend.height": "PEDESTAL HEIGHT",
+    "scene.legend.scale": "DEFAULT SCALE",
   }
 };
 
@@ -261,14 +301,27 @@ function setLanguage(lang) {
 }
 
 /**
+ * Get current active language code ('es' or 'en').
+ * @returns {string}
+ */
+function getLang() {
+  return localStorage.getItem('vizzo_lang') || 'es';
+}
+
+/**
  * Get a single translation string by key.
  * @param {string} key
  * @returns {string}
  */
 function t(key) {
-  const lang = localStorage.getItem('vizzo_lang') || 'es';
+  const lang = getLang();
   return TRANSLATIONS[lang]?.[key] || TRANSLATIONS['es']?.[key] || key;
 }
+
+// Expose i18n utilities globally on window object
+window.getLang = getLang;
+window.setLanguage = setLanguage;
+window.t = t;
 
 /**
  * Initialize i18n system on DOMContentLoaded.

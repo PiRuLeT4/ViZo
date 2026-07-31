@@ -75,6 +75,8 @@ export function buildVRWristMenu(parentEl) {
   titleText.setAttribute("font", "https://cdn.aframe.io/fonts/Exo2Bold.fnt");
   parentEl.appendChild(titleText);
 
+  var isEn = localStorage.getItem("vizzo_lang") === "en";
+
   // Grid layout parameters for buttons (2 columns, 4 rows)
   var buttons = [
     // Fila 1: Habitación General
@@ -88,7 +90,7 @@ export function buildVRWristMenu(parentEl) {
     },
     // Fila 2: Opacidad Suelo
     {
-      text: "SUELO +",
+      text: isEn ? "FLOOR +" : "SUELO +",
       component: "vizzo-opacity-control",
       params: "target: #floor-plane; action: increase; valueEl: #val-floor",
       x: -0.2,
@@ -96,7 +98,7 @@ export function buildVRWristMenu(parentEl) {
       w: 0.34,
     },
     {
-      text: "SUELO -",
+      text: isEn ? "FLOOR -" : "SUELO -",
       component: "vizzo-opacity-control",
       params: "target: #floor-plane; action: decrease; valueEl: #val-floor",
       x: 0.2,
@@ -105,7 +107,7 @@ export function buildVRWristMenu(parentEl) {
     },
     // Fila 3: Opacidad Paredes
     {
-      text: "PAREDES +",
+      text: isEn ? "WALLS +" : "PAREDES +",
       component: "vizzo-opacity-control",
       params: "target: walls; action: increase",
       x: -0.2,
@@ -113,7 +115,7 @@ export function buildVRWristMenu(parentEl) {
       w: 0.34,
     },
     {
-      text: "PAREDES -",
+      text: isEn ? "WALLS -" : "PAREDES -",
       component: "vizzo-opacity-control",
       params: "target: walls; action: decrease",
       x: 0.2,
@@ -122,14 +124,14 @@ export function buildVRWristMenu(parentEl) {
     },
     // Fila 4: Cielo / Fondos 3D
     {
-      text: "CIELO -",
+      text: isEn ? "SKY -" : "CIELO -",
       action: "sky-prev",
       x: -0.2,
       y: -0.30,
       w: 0.34,
     },
     {
-      text: "CIELO +",
+      text: isEn ? "SKY +" : "CIELO +",
       action: "sky-next",
       x: 0.2,
       y: -0.30,

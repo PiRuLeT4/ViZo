@@ -237,6 +237,37 @@ function getPanelCenterPosition(dash, vizId, pos, type) {
   return { panelX, panelY, panelZ, yawDegrees, x: panelX, y: panelY, z: panelZ };
 }
 
+function translateDashboardTitle(title, isEn) {
+  if (!title) return isEn ? "CONTROL PANEL" : "PANEL DE CONTROL";
+  var raw = title.trim();
+  var upper = raw.toUpperCase();
+
+  if (isEn) {
+    if (upper.includes("CIUDAD")) return "CODE CITY";
+    if (upper.includes("RED DE CO-REVISIONES") || upper.includes("CO-REVISIONES")) return "CODE REVIEWS NETWORK";
+    if (upper.includes("RED DE COLABORACION") || upper.includes("RED DE COLABORACIÓN")) return "COLLABORATION NETWORK";
+    if (upper.includes("LENGUAJE")) return "LANGUAGES DISTRIBUTION";
+    if (upper.includes("HISTORIAL DE COMMIT") || upper.includes("EVOLUCION DEL CODIGO") || upper.includes("EVOLUCIÓN DEL CÓDIGO")) return "COMMITS EVOLUTION";
+    if (upper.includes("SALUD DE RELEASES") || upper.includes("EVOLUCION POR RELEASES") || upper.includes("EVOLUCIÓN POR RELEASES")) return "RELEASES HEALTH";
+    if (upper.includes("ACTIVIDAD DE LA COMUNIDAD") || upper.includes("ACTIVIDAD COMUNIDAD")) return "COMMUNITY ACTIVITY";
+    if (upper.includes("PROPIEDAD DE ARCHIVO") || upper.includes("BUS FACTOR")) return "FILE OWNERSHIP";
+    if (upper.includes("ACTIVIDAD TEMPORAL") || upper.includes("ACTIVIDAD DE AUTOR")) return "DEVELOPER ACTIVITY MAP";
+    if (upper.includes("ANTIGUEDAD") || upper.includes("ANTIGÜEDAD") || upper.includes("EDAD DEL CÓDIGO") || upper.includes("EDAD DEL CODIGO")) return "CODE AGE & LEGACY";
+    if (upper.includes("ARCHIVOS COMPLEJOS") || upper.includes("TOP COMPLEJIDAD") || upper.includes("COMPLEJIDAD CICLOMÁTICA") || upper.includes("COMPLEJIDAD CICLOMATICA")) return "TOP COMPLEX FILES";
+    if (upper.includes("CHURN") || upper.includes("HOTSPOT")) return "TOP CHURN FILES";
+    if (upper.includes("SALUD DE ISSUES") || upper.includes("ESTADO DE ISSUES")) return "ISSUES HEALTH";
+    if (upper.includes("PULL REQUEST")) return "PULL REQUESTS";
+    if (upper === "CODE COMPLEXITY BOATS") return "CODE CITY";
+    if (upper === "PANEL DE CONTROL") return "CONTROL PANEL";
+
+    return upper;
+  } else {
+    if (upper === "CODE COMPLEXITY BOATS" || upper === "CODE CITY") return "CIUDAD DE CODIGO";
+    if (upper === "CONTROL PANEL") return "PANEL DE CONTROL";
+    return upper;
+  }
+}
+
 /**
  * Construye un atril físico individual
  */
@@ -254,7 +285,9 @@ function buildSinglePanel(scene, dash, vizId, panelPos, configType, vizTypeKey, 
   var panelHeight = cfg.height || 0.7;
   var halfHeight = panelHeight / 2;
 
-  var titleTextRaw = customTitle || (dash.title ? dash.title.toUpperCase() : "PANEL DE CONTROL");
+  var isEn = localStorage.getItem("vizzo_lang") === "en";
+  var defaultTitle = isEn ? "CONTROL PANEL" : "PANEL DE CONTROL";
+  var titleTextRaw = customTitle || (dash && dash.title ? translateDashboardTitle(dash.title, isEn) : defaultTitle);
   var titleTextValue = titleTextRaw
     .replace(/[ÁÀÄÂ]/g, "A")
     .replace(/[ÉÈËÊ]/g, "E")
@@ -271,22 +304,59 @@ function buildSinglePanel(scene, dash, vizId, panelPos, configType, vizTypeKey, 
   panelEl.setAttribute("data-viz-type", normVizKey);
   panelEl.setAttribute("position", `${panelX} ${panelY} ${panelZ}`);
   panelEl.setAttribute("rotation", `0 ${yawDegrees} 0`);
-  panelEl.setAttribute("scale", "1.4 1.4 1.4");
 
-  var screenEl = document.createElement("a-entity");
-  var tiltAngle = "-25 0 0";
-  screenEl.setAttribute("position", "0 0 0");
-  screenEl.setAttribute("rotation", tiltAngle);
+  // Screen background plate (same backplate as wall opacity panels)
+  var screenEl = document.createElement("a-plane");
+  screenEl.setAttribute("width", panelWidth.toString());
+  screenEl.setAttribute("height", panelHeight.toString());
+  screenEl.setAttribute("color", "#0c0c12");
+  screenEl.setAttribute(
+    "material",
+    "opacity: 0.88; transparent: true; roughness: 0.5; metalness: 0.1",
+  );
 
-  var backPlate = document.createElement("a-box");
-  backPlate.setAttribute("width", (panelWidth + 0.08).toString());
-  backPlate.setAttribute("height", (panelHeight + 0.08).toString());
-  backPlate.setAttribute("depth", "0.03");
-  backPlate.setAttribute("position", "0 0 0");
-  backPlate.setAttribute("src", "#marmol-texture");
-  backPlate.setAttribute("material", "roughness: 0.8; metalness: 0.1");
-  screenEl.appendChild(backPlate);
+  // Glowing bordeaux top border
+  var borderTop = document.createElement("a-box");
+  borderTop.setAttribute("position", `0 ${halfHeight} 0.005`);
+  borderTop.setAttribute("width", (panelWidth + 0.02).toString());
+  borderTop.setAttribute("height", "0.02");
+  borderTop.setAttribute("depth", "0.01");
+  borderTop.setAttribute("color", "#8B0A2E");
+  borderTop.setAttribute("emissive", "#8B0A2E");
+  borderTop.setAttribute("emissive-intensity", "1.2");
+  screenEl.appendChild(borderTop);
 
+  var borderBottom = document.createElement("a-box");
+  borderBottom.setAttribute("position", `0 -${halfHeight} 0.005`);
+  borderBottom.setAttribute("width", (panelWidth + 0.02).toString());
+  borderBottom.setAttribute("height", "0.02");
+  borderBottom.setAttribute("depth", "0.01");
+  borderBottom.setAttribute("color", "#8B0A2E");
+  borderBottom.setAttribute("emissive", "#8B0A2E");
+  borderBottom.setAttribute("emissive-intensity", "1.2");
+  screenEl.appendChild(borderBottom);
+
+  var borderLeft = document.createElement("a-box");
+  borderLeft.setAttribute("position", `-${panelWidth / 2} 0 0.005`);
+  borderLeft.setAttribute("width", "0.02");
+  borderLeft.setAttribute("height", (panelHeight + 0.02).toString());
+  borderLeft.setAttribute("depth", "0.01");
+  borderLeft.setAttribute("color", "#8B0A2E");
+  borderLeft.setAttribute("emissive", "#8B0A2E");
+  borderLeft.setAttribute("emissive-intensity", "1.2");
+  screenEl.appendChild(borderLeft);
+
+  var borderRight = document.createElement("a-box");
+  borderRight.setAttribute("position", `${panelWidth / 2} 0 0.005`);
+  borderRight.setAttribute("width", "0.02");
+  borderRight.setAttribute("height", (panelHeight + 0.02).toString());
+  borderRight.setAttribute("depth", "0.01");
+  borderRight.setAttribute("color", "#8B0A2E");
+  borderRight.setAttribute("emissive", "#8B0A2E");
+  borderRight.setAttribute("emissive-intensity", "1.2");
+  screenEl.appendChild(borderRight);
+
+  // Title text (slate-900 / dark color on light screen)
   var titleText = document.createElement("a-text");
   titleText.setAttribute("value", titleTextValue);
   var titleY = halfHeight - 0.08;
@@ -295,58 +365,59 @@ function buildSinglePanel(scene, dash, vizId, panelPos, configType, vizTypeKey, 
 
   titleText.setAttribute("position", `0 ${titleY} ${titleZ}`);
   titleText.setAttribute("align", "center");
-  titleText.setAttribute("color", "#0f172a");
+  titleText.setAttribute("color", "#f8fafc");
   titleText.setAttribute("width", maxTitleWidth.toString());
   titleText.setAttribute("wrap-count", (normConfigType === "boats" || normConfigType === "boats_metrics") ? "35" : "18");
   titleText.setAttribute("font", "https://cdn.aframe.io/fonts/Exo2Bold.fnt");
   screenEl.appendChild(titleText);
 
+  // Render headers if defined (for boats / babia-boats-metrics)
+  var isBoats = (normConfigType === "boats" || normConfigType === "boats_metrics" || normConfigType === "boats_ai");
   var headers = cfg.headers || [];
   headers.forEach(function (h) {
     var headerText = document.createElement("a-text");
-    headerText.setAttribute("value", h.text);
+    var isEn = localStorage.getItem("vizzo_lang") === "en";
+    var txtVal = h.text;
+    if (h.text === "ALTURA") txtVal = isEn ? "HEIGHT" : "ALTURA";
+    else if (h.text === "COLOR") txtVal = isEn ? "COLOR" : "COLOR";
+    headerText.setAttribute("value", txtVal);
     headerText.setAttribute("position", `${h.x} ${h.y} ${titleZ}`);
     headerText.setAttribute("align", "center");
-    headerText.setAttribute("color", "#334155");
-    var isBoats = (normConfigType === "boats" || normConfigType === "boats_metrics");
+    headerText.setAttribute("color", "#cbd5e1");
     headerText.setAttribute("width", isBoats ? "0.45" : maxTitleWidth.toString());
-    headerText.setAttribute("wrap-count", isBoats ? "12" : "14");
     headerText.setAttribute("font", "https://cdn.aframe.io/fonts/Exo2Bold.fnt");
     screenEl.appendChild(headerText);
   });
 
+  // Render buttons
   var buttons = cfg.buttons || [];
   buttons.forEach(function (btn) {
     var btnEl = document.createElement("a-entity");
-    var btnZ = 0.015;
-    btnEl.setAttribute("position", `${btn.x} ${btn.y} ${btnZ}`);
-    btnEl.setAttribute(
-      "vizzo-control-btn",
-      `action: ${btn.action}; targetId: ${vizId}; vizType: ${normVizKey}; value: ${btn.value || ""}`,
-    );
+    btnEl.setAttribute("position", `${btn.x} ${btn.y} 0.015`);
 
-    var btnWidth = btn.w || 0.52;
-    var btnHeight = btn.h || 0.09;
-    var btnBorderWidth = btnWidth + 0.01;
-    var btnBorderHeight = btnHeight + 0.01;
+    var btnWidth = btn.w || 0.34;
+    var btnHeight = btn.h || 0.12;
 
+    // Base button plane (sleek dark metal)
     var btnBase = document.createElement("a-box");
-    btnBase.setAttribute("class", "clickable vizzo-btn-base");
+    btnBase.setAttribute("class", "clickable");
     btnBase.setAttribute("width", btnWidth.toString());
     btnBase.setAttribute("height", btnHeight.toString());
-    btnBase.setAttribute("depth", "0.012");
-    btnBase.setAttribute("src", "#button-texture");
-    btnBase.setAttribute("color", "#ffffff");
-    btnBase.setAttribute("material", "roughness: 0.6; metalness: 0.1");
+    btnBase.setAttribute("depth", "0.015");
+    btnBase.setAttribute("color", "#f8fafc");
+    btnBase.setAttribute("material", "roughness: 0.3; metalness: 0.1");
+
+    // Attach actions / dataset / component metadata
+    if (btn.action) btnBase.setAttribute("data-panel-action", btn.action);
+    if (btn.value) btnBase.setAttribute("data-panel-value", btn.value);
+
+    btnBase.setAttribute("data-panel-dash", dash.id);
+    btnBase.setAttribute("data-panel-type", normVizKey);
+
     btnEl.appendChild(btnBase);
 
+    // Glowing bordeaux outline
     var btnBorder = document.createElement("a-box");
-    btnBorder.setAttribute("class", "vizzo-btn-border");
-    btnBorder.setAttribute("position", "0 0 -0.006");
-    btnBorder.setAttribute("width", btnBorderWidth.toString());
-    btnBorder.setAttribute("height", btnBorderHeight.toString());
-    btnBorder.setAttribute("depth", "0.005");
-    btnBorder.setAttribute("color", "#cbd5e1");
     btnBorder.setAttribute("material", "roughness: 0.6; metalness: 0.1");
     btnEl.appendChild(btnBorder);
 
@@ -410,7 +481,18 @@ function buildSinglePanel(scene, dash, vizId, panelPos, configType, vizTypeKey, 
       btnEl.appendChild(iconGroup);
     } else {
       var btnTxt = document.createElement("a-text");
-      btnTxt.setAttribute("value", btn.text);
+      var isEn = localStorage.getItem("vizzo_lang") === "en";
+      var displayBtnText = btn.text;
+      if (btn.action === "fetch-ai-info") displayBtnText = isEn ? "EXPLAIN" : "EXPLICAR";
+      else if (btn.value === "summary") displayBtnText = isEn ? "SUMMARY" : "RESUMEN";
+      else if (btn.value === "problems") displayBtnText = isEn ? "PROBLEMS" : "PROBLEMAS";
+      else if (btn.value === "recommendations") displayBtnText = isEn ? "RECOMMENDATIONS" : "MEJORAS";
+      else if (btn.action === "change-palette") displayBtnText = isEn ? "CHANGE COLOR" : "CAMBIAR COLOR";
+      else if (btn.text === "FUNCIONES") displayBtnText = isEn ? "FUNCTIONS" : "FUNCIONES";
+      else if (btn.text === "PROPIEDAD") displayBtnText = isEn ? "OWNERSHIP" : "PROPIEDAD";
+      else if (btn.text === "EDAD (DIAS)") displayBtnText = isEn ? "AGE (DAYS)" : "EDAD (DIAS)";
+
+      btnTxt.setAttribute("value", displayBtnText);
       btnTxt.setAttribute("position", "0 0 0.008");
       btnTxt.setAttribute("align", "center");
       btnTxt.setAttribute("color", "#334155");
@@ -433,9 +515,10 @@ export function buildControlPanel(scene, dash, vizId, pos, type) {
   var normType = normalizeVizType(type);
   var centerPos = getPanelCenterPosition(dash, vizId, pos, normType);
 
+  var isEn = localStorage.getItem("vizzo_lang") === "en";
   var customTitle = (normType === "boats" || normType === "boats_metrics" || normType === "boats_ai")
-    ? "CIUDAD DE CODIGO"
-    : (dash.title ? dash.title.toUpperCase() : "PANEL DE CONTROL");
+    ? (isEn ? "CODE CITY" : "CIUDAD DE CODIGO")
+    : translateDashboardTitle(dash ? dash.title : "", isEn);
 
   buildSinglePanel(
     scene,
