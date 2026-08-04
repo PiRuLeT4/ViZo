@@ -24,11 +24,13 @@ def _remove_readonly(func, path, excinfo):
     func(path)
 
 
+import tempfile
+
 def _temp_dir(session_id: int = None) -> str:
-    """Devuelve la ruta absoluta del directorio temporal, aislado por sesión si se provee."""
+    """Devuelve la ruta absoluta del directorio temporal en el directorio temp del SO, aislado por sesión si se provee."""
     suffix = f"_{session_id}" if session_id else ""
     return os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "..", "..", "..", f"temp_repo_analysis{suffix}")
+        os.path.join(tempfile.gettempdir(), f"temp_repo_analysis{suffix}")
     )
 
 

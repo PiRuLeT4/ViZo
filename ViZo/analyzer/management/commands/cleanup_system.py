@@ -20,12 +20,14 @@ def remove_readonly(func, path, excinfo):
     func(path)
 
 
+import tempfile
+
 def purge_orphan_temp_dirs(check_db: bool = True):
     """
     Busca carpetas temporales temp_repo_analysis* que no pertenezcan a sesiones activas.
     Si check_db es False (ej. arranque del servidor), elimina todas las carpetas huérfanas en disco sin consultar la BD.
     """
-    base_dir = Path(__file__).resolve().parent.parent.parent.parent
+    base_dir = Path(tempfile.gettempdir())
     active_session_ids = set()
 
     if check_db:
