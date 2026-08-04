@@ -101,6 +101,14 @@ export function initAiConfig() {
     });
   }
 
+function getCsrfToken() {
+  const cookieValue = document.cookie
+    .split("; ")
+    .find(row => row.startsWith("csrftoken="))
+    ?.split("=")[1];
+  return cookieValue || document.querySelector("[name=csrfmiddlewaretoken]")?.value || "";
+}
+
   // Save operation
   if (saveAiModalBtn) {
     saveAiModalBtn.addEventListener("click", function() {
@@ -115,7 +123,8 @@ export function initAiConfig() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-Requested-With": "XMLHttpRequest"
+          "X-Requested-With": "XMLHttpRequest",
+          "X-CSRFToken": getCsrfToken()
         },
         body: JSON.stringify(payload)
       })
@@ -169,7 +178,8 @@ export function initAiConfig() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-Requested-With": "XMLHttpRequest"
+          "X-Requested-With": "XMLHttpRequest",
+          "X-CSRFToken": getCsrfToken()
         },
         body: JSON.stringify(payload)
       })

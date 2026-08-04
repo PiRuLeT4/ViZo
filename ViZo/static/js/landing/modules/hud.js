@@ -220,7 +220,8 @@ export function startAnalysis(repoUrlVal, friendlyName, formData) {
     method: "POST",
     body: formData,
     headers: {
-      "X-Requested-With": "XMLHttpRequest"
+      "X-Requested-With": "XMLHttpRequest",
+      "X-CSRFToken": getCsrfToken()
     }
   })
     .then(res => {
