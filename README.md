@@ -1,8 +1,11 @@
 <div align="center">
 
-# <img src="ViZo/static/logo.png" alt="ViZo Logo" width="200" height="200" valign="middle" /> 
+<a href="https://vizzovr.com">
+  <img src="ViZo/static/logo.png" alt="ViZzo Logo" width="180" />
+</a>
 
-### *Vizzo: Intelligent Code Analysis & Immersive 3D/VR Visualization Platform*
+# **ViZzo**
+### *Intelligent Code Analysis & Immersive 3D/VR Visualization Platform*
 
 [![Live Demo](https://img.shields.io/badge/🌐_Live_Demo-vizzovr.com-00C853?style=for-the-badge)](https://vizzovr.com)
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
