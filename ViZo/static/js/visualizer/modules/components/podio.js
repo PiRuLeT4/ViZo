@@ -118,12 +118,13 @@ AFRAME.registerComponent("vizzo-podio", {
               } else {
                 panelEl.setAttribute("position", `${panelX} ${targetY} ${panelZ}`);
               }
+              var rotX = (currentRot && currentRot.x !== undefined && currentRot.x !== 0) ? currentRot.x : -22;
               if (currentRot) {
                 if (Math.abs(currentRot.y - rotY) > 0.5) {
-                  panelEl.setAttribute("rotation", `0 ${rotY} 0`);
+                  panelEl.setAttribute("rotation", `${rotX} ${rotY} 0`);
                 }
               } else {
-                panelEl.setAttribute("rotation", `0 ${rotY} 0`);
+                panelEl.setAttribute("rotation", `${rotX} ${rotY} 0`);
               }
             }
           });

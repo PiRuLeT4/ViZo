@@ -303,60 +303,29 @@ function buildSinglePanel(scene, dash, vizId, panelPos, configType, vizTypeKey, 
   panelEl.setAttribute("data-dash-id", dash.id);
   panelEl.setAttribute("data-viz-type", normVizKey);
   panelEl.setAttribute("position", `${panelX} ${panelY} ${panelZ}`);
-  panelEl.setAttribute("rotation", `0 ${yawDegrees} 0`);
+  panelEl.setAttribute("rotation", `-22 ${yawDegrees} 0`);
+  panelEl.setAttribute("scale", "1.18 1.18 1.18");
 
-  // Screen background plate (same backplate as wall opacity panels)
+  // Wooden backplate frame for the control panel atril
+  var woodBackplate = document.createElement("a-box");
+  woodBackplate.setAttribute("width", (panelWidth + 0.08).toString());
+  woodBackplate.setAttribute("height", (panelHeight + 0.08).toString());
+  woodBackplate.setAttribute("depth", "0.04");
+  woodBackplate.setAttribute("position", "0 0 -0.022");
+  woodBackplate.setAttribute("src", "#panel-texture");
+  woodBackplate.setAttribute("material", "roughness: 0.7; metalness: 0.1");
+  panelEl.appendChild(woodBackplate);
+
+  // Screen background plate (semi-transparent plate on wood atril)
   var screenEl = document.createElement("a-plane");
   screenEl.setAttribute("width", panelWidth.toString());
   screenEl.setAttribute("height", panelHeight.toString());
-  screenEl.setAttribute("color", "#0c0c12");
   screenEl.setAttribute(
     "material",
-    "opacity: 0.88; transparent: true; roughness: 0.5; metalness: 0.1",
+    "color: #ffffff; opacity: 0.15; transparent: true; roughness: 0.5; metalness: 0.1",
   );
 
-  // Glowing bordeaux top border
-  var borderTop = document.createElement("a-box");
-  borderTop.setAttribute("position", `0 ${halfHeight} 0.005`);
-  borderTop.setAttribute("width", (panelWidth + 0.02).toString());
-  borderTop.setAttribute("height", "0.02");
-  borderTop.setAttribute("depth", "0.01");
-  borderTop.setAttribute("color", "#8B0A2E");
-  borderTop.setAttribute("emissive", "#8B0A2E");
-  borderTop.setAttribute("emissive-intensity", "1.2");
-  screenEl.appendChild(borderTop);
-
-  var borderBottom = document.createElement("a-box");
-  borderBottom.setAttribute("position", `0 -${halfHeight} 0.005`);
-  borderBottom.setAttribute("width", (panelWidth + 0.02).toString());
-  borderBottom.setAttribute("height", "0.02");
-  borderBottom.setAttribute("depth", "0.01");
-  borderBottom.setAttribute("color", "#8B0A2E");
-  borderBottom.setAttribute("emissive", "#8B0A2E");
-  borderBottom.setAttribute("emissive-intensity", "1.2");
-  screenEl.appendChild(borderBottom);
-
-  var borderLeft = document.createElement("a-box");
-  borderLeft.setAttribute("position", `-${panelWidth / 2} 0 0.005`);
-  borderLeft.setAttribute("width", "0.02");
-  borderLeft.setAttribute("height", (panelHeight + 0.02).toString());
-  borderLeft.setAttribute("depth", "0.01");
-  borderLeft.setAttribute("color", "#8B0A2E");
-  borderLeft.setAttribute("emissive", "#8B0A2E");
-  borderLeft.setAttribute("emissive-intensity", "1.2");
-  screenEl.appendChild(borderLeft);
-
-  var borderRight = document.createElement("a-box");
-  borderRight.setAttribute("position", `${panelWidth / 2} 0 0.005`);
-  borderRight.setAttribute("width", "0.02");
-  borderRight.setAttribute("height", (panelHeight + 0.02).toString());
-  borderRight.setAttribute("depth", "0.01");
-  borderRight.setAttribute("color", "#8B0A2E");
-  borderRight.setAttribute("emissive", "#8B0A2E");
-  borderRight.setAttribute("emissive-intensity", "1.2");
-  screenEl.appendChild(borderRight);
-
-  // Title text (slate-900 / dark color on light screen)
+  // Title text (slate-900 dark text)
   var titleText = document.createElement("a-text");
   titleText.setAttribute("value", titleTextValue);
   var titleY = halfHeight - 0.08;
@@ -365,7 +334,7 @@ function buildSinglePanel(scene, dash, vizId, panelPos, configType, vizTypeKey, 
 
   titleText.setAttribute("position", `0 ${titleY} ${titleZ}`);
   titleText.setAttribute("align", "center");
-  titleText.setAttribute("color", "#f8fafc");
+  titleText.setAttribute("color", "#0f172a");
   titleText.setAttribute("width", maxTitleWidth.toString());
   titleText.setAttribute("wrap-count", (normConfigType === "boats" || normConfigType === "boats_metrics") ? "35" : "18");
   titleText.setAttribute("font", "https://cdn.aframe.io/fonts/Exo2Bold.fnt");
@@ -383,8 +352,8 @@ function buildSinglePanel(scene, dash, vizId, panelPos, configType, vizTypeKey, 
     headerText.setAttribute("value", txtVal);
     headerText.setAttribute("position", `${h.x} ${h.y} ${titleZ}`);
     headerText.setAttribute("align", "center");
-    headerText.setAttribute("color", "#cbd5e1");
-    headerText.setAttribute("width", isBoats ? "0.45" : maxTitleWidth.toString());
+    headerText.setAttribute("color", "#334155");
+    headerText.setAttribute("width", isBoats ? "1.1" : maxTitleWidth.toString());
     headerText.setAttribute("font", "https://cdn.aframe.io/fonts/Exo2Bold.fnt");
     screenEl.appendChild(headerText);
   });
@@ -394,18 +363,24 @@ function buildSinglePanel(scene, dash, vizId, panelPos, configType, vizTypeKey, 
   buttons.forEach(function (btn) {
     var btnEl = document.createElement("a-entity");
     btnEl.setAttribute("position", `${btn.x} ${btn.y} 0.015`);
+    btnEl.setAttribute(
+      "vizzo-control-btn",
+      `action: ${btn.action || ""}; targetId: ${vizId}; vizType: ${normVizKey}; value: ${btn.value || ""}`,
+    );
 
     var btnWidth = btn.w || 0.34;
     var btnHeight = btn.h || 0.12;
 
-    // Base button plane (sleek dark metal)
+    // Base button plane with texture
     var btnBase = document.createElement("a-box");
-    btnBase.setAttribute("class", "clickable");
+    btnBase.setAttribute("class", "clickable vizzo-btn-base");
     btnBase.setAttribute("width", btnWidth.toString());
     btnBase.setAttribute("height", btnHeight.toString());
     btnBase.setAttribute("depth", "0.015");
-    btnBase.setAttribute("color", "#f8fafc");
-    btnBase.setAttribute("material", "roughness: 0.3; metalness: 0.1");
+    btnBase.setAttribute(
+      "material",
+      "src: #button-texture; color: #ffffff; roughness: 0.6; metalness: 0.1",
+    );
 
     // Attach actions / dataset / component metadata
     if (btn.action) btnBase.setAttribute("data-panel-action", btn.action);
@@ -416,9 +391,17 @@ function buildSinglePanel(scene, dash, vizId, panelPos, configType, vizTypeKey, 
 
     btnEl.appendChild(btnBase);
 
-    // Glowing bordeaux outline
+    // Fine clean slate border
     var btnBorder = document.createElement("a-box");
-    btnBorder.setAttribute("material", "roughness: 0.6; metalness: 0.1");
+    btnBorder.setAttribute("class", "vizzo-btn-border");
+    btnBorder.setAttribute("width", (btnWidth + 0.012).toString());
+    btnBorder.setAttribute("height", (btnHeight + 0.012).toString());
+    btnBorder.setAttribute("depth", "0.008");
+    btnBorder.setAttribute("position", "0 0 -0.003");
+    btnBorder.setAttribute(
+      "material",
+      "color: #cbd5e1; roughness: 0.6; metalness: 0.1",
+    );
     btnEl.appendChild(btnBorder);
 
     if (btn.action === "play-tts") {
@@ -430,8 +413,7 @@ function buildSinglePanel(scene, dash, vizId, panelPos, configType, vizTypeKey, 
       spkBody.setAttribute("width", "0.018");
       spkBody.setAttribute("height", "0.022");
       spkBody.setAttribute("depth", "0.004");
-      spkBody.setAttribute("color", "#334155");
-      spkBody.setAttribute("material", "roughness: 0.5");
+      spkBody.setAttribute("material", "color: #334155; roughness: 0.5");
       iconGroup.appendChild(spkBody);
 
       var spkCone = document.createElement("a-cone");
@@ -440,8 +422,7 @@ function buildSinglePanel(scene, dash, vizId, panelPos, configType, vizTypeKey, 
       spkCone.setAttribute("radius-bottom", "0.020");
       spkCone.setAttribute("radius-top", "0.008");
       spkCone.setAttribute("height", "0.018");
-      spkCone.setAttribute("color", "#334155");
-      spkCone.setAttribute("material", "roughness: 0.5");
+      spkCone.setAttribute("material", "color: #334155; roughness: 0.5");
       iconGroup.appendChild(spkCone);
 
       var wave1 = document.createElement("a-ring");
@@ -450,9 +431,8 @@ function buildSinglePanel(scene, dash, vizId, panelPos, configType, vizTypeKey, 
       wave1.setAttribute("radius-outer", "0.020");
       wave1.setAttribute("theta-start", "-45");
       wave1.setAttribute("theta-length", "90");
-      wave1.setAttribute("color", "#334155");
       wave1.setAttribute("side", "double");
-      wave1.setAttribute("material", "roughness: 0.5");
+      wave1.setAttribute("material", "color: #334155; roughness: 0.5");
       iconGroup.appendChild(wave1);
 
       var wave2 = document.createElement("a-ring");
@@ -461,9 +441,8 @@ function buildSinglePanel(scene, dash, vizId, panelPos, configType, vizTypeKey, 
       wave2.setAttribute("radius-outer", "0.030");
       wave2.setAttribute("theta-start", "-45");
       wave2.setAttribute("theta-length", "90");
-      wave2.setAttribute("color", "#334155");
       wave2.setAttribute("side", "double");
-      wave2.setAttribute("material", "roughness: 0.5");
+      wave2.setAttribute("material", "color: #334155; roughness: 0.5");
       iconGroup.appendChild(wave2);
 
       var strikeLine = document.createElement("a-box");
@@ -473,8 +452,7 @@ function buildSinglePanel(scene, dash, vizId, panelPos, configType, vizTypeKey, 
       strikeLine.setAttribute("width", "0.006");
       strikeLine.setAttribute("height", "0.092");
       strikeLine.setAttribute("depth", "0.004");
-      strikeLine.setAttribute("color", "#000");
-      strikeLine.setAttribute("material", "roughness: 0.4");
+      strikeLine.setAttribute("material", "color: #000000; roughness: 0.4");
       strikeLine.setAttribute("visible", "true");
       iconGroup.appendChild(strikeLine);
 
