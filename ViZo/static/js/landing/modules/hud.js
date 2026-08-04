@@ -319,6 +319,14 @@ export function initHUD() {
     });
   }
 
+function getCsrfToken() {
+  const cookieValue = document.cookie
+    .split("; ")
+    .find(row => row.startsWith("csrftoken="))
+    ?.split("=")[1];
+  return cookieValue || document.querySelector("[name=csrfmiddlewaretoken]")?.value || "";
+}
+
   if (cancelAnalysisBtn) {
     cancelAnalysisBtn.addEventListener("click", () => {
       if (!currentSessionId) return;
@@ -330,10 +338,11 @@ export function initHUD() {
       fetch(`/api/session/${currentSessionId}/cancel/`, {
         method: "POST",
         headers: {
-          "X-Requested-With": "XMLHttpRequest"
+          "X-Requested-With": "XMLHttpRequest",
+          "X-CSRFToken": getCsrfToken()
         }
       })
-        .then(res => {
+        .then(async res => {
           if (res.status === 404) {
             stopPolling();
             clearActiveSessionStorage();
@@ -344,7 +353,10 @@ export function initHUD() {
             if (hudCancelContainer) hudCancelContainer.style.display = "none";
             throw new Error("Session not found (HTTP 404)");
           }
-          if (!res.ok) throw new Error("Cancel API returned HTTP " + res.status);
+          if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.error || ("Cancel API returned HTTP " + res.status));
+          }
           return res.json();
         })
         .then(data => {
