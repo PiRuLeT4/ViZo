@@ -1,0 +1,48 @@
+# Git & Repositorio
+.git
+.gitignore
+.dockerignore
+Dockerfile
+README.md
+Roadmap.md
+BabiaComponentes.md
+walkthrough*.md
+
+# Entornos Virtuales & Caché de Python
+venv/
+ENV/
+env/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Variables de Entorno & Archivos Sensibles
+.env
+.env.*
+
+# Base de Datos Local & Logs
+*.log
+logs/
+ViZo/logs/
+*.sqlite3
+*.db
+
+# Archivos Temporales de Análisis & Pruebas
+temp_repos/
+temp_repo_analysis*/
+testpythonclone/
+test_python_clone/
+datosAPI.txt
+datosGrok.txt
+ai_resp*.txt
+
+# Editores e IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db

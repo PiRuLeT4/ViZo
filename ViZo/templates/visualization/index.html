@@ -5,7 +5,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ViZzo - Data Visualization Suite</title>
-    <link rel="shortcut icon" href="{% static 'logo.png' %}" />
+    <link rel="icon" type="image/png" href="{% static 'logo.png' %}" />
+    <link rel="shortcut icon" type="image/png" href="{% static 'logo.png' %}" />
 
     <!-- A-Frame & Components -->
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
@@ -26,9 +27,6 @@
 
     <!-- A-Frame Components (ViZzo Lab Physics & Logic) -->
     <script src="{% static 'js/translations.js' %}"></script>
-    <script src="{% static 'js/visualizer/helpers.js' %}"></script>
-    <script src="{% static 'js/visualizer/components/vizzo-components.js' %}"></script>
-    <script src="{% static 'js/visualizer/components/fame.js' %}"></script>
   </head>
   <body>
     <!-- HUD Overlay -->
@@ -82,7 +80,6 @@
           crossorigin="anonymous"
         />
         <img id="podio-texture" src="{% static 'images/texture.jpg'%}" />
-        <img id="panel-texture" src="{% static 'images/texture_panel.jpg'%}" />
         <img
           id="vizzo-logo-img"
           src="{% static 'logo.png' %}"
@@ -96,6 +93,11 @@
         <img
           id="wood-texture"
           src="{% static 'images/wood-texture.jpg'%}"
+          crossorigin="anonymous"
+        />
+        <img
+          id="panel-texture"
+          src="{% static 'images/panel-texture.jpg'%}"
           crossorigin="anonymous"
         />
         <img

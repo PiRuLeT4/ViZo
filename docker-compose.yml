@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  # ── Base de Datos Relacional PostgreSQL 16 ──
+  db:
+    image: postgres:16-alpine
+    container_name: vizzo_db
+    restart: always
+    environment:
+      POSTGRES_DB: ${DB_NAME:-ViZo_DB}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres_secure_password}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-ViZo_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── Aplicación Principal ViZo Backend (Django + Gunicorn + A-Frame) ──
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vizzo_web
+    restart: always
+    env_file:
+      - path: ViZo/.env
+        required: false
+      - path: .env
+        required: false
+    environment:
+      - SECRET_KEY=${SECRET_KEY:-django-insecure-prod-key-vizzo-3d-analytics}
+      - DJANGO_DEBUG=${DJANGO_DEBUG:-True}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1,web}
+      - DB_ENGINE=django.db.backends.postgresql
+      - DB_NAME=${DB_NAME:-ViZo_DB}
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-postgres_secure_password}
+      - DB_HOST=db
+      - DB_PORT=5432
+    ports:
+      - "8000:8000"
+    volumes:
+      - vizzo_logs:/app/ViZo/logs
+      - ./ViZo:/app/ViZo
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+    driver: local
+  vizzo_logs:
+    driver: local
