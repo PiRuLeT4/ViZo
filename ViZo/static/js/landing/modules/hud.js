@@ -20,6 +20,14 @@ let currentSessionId = null;
 
 const translate = window.t || ((key) => key);
 
+function getCsrfToken() {
+  const cookieValue = document.cookie
+    .split("; ")
+    .find(row => row.startsWith("csrftoken="))
+    ?.split("=")[1];
+  return cookieValue || document.querySelector("[name=csrfmiddlewaretoken]")?.value || "";
+}
+
 export function isAnalysisProcessing() {
   return hud && hud.classList.contains("active") && hud.className.includes("status-processing");
 }
@@ -319,14 +327,6 @@ export function initHUD() {
       hud.classList.add("active");
     });
   }
-
-function getCsrfToken() {
-  const cookieValue = document.cookie
-    .split("; ")
-    .find(row => row.startsWith("csrftoken="))
-    ?.split("=")[1];
-  return cookieValue || document.querySelector("[name=csrfmiddlewaretoken]")?.value || "";
-}
 
   if (cancelAnalysisBtn) {
     cancelAnalysisBtn.addEventListener("click", () => {
