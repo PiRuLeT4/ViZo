@@ -5,7 +5,8 @@
 </a>
 
 # **ViZzo**
-### *Intelligent Code Analysis & Immersive 3D/VR Visualization Platform*
+
+### _Intelligent Code Analysis & Immersive 3D/VR Visualization Platform_
 
 [![Live Demo](https://img.shields.io/badge/🌐_Live_Demo-vizzovr.com-00C853?style=for-the-badge)](https://vizzovr.com)
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
@@ -29,52 +30,59 @@
 
 ## 📌 Tabla de Contenidos
 
-- [✨ Características Principales](#-características-principales)
-- [🏗️ Arquitectura del Sistema](#%EF%B8%8F-arquitectura-del-sistema)
-- [🔄 Pipeline de Análisis](#-pipeline-de-análisis)
-- [🛠️ Stack Tecnológico](#%EF%B8%8F-stack-tecnológico)
-- [🌐 APIs Externas e Integraciones](#-apis-externas-e-integraciones)
-- [🔐 Variables de Entorno (`.env`)](#-variables-de-entorno-env)
-- [🚀 Guía de Inicio Rápido](#-guía-de-inicio-rápido)
-- [🐳 Despliegue con Docker](#-despliegue-con-docker--docker-compose)
-- [📂 Estructura del Proyecto](#-estructura-del-proyecto)
-- [📄 Licencia](#-licencia)
+- [ Características Principales](#-características-principales)
+- [ Arquitectura del Sistema](#%EF%B8%8F-arquitectura-del-sistema)
+- [ Pipeline de Análisis](#-pipeline-de-análisis)
+- [ Stack Tecnológico](#%EF%B8%8F-stack-tecnológico)
+- [ APIs Externas e Integraciones](#-apis-externas-e-integraciones)
+- [ Variables de Entorno (`.env`)](#-variables-de-entorno-env)
+- [ Guía de Inicio Rápido](#-guía-de-inicio-rápido)
+- [ Despliegue con Docker](#-despliegue-con-docker--docker-compose)
+- [ Estructura del Proyecto](#-estructura-del-proyecto)
+- [ Licencia](#-licencia)
 
 ---
 
 ## ✨ Características Principales
 
-### 🌇 1. Ciudad de Código 3D (`babia-boats`)
-* Visualización metafórica de archivos fuente como **edificios tridimensionales** dentro de una sala VR.
-* **Mapeo Dimensional**: Altura → Líneas de Código (`NLOC`), Área de base → Complejidad Ciclomática (`CCN`), Color → Actividad de commits o propiedad de código.
+### 1. Ciudad de Código 3D (`babia-boats`)
 
-### 📊 2. Centro de Mando VR con hasta 8 Dashboards Dinámicos
-* Renderizado automático en **A-Frame 1.5** y **BabiaXR**.
-* **Gráficos 3D interactivos**: Bar Charts 3D, Cylinder Charts (`babia-cyls`), Doughnut/Pie 3D, Grid Maps (`babia-barsmap`) y Grafos de Red (`babia-network`).
-* Paneles de control 3D con textura de madera, botones interactivos y controles de opacidad de la sala.
+- Visualización metafórica de archivos fuente como **edificios tridimensionales** dentro de una sala VR.
+- **Mapeo Dimensional**: Altura → Líneas de Código (`NLOC`), Área de base → Complejidad Ciclomática (`CCN`), Color → Actividad de commits o propiedad de código.
 
-### ⚡ 3. Motor de Análisis Estático Resiliente (Lizard + PyDriller)
-* **Lizard AST Parser**: Extracción multihilo de métricas de complejidad ciclomática (`CCN`) y volumen de líneas (`NLOC`).
-* **Streaming por Lotes y Muestreo Inteligente**: Algoritmo de muestreo uniforme para repositorios masivos (>15.000 archivos) con recepción de lotes progresivos IPC y salvaguarda de resultados parciales ante tiempos límite.
-* **PyDriller & Dulwich**: Minería de datos de Git en profundidad para calcular la tasa de cambio (*churn*), propiedad de código y antigüedad (*code age*).
+### 2. Centro de Mando VR con hasta 8 Dashboards Dinámicos
 
-### 🧠 4. Asistente Arquitectónico impulsado por IA (DeepSeek / Grok / OpenAI)
-* **Generación Automática de Visualizaciones**: La IA analiza las estadísticas del repositorio y selecciona de 1 a 8 dashboards óptimos sin duplicidad de datasets.
-* **Diagnóstico de Salud**: Generación de resúmenes ejecutivos, detección de problemas críticos y recomendaciones de refactorización para cada dashboard.
+- Renderizado automático en **A-Frame 1.5** y **BabiaXR**.
+- **Gráficos 3D interactivos**: Bar Charts 3D, Cylinder Charts (`babia-cyls`), Doughnut/Pie 3D, Grid Maps (`babia-barsmap`) y Grafos de Red (`babia-network`).
+- Paneles de control 3D con textura de madera, botones interactivos y controles de opacidad de la sala.
 
-### 🎙️ 5. Narración por Voz TTS (Text-to-Speech)
-* Integración con la API de voz de **Grok / OpenAI (TTS-1)** para ofrecer explicaciones auditivas de la arquitectura en tiempo real directamente en la escena 3D.
+### 3. Motor de Análisis Estático Resiliente (Lizard + PyDriller)
 
-### 🌍 6. Internacionalización Bilingüe (ES / EN)
-* Alternancia dinámica entre **Español** e **Inglés** en tiempo real.
-* Traduce paneles de control 3D, interfaz de usuario, respuestas del asistente de IA y narraciones por voz TTS.
+- **Lizard AST Parser**: Extracción multihilo de métricas de complejidad ciclomática (`CCN`) y volumen de líneas (`NLOC`).
+- **Streaming por Lotes y Muestreo Inteligente**: Algoritmo de muestreo uniforme para repositorios masivos (>15.000 archivos) con recepción de lotes progresivos IPC y salvaguarda de resultados parciales ante tiempos límite.
+- **PyDriller & Dulwich**: Minería de datos de Git en profundidad para calcular la tasa de cambio (_churn_), propiedad de código y antigüedad (_code age_).
 
-### 🏆 7. Muro de la Fama y Trofeos 3D
-* Visualización en la escena 3D del Top 3 de desarrolladores en podios metálicos con texturas personalizadas, junto con trofeos dorados de Estrellas y Forks extraídos de GitHub/GitLab.
+### 4. Asistente Arquitectónico impulsado por IA (DeepSeek / Grok / OpenAI)
+
+- **Generación Automática de Visualizaciones**: La IA analiza las estadísticas del repositorio y selecciona de 1 a 8 dashboards óptimos sin duplicidad de datasets.
+- **Diagnóstico de Salud**: Generación de resúmenes ejecutivos, detección de problemas críticos y recomendaciones de refactorización para cada dashboard.
+
+### 5. Narración por Voz TTS (Text-to-Speech)
+
+- Integración con la API de voz de **Grok / OpenAI (TTS-1)** para ofrecer explicaciones auditivas de la arquitectura en tiempo real directamente en la escena 3D.
+
+### 6. Internacionalización Bilingüe (ES / EN)
+
+- Alternancia dinámica entre **Español** e **Inglés** en tiempo real.
+- Traduce paneles de control 3D, interfaz de usuario, respuestas del asistente de IA y narraciones por voz TTS.
+
+### 7. Muro de la Fama y Trofeos 3D
+
+- Visualización en la escena 3D del Top 3 de desarrolladores en podios metálicos con texturas personalizadas, junto con trofeos dorados de Estrellas y Forks extraídos de GitHub/GitLab.
 
 ---
 
-## 🏗️ Arquitectura del Sistema
+## Arquitectura del Sistema
 
 ```mermaid
 flowchart TD
@@ -113,7 +121,7 @@ flowchart TD
 
 ---
 
-## 🔄 Pipeline de Análisis
+## Pipeline de Análisis
 
 ```mermaid
 flowchart LR
@@ -130,24 +138,24 @@ flowchart LR
 
 ---
 
-## 🛠️ Stack Tecnológico
+## Stack Tecnológico
 
-| Capa | Tecnología | Versión | Descripción |
-| :--- | :--- | :---: | :--- |
-| **Backend Core** | Django | `6.0.2` | Framework web principal en Python 3.11+ |
-| **Servidor WSGI** | Gunicorn | `23.0.0` | Servidor HTTP de producción para contenedores |
-| **Archivos Estáticos** | WhiteNoise | `6.12.0` | Servicio de estáticos comprimidos en producción |
-| **Base de Datos** | PostgreSQL | `16` | BD relacional en contenedor (Alpine) |
-| **Adaptador BD** | psycopg2-binary | `2.9.11` | Driver PostgreSQL para Python |
-| **Análisis Estático** | Lizard | `1.21.0` | Extracción multihilo de CCN y NLOC |
-| **Minería de Git** | PyDriller / Dulwich | `2.9` | Historial de commits, deltas y autores |
-| **Integración IA** | OpenAI SDK | `2.24.0` | Compatible con DeepSeek, Grok y OpenAI |
-| **Seguridad** | cryptography | `46.0.5` | Encriptación AES de tokens OAuth |
-| **Entorno** | python-dotenv | `1.2.1` | Carga de variables `.env` |
-| **Peticiones HTTP** | requests | `2.32.5` | Integración con APIs REST y GraphQL |
-| **Visualización 3D** | A-Frame | `1.5.0` | Renderizado 3D inmersivo WebXR |
-| **Dashboards 3D** | BabiaXR | `latest` | Componentes de gráficos 3D para A-Frame |
-| **Extensiones 3D** | aframe-extras | `7.2.0` | Controles de movimiento y animaciones |
+| Capa                   | Tecnología          | Versión  | Descripción                                     |
+| :--------------------- | :------------------ | :------: | :---------------------------------------------- |
+| **Backend Core**       | Django              | `6.0.2`  | Framework web principal en Python 3.11+         |
+| **Servidor WSGI**      | Gunicorn            | `23.0.0` | Servidor HTTP de producción para contenedores   |
+| **Archivos Estáticos** | WhiteNoise          | `6.12.0` | Servicio de estáticos comprimidos en producción |
+| **Base de Datos**      | PostgreSQL          |   `16`   | BD relacional en contenedor (Alpine)            |
+| **Adaptador BD**       | psycopg2-binary     | `2.9.11` | Driver PostgreSQL para Python                   |
+| **Análisis Estático**  | Lizard              | `1.21.0` | Extracción multihilo de CCN y NLOC              |
+| **Minería de Git**     | PyDriller / Dulwich |  `2.9`   | Historial de commits, deltas y autores          |
+| **Integración IA**     | OpenAI SDK          | `2.24.0` | Compatible con DeepSeek, Grok y OpenAI          |
+| **Seguridad**          | cryptography        | `46.0.5` | Encriptación AES de tokens OAuth                |
+| **Entorno**            | python-dotenv       | `1.2.1`  | Carga de variables `.env`                       |
+| **Peticiones HTTP**    | requests            | `2.32.5` | Integración con APIs REST y GraphQL             |
+| **Visualización 3D**   | A-Frame             | `1.5.0`  | Renderizado 3D inmersivo WebXR                  |
+| **Dashboards 3D**      | BabiaXR             | `latest` | Componentes de gráficos 3D para A-Frame         |
+| **Extensiones 3D**     | aframe-extras       | `7.2.0`  | Controles de movimiento y animaciones           |
 
 ---
 
@@ -169,7 +177,7 @@ ViZzo se conecta con servicios cloud para enriquecer el análisis:
 
 ---
 
-## 🔐 Variables de Entorno (`.env`)
+## Variables de Entorno (`.env`)
 
 Crea un archivo `.env` en la raíz del proyecto Django (`ViZo/.env`) con la siguiente configuración base:
 
@@ -200,14 +208,16 @@ GITLAB_TOKEN=glpat-...
 
 ---
 
-## 🚀 Guía de Inicio Rápido
+## Guía de Inicio Rápido
 
 ### 1. Requisitos Previos
-* **Python 3.11** o superior.
-* **Git** instalado en el sistema.
-* **PostgreSQL 16** en ejecución (o usar Docker Compose).
+
+- **Python 3.11** o superior.
+- **Git** instalado en el sistema.
+- **PostgreSQL 16** en ejecución (o usar Docker Compose).
 
 ### 2. Clonar el Repositorio
+
 ```bash
 git clone https://github.com/PiRuLeT4/Vizzo.git
 cd Vizzo
@@ -216,35 +226,42 @@ cd Vizzo
 ### 3. Crear y Activar el Entorno Virtual
 
 **Windows (PowerShell):**
+
 ```powershell
 python -m venv venv
 .\venv\Scripts\Activate.ps1
 ```
+
 **Linux / macOS:**
+
 ```bash
 python3 -m venv venv
 source venv/bin/activate
 ```
 
 ### 4. Instalar Dependencias
+
 ```bash
 pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
 ### 5. Configurar Variables de Entorno
+
 ```bash
 cp ViZo/.env.example ViZo/.env
 # Edita ViZo/.env con tu SECRET_KEY y credenciales de BD
 ```
 
 ### 6. Aplicar Migraciones
+
 ```bash
 cd ViZo
 python manage.py migrate
 ```
 
 ### 7. Iniciar el Servidor de Desarrollo
+
 ```bash
 python manage.py runserver
 ```
@@ -284,7 +301,7 @@ docker run -d -p 8000:8000 --env-file ViZo/.env --name vizzo-app vizzo
 
 ---
 
-## 📂 Estructura del Proyecto
+## Estructura del Proyecto
 
 ```text
 Vizzo/
@@ -323,7 +340,7 @@ Este proyecto está bajo la Licencia **MIT**. Consulta el archivo [LICENSE](LICE
 
 ---
 
-<sub>Desarrollado con ❤️ para la visualización inmersiva de arquitectura de software</sub>
+<sub>Trabajo fin de grado</sub>
 
 <a href="https://vizzovr.com"><b>vizzovr.com</b></a>
 
